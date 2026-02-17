@@ -131,6 +131,7 @@ func main() {
 			permits.GET("/:id", handlers.HandleGetPermitByID)
 			permits.POST("", handlers.HandleCreatePermit)
 			permits.PUT("/:id", handlers.HandleUpdatePermit)
+			permits.POST("/:id/validate", handlers.HandleValidatePermit)
 		}
 
 		users := api.Group("/users")

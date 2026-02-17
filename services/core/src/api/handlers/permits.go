@@ -29,7 +29,7 @@ func HandleGetPermits(c *gin.Context) {
 	}
 
 	permsHeader := c.GetHeader("X-Permissions")
-	hasAllPermits := strings.Contains(permsHeader, "read:permits")
+	hasAllPermits := strings.Contains(permsHeader, "read:permits:all")
 
 	if !hasAllPermits {
 		authID := c.GetHeader("X-User-ID")
@@ -169,5 +169,38 @@ func HandleGetPermitByID(c *gin.Context) {
 		return
 	}
 
+	c.JSON(http.StatusOK, permit)
+}
+
+func HandleValidatePermit(c *gin.Context) {
+	id := c.Param("id")
+
+	authID := c.GetHeader("X-User-ID")
+	var user models.User
+	if err := repository.DB.WithContext(c.Request.Context()).Where("auth_id = ?", authID).First(&user).Error; err != nil {
+		c.JSON(http.StatusForbidden, gin.H{"error": "User profile not found"})
+		return
+	}
+
+	var permit models.Permit
+	if err := repository.DB.WithContext(c.Request.Context()).First(&permit, id).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Permit not found"})
+		return
+	}
+
+	now := time.Now()
+	updates := map[string]interface{}{
+		"verified_by": user.ID,
+		"verified_at": now,
+	}
+
+	if err := repository.DB.WithContext(c.Request.Context()).Model(&permit).Updates(updates).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to validate permit"})
+		return
+	}
+
+	logPermitAudit(c, permit.ID, user.ID, "validate", updates, "Валідовано користувачем")
+
+	repository.DB.WithContext(c.Request.Context()).Preload("Verifier").First(&permit, id)
 	c.JSON(http.StatusOK, permit)
 }

@@ -38,6 +38,8 @@ func seedData() {
 		{ID: "update:events", Name: "Події: Корекція", Module: "core"},
 
 		{ID: "read:permits", Name: "Перепустки: Перегляд", Module: "core"},
+		{ID: "read:permits:all", Name: "Перепустки: Перегляд всіх", Module: "core"},
+		{ID: "validate:permits", Name: "Перепустки: Валідація", Module: "core"},
 		{ID: "create:permits", Name: "Перепустки: Створення", Module: "core"},
 		{ID: "update:permits", Name: "Перепустки: Редагування", Module: "core"},
 
@@ -61,7 +63,7 @@ func seedData() {
 	var managerRole models.Role
 	repository.DB.FirstOrCreate(&managerRole, models.Role{Name: "manager", Description: "Керівник (редагування без видалення)"})
 	managerPermIDs := []string{
-		"update:users", "update:permits", "update:events", "update:settings",
+		"update:users", "update:permits", "validate:permits", "update:events", "update:settings",
 		"update:cameras", "update:scales", "read:roles", "read:keys",
 	}
 	managerPerms := []models.Permission{}
@@ -166,6 +168,7 @@ func seedData() {
 
 		// Core Service: PERMITS
 		{Method: "GET", PathPattern: `^/api/permits.*`, RequiredPermission: "read:permits", Description: "Перегляд перепусток"},
+		{Method: "POST", PathPattern: `^/api/permits/.*/validate$`, RequiredPermission: "validate:permits", Description: "Валідація перепусток"},
 		{Method: "POST", PathPattern: `^/api/permits.*`, RequiredPermission: "create:permits", Description: "Створення перепусток"},
 		{Method: "PUT", PathPattern: `^/api/permits/.*`, RequiredPermission: "update:permits", Description: "Оновлення перепусток"},
 
