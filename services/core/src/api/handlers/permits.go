@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"log/slog"
 	"net/http"
 	"strings"
 	"time"
@@ -11,9 +12,11 @@ import (
 	"github.com/truckguard/core/src/repository"
 	"github.com/truckguard/core/src/utils"
 	"gorm.io/datatypes"
+	"gorm.io/gorm"
 )
 
 func HandleGetPermits(c *gin.Context) {
+	slog.Info("HandleGetPermits: Start")
 	var permits []models.Permit
 	var total int64
 	limit, offset, page := utils.GetPagination(c)
@@ -26,7 +29,7 @@ func HandleGetPermits(c *gin.Context) {
 	}
 
 	permsHeader := c.GetHeader("X-Permissions")
-	hasAllPermits := strings.Contains(permsHeader, "read:permits:all")
+	hasAllPermits := strings.Contains(permsHeader, "read:permits")
 
 	if !hasAllPermits {
 		authID := c.GetHeader("X-User-ID")
@@ -51,13 +54,24 @@ func HandleGetPermits(c *gin.Context) {
 		}
 	}
 
-	query.Count(&total)
+	var countQuery = query.Session(&gorm.Session{})
+	if err := countQuery.Count(&total).Error; err != nil {
+		slog.Error("HandleGetPermits: Count error", "error", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to count permits"})
+		return
+	}
+	slog.Info("HandleGetPermits: Count done", "total", total)
 
-	query.Limit(limit).Offset(offset).Order("created_at desc").
+	if err := query.Limit(limit).Offset(offset).Order("created_at desc").
 		Preload("CustomsPost").
 		Preload("PlateEvents").
 		Preload("WeightEvents").
-		Find(&permits)
+		Find(&permits).Error; err != nil {
+		slog.Error("HandleGetPermits: Find error", "error", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch permits"})
+		return
+	}
+	slog.Info("HandleGetPermits: Find done", "count", len(permits))
 
 	utils.SendPaginatedResponse(c, permits, total, page, limit)
 }
