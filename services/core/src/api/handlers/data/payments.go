@@ -1,6 +1,7 @@
 package data
 
 import (
+	"log/slog"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -37,7 +38,8 @@ func HandleCreatePaymentType(c *gin.Context) {
 		return
 	}
 	if err := repository.DB.WithContext(c.Request.Context()).Create(&input).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create payment type"})
+		slog.Error("Failed to create payment type", "error", err, "input", input)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create payment type: " + err.Error()})
 		return
 	}
 	c.JSON(http.StatusCreated, input)
@@ -62,14 +64,19 @@ func HandleUpdatePaymentType(c *gin.Context) {
 	paymentType.IsActive = input.IsActive
 	paymentType.Icon = input.Icon
 
-	repository.DB.WithContext(c.Request.Context()).Save(&paymentType)
+	if err := repository.DB.WithContext(c.Request.Context()).Save(&paymentType).Error; err != nil {
+		slog.Error("Failed to update payment type", "error", err, "id", id, "input", input)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update payment type: " + err.Error()})
+		return
+	}
 	c.JSON(http.StatusOK, paymentType)
 }
 
 func HandleDeletePaymentType(c *gin.Context) {
 	id := c.Param("id")
 	if err := repository.DB.WithContext(c.Request.Context()).Delete(&models.PaymentType{}, id).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete"})
+		slog.Error("Failed to delete payment type", "error", err, "id", id)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete payment type: " + err.Error()})
 		return
 	}
 	c.Status(http.StatusNoContent)

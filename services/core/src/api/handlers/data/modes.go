@@ -1,6 +1,7 @@
 package data
 
 import (
+	"log/slog"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -37,7 +38,8 @@ func HandleCreateMode(c *gin.Context) {
 		return
 	}
 	if err := repository.DB.WithContext(c.Request.Context()).Create(&input).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create mode"})
+		slog.Error("Failed to create mode", "error", err, "input", input)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create mode: " + err.Error()})
 		return
 	}
 	c.JSON(http.StatusCreated, input)
@@ -60,14 +62,19 @@ func HandleUpdateMode(c *gin.Context) {
 	mode.Code = input.Code
 	mode.Description = input.Description
 
-	repository.DB.WithContext(c.Request.Context()).Save(&mode)
+	if err := repository.DB.WithContext(c.Request.Context()).Save(&mode).Error; err != nil {
+		slog.Error("Failed to update mode", "error", err, "id", id, "input", input)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update mode: " + err.Error()})
+		return
+	}
 	c.JSON(http.StatusOK, mode)
 }
 
 func HandleDeleteMode(c *gin.Context) {
 	id := c.Param("id")
 	if err := repository.DB.WithContext(c.Request.Context()).Delete(&models.CustomsMode{}, id).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete"})
+		slog.Error("Failed to delete mode", "error", err, "id", id)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete mode: " + err.Error()})
 		return
 	}
 	c.Status(http.StatusNoContent)

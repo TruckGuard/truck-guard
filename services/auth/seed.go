@@ -47,6 +47,9 @@ func seedData() {
 		{ID: "update:settings", Name: "Налаштування: Зміна", Module: "core"},
 		{ID: "manage:settings", Name: "Налаштування: Повний доступ", Module: "core"},
 
+		{ID: "read:data", Name: "Довідники: Перегляд", Module: "core"},
+		{ID: "manage:data", Name: "Довідники: Повний доступ", Module: "core"},
+
 		{ID: "read:audit", Name: "Аудит: Перегляд", Module: "auth"},
 	}
 
@@ -158,8 +161,8 @@ func seedData() {
 		{Method: "DELETE", PathPattern: `^/api/configs/excluded-plates/.*`, RequiredPermission: "update:settings", Description: "Видалення з чорного списку"},
 
 		// Core Service: DATA
-		{Method: "GET", PathPattern: `^/api/data/.*`, RequiredPermission: "read:settings", Description: "Перегляд довідників"},
-		{Method: "*", PathPattern: `^/api/data/.*`, RequiredPermission: "manage:settings", Description: "Керування довідниками"},
+		{Method: "GET", PathPattern: `^/api/data/.*`, RequiredPermission: "read:data", Description: "Перегляд довідників"},
+		{Method: "*", PathPattern: `^/api/data/.*`, RequiredPermission: "manage:data", Description: "Керування довідниками"},
 
 		// Core Service: EVENTS
 		{Method: "GET", PathPattern: `^/api/events/.*`, RequiredPermission: "read:events", Description: "Перегляд подій"},

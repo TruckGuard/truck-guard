@@ -1,6 +1,7 @@
 package data
 
 import (
+	"log/slog"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -33,7 +34,8 @@ func HandleCreatePost(c *gin.Context) {
 		return
 	}
 	if err := repository.DB.WithContext(c.Request.Context()).Create(&input).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create post"})
+		slog.Error("Failed to create post", "error", err, "input", input)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create post: " + err.Error()})
 		return
 	}
 	c.JSON(http.StatusCreated, input)
@@ -55,14 +57,19 @@ func HandleUpdatePost(c *gin.Context) {
 	post.Name = input.Name
 	post.Description = input.Description
 
-	repository.DB.WithContext(c.Request.Context()).Save(&post)
+	if err := repository.DB.WithContext(c.Request.Context()).Save(&post).Error; err != nil {
+		slog.Error("Failed to update post", "error", err, "id", id, "input", input)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update post: " + err.Error()})
+		return
+	}
 	c.JSON(http.StatusOK, post)
 }
 
 func HandleDeletePost(c *gin.Context) {
 	id := c.Param("id")
 	if err := repository.DB.WithContext(c.Request.Context()).Unscoped().Delete(&models.CustomsPost{}, id).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete"})
+		slog.Error("Failed to delete post", "error", err, "id", id)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete post: " + err.Error()})
 		return
 	}
 	c.Status(http.StatusNoContent)

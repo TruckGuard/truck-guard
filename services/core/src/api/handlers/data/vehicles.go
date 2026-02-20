@@ -1,6 +1,7 @@
 package data
 
 import (
+	"log/slog"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -37,7 +38,8 @@ func HandleCreateVehicleType(c *gin.Context) {
 		return
 	}
 	if err := repository.DB.WithContext(c.Request.Context()).Create(&input).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create vehicle type"})
+		slog.Error("Failed to create vehicle type", "error", err, "input", input)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create vehicle type: " + err.Error()})
 		return
 	}
 	c.JSON(http.StatusCreated, input)
@@ -63,14 +65,19 @@ func HandleUpdateVehicleType(c *gin.Context) {
 	vehicleType.DailyPrice = input.DailyPrice
 	vehicleType.Color = input.Color
 
-	repository.DB.WithContext(c.Request.Context()).Save(&vehicleType)
+	if err := repository.DB.WithContext(c.Request.Context()).Save(&vehicleType).Error; err != nil {
+		slog.Error("Failed to update vehicle type", "error", err, "id", id, "input", input)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update vehicle type: " + err.Error()})
+		return
+	}
 	c.JSON(http.StatusOK, vehicleType)
 }
 
 func HandleDeleteVehicleType(c *gin.Context) {
 	id := c.Param("id")
 	if err := repository.DB.WithContext(c.Request.Context()).Delete(&models.VehicleType{}, id).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete"})
+		slog.Error("Failed to delete vehicle type", "error", err, "id", id)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete vehicle type: " + err.Error()})
 		return
 	}
 	c.Status(http.StatusNoContent)

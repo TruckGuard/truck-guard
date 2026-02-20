@@ -1,6 +1,7 @@
 package data
 
 import (
+	"log/slog"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -37,7 +38,8 @@ func HandleCreateCompany(c *gin.Context) {
 		return
 	}
 	if err := repository.DB.WithContext(c.Request.Context()).Create(&input).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create company"})
+		slog.Error("Failed to create company", "error", err, "input", input)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create company: " + err.Error()})
 		return
 	}
 	c.JSON(http.StatusCreated, input)
@@ -60,14 +62,19 @@ func HandleUpdateCompany(c *gin.Context) {
 	company.EDRPOU = input.EDRPOU
 	company.Details = input.Details
 
-	repository.DB.WithContext(c.Request.Context()).Save(&company)
+	if err := repository.DB.WithContext(c.Request.Context()).Save(&company).Error; err != nil {
+		slog.Error("Failed to update company", "error", err, "id", id, "input", input)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update company: " + err.Error()})
+		return
+	}
 	c.JSON(http.StatusOK, company)
 }
 
 func HandleDeleteCompany(c *gin.Context) {
 	id := c.Param("id")
 	if err := repository.DB.WithContext(c.Request.Context()).Delete(&models.Company{}, id).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete"})
+		slog.Error("Failed to delete company", "error", err, "id", id)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete company: " + err.Error()})
 		return
 	}
 	c.Status(http.StatusNoContent)

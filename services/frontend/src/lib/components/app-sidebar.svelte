@@ -45,6 +45,12 @@
             permissions: ["read:scales"],
           },
           {
+            title: "Дані",
+            url: "/config/data",
+            icon: ClipboardList,
+            permissions: ["read:data"],
+          },
+          {
             title: "Налаштування",
             url: "/config/settings",
             icon: SlidersHorizontal,
