@@ -62,7 +62,7 @@ def create_weight_event(token, scale_id, weight):
 
 def get_permits(token):
     headers = {"Authorization": f"Bearer {token}"}
-    response = requests.get(f"{CORE_API_URL}/permits/", headers=headers)
+    response = requests.get(f"{CORE_API_URL}/permits", headers=headers)
     if response.status_code == 200:
         return response.json().get("data", [])
     print(f"Get Permits Failed: {response.text}")

@@ -44,7 +44,7 @@ tags:
   - name: Health
     description: Health checks
   - name: "Core: Data"
-    description: Master data management
+    description: Master data management (Posts, Modes, Vehicle Types, etc.)
 
 security:
   - bearerAuth: []
@@ -461,9 +461,25 @@ paths:
         content:
           application/json:
             schema: { $ref: "#/components/schemas/CameraConfig" }
+            example:
+              camera_id: "cam-entry-01"
+              name: "Entry Main Gate"
+              description: "Main entry recognition camera"
+              type: "front"
+              format: "json"
+              run_anpr: true
+              trigger_permit_creation: true
+              field_mapping: '{"plate": "vehicle.license_plate", "image": "event.snapshot"}'
       responses:
         201:
           description: Camera registered
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  camera: { $ref: "#/components/schemas/CameraConfig" }
+                  api_key: { type: string, example: "tg_..." }
 
   /api/configs/cameras/{id}:
     get:
@@ -557,6 +573,13 @@ paths:
       responses:
         201:
           description: Scale registered
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  scale: { $ref: "#/components/schemas/ScaleConfig" }
+                  api_key: { type: string, example: "tg_..." }
 
   /api/configs/scales/{id}:
     put:
@@ -898,6 +921,14 @@ paths:
         content:
           application/json:
             schema: { $ref: "#/components/schemas/Permit" }
+            example:
+              code: "PERM-2024-001"
+              plate_front: "AA1234BB"
+              plate_back: "BC5678DE"
+              vehicle_type_id: 1
+              customs_post_id: 1
+              declaration_number: "UA123456/2024/0001"
+              notes: "Manual entry by operator"
       responses:
         201:
           description: Permit created
@@ -947,6 +978,25 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/Permit" }
 
+  /api/permits/{id}/validate:
+    post:
+      tags: ["Operations: Permits"]
+      summary: Validate permit by operator
+      description: |
+        Mark the permit as verified by the current operator.
+        Permissions: `update:permits`
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        200:
+          description: Permit validated
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Permit" }
+
   # --- Core: Users ---
   /api/users:
     get:
@@ -963,6 +1013,39 @@ paths:
               schema:
                 type: array
                 items: { $ref: "#/components/schemas/UserCore" }
+    post:
+      tags: ["Core: Users"]
+      summary: Create a new user
+      description: |
+        Create a new user profile in Core and register in Auth service.
+        Permissions: `create:users`
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [username, password, role]
+              properties:
+                username: { type: string }
+                password: { type: string }
+                role: { type: string }
+                first_name: { type: string }
+                last_name: { type: string }
+                third_name: { type: string }
+                phone_number: { type: string }
+                email: { type: string }
+                notes: { type: string }
+                customs_post_id: { type: integer, nullable: true }
+      responses:
+        201:
+          description: User created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/UserCore" }
+        409:
+          description: User already exists
+        502:
+          description: Auth service registration failed
 
   /api/users/me:
     get:
@@ -1142,9 +1225,18 @@ paths:
   # --- Data Service ---
   /api/data/posts:
     get:
-      tags: ["Data"]
+      tags: ["Core: Data"]
       summary: List customs posts
+      description: |
+        List all customs posts with pagination.
+        Permissions: `read:data`
       parameters:
+        - name: page
+          in: query
+          schema: { type: integer, default: 1 }
+        - name: limit
+          in: query
+          schema: { type: integer, default: 10 }
         - name: name
           in: query
           schema: { type: string }
@@ -1154,23 +1246,36 @@ paths:
           content:
             application/json:
               schema:
-                type: array
-                items: { $ref: "#/components/schemas/CustomsPost" }
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: "#/components/schemas/CustomsPost" }
+                  metadata: { $ref: "#/components/schemas/PaginationMetadata" }
     post:
-      tags: ["Data"]
+      tags: ["Core: Data"]
       summary: Create customs post
+      description: |
+        Create a new customs post.
+        Permissions: `create:data`
       requestBody:
         content:
           application/json:
             schema: { $ref: "#/components/schemas/CustomsPost" }
+            example:
+              name: "Yahodyn"
+              description: "Main border crossing to Poland"
       responses:
         201:
           description: Created
 
   /api/data/posts/{id}:
     put:
-      tags: ["Data"]
+      tags: ["Core: Data"]
       summary: Update customs post
+      description: |
+        Update an existing customs post.
+        Permissions: `update:data`
       parameters:
         - name: id
           in: path
@@ -1184,8 +1289,11 @@ paths:
         200:
           description: Updated
     delete:
-      tags: ["Data"]
+      tags: ["Core: Data"]
       summary: Delete customs post
+      description: |
+        Delete a customs post.
+        Permissions: `delete:data`
       parameters:
         - name: id
           in: path
@@ -1197,9 +1305,18 @@ paths:
 
   /api/data/modes:
     get:
-      tags: ["Data"]
+      tags: ["Core: Data"]
       summary: List customs modes
+      description: |
+        List all customs modes with pagination.
+        Permissions: `read:data`
       parameters:
+        - name: page
+          in: query
+          schema: { type: integer, default: 1 }
+        - name: limit
+          in: query
+          schema: { type: integer, default: 10 }
         - name: code
           in: query
           schema: { type: string }
@@ -1212,23 +1329,37 @@ paths:
           content:
             application/json:
               schema:
-                type: array
-                items: { $ref: "#/components/schemas/CustomsMode" }
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: "#/components/schemas/CustomsMode" }
+                  metadata: { $ref: "#/components/schemas/PaginationMetadata" }
     post:
-      tags: ["Data"]
+      tags: ["Core: Data"]
       summary: Create customs mode
+      description: |
+        Create a new customs mode.
+        Permissions: `create:data`
       requestBody:
         content:
           application/json:
             schema: { $ref: "#/components/schemas/CustomsMode" }
+            example:
+              name: "Import"
+              code: "IM40"
+              description: "Direct import for consumption"
       responses:
         201:
           description: Created
 
   /api/data/modes/{id}:
     put:
-      tags: ["Data"]
+      tags: ["Core: Data"]
       summary: Update customs mode
+      description: |
+        Update an existing customs mode.
+        Permissions: `update:data`
       parameters:
         - name: id
           in: path
@@ -1242,8 +1373,11 @@ paths:
         200:
           description: Updated
     delete:
-      tags: ["Data"]
+      tags: ["Core: Data"]
       summary: Delete customs mode
+      description: |
+        Delete a customs mode.
+        Permissions: `delete:data`
       parameters:
         - name: id
           in: path
@@ -1255,9 +1389,18 @@ paths:
 
   /api/data/vehicle-types:
     get:
-      tags: ["Data"]
+      tags: ["Core: Data"]
       summary: List vehicle types
+      description: |
+        List all vehicle types with pagination.
+        Permissions: `read:data`
       parameters:
+        - name: page
+          in: query
+          schema: { type: integer, default: 1 }
+        - name: limit
+          in: query
+          schema: { type: integer, default: 10 }
         - name: code
           in: query
           schema: { type: string }
@@ -1270,11 +1413,18 @@ paths:
           content:
             application/json:
               schema:
-                type: array
-                items: { $ref: "#/components/schemas/VehicleType" }
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: "#/components/schemas/VehicleType" }
+                  metadata: { $ref: "#/components/schemas/PaginationMetadata" }
     post:
       tags: ["Core: Data"]
       summary: Create vehicle type
+      description: |
+        Create a new vehicle type.
+        Permissions: `create:data`
       requestBody:
         content:
           application/json:
@@ -1287,6 +1437,9 @@ paths:
     put:
       tags: ["Core: Data"]
       summary: Update vehicle type
+      description: |
+        Update an existing vehicle type.
+        Permissions: `update:data`
       parameters:
         - name: id
           in: path
@@ -1302,6 +1455,9 @@ paths:
     delete:
       tags: ["Core: Data"]
       summary: Delete vehicle type
+      description: |
+        Delete a vehicle type.
+        Permissions: `delete:data`
       parameters:
         - name: id
           in: path
@@ -1315,7 +1471,16 @@ paths:
     get:
       tags: ["Core: Data"]
       summary: List payment types
+      description: |
+        List all payment types with pagination.
+        Permissions: `read:data`
       parameters:
+        - name: page
+          in: query
+          schema: { type: integer, default: 1 }
+        - name: limit
+          in: query
+          schema: { type: integer, default: 10 }
         - name: code
           in: query
           schema: { type: string }
@@ -1328,11 +1493,18 @@ paths:
           content:
             application/json:
               schema:
-                type: array
-                items: { $ref: "#/components/schemas/PaymentType" }
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: "#/components/schemas/PaymentType" }
+                  metadata: { $ref: "#/components/schemas/PaginationMetadata" }
     post:
       tags: ["Core: Data"]
       summary: Create payment type
+      description: |
+        Create a new payment type.
+        Permissions: `create:data`
       requestBody:
         content:
           application/json:
@@ -1373,7 +1545,16 @@ paths:
     get:
       tags: ["Core: Data"]
       summary: List companies
+      description: |
+        List all companies with pagination.
+        Permissions: `read:data`
       parameters:
+        - name: page
+          in: query
+          schema: { type: integer, default: 1 }
+        - name: limit
+          in: query
+          schema: { type: integer, default: 10 }
         - name: edrpou
           in: query
           schema: { type: string }
@@ -1386,11 +1567,18 @@ paths:
           content:
             application/json:
               schema:
-                type: array
-                items: { $ref: "#/components/schemas/Company" }
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: "#/components/schemas/Company" }
+                  metadata: { $ref: "#/components/schemas/PaginationMetadata" }
     post:
       tags: ["Core: Data"]
       summary: Create company
+      description: |
+        Create a new company.
+        Permissions: `create:data`
       requestBody:
         content:
           application/json:
@@ -1403,6 +1591,9 @@ paths:
     put:
       tags: ["Core: Data"]
       summary: Update company
+      description: |
+        Update an existing company.
+        Permissions: `update:data`
       parameters:
         - name: id
           in: path
@@ -1418,6 +1609,9 @@ paths:
     delete:
       tags: ["Core: Data"]
       summary: Delete company
+      description: |
+        Delete a company.
+        Permissions: `delete:data`
       parameters:
         - name: id
           in: path
@@ -1567,12 +1761,13 @@ components:
         total_weight: { type: number }
         payment_type_id: { type: integer, nullable: true }
         payment_type: { $ref: "#/components/schemas/PaymentType" }
-        entry_fee: { type: number }
-        exit_fee: { type: number }
+        entry_fee: { type: number, example: 150.0 }
+        exit_fee: { type: number, example: 0.0 }
         payers:
           type: array
           items: { $ref: "#/components/schemas/PermitPayer" }
-        entry_time: { type: string, format: date-time }
+        entry_time:
+          { type: string, format: date-time, example: "2024-05-20T10:00:00Z" }
         exit_time: { type: string, format: date-time, nullable: true }
         last_activity_at: { type: string, format: date-time }
         created_by: { type: integer, nullable: true }
