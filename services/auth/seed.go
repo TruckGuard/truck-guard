@@ -176,10 +176,10 @@ func seedData() {
 		{Method: "PUT", PathPattern: `^/api/permits/.*`, RequiredPermission: "update:permits", Description: "Оновлення перепусток"},
 
 		// Core Service: USERS
-		{Method: "GET", PathPattern: `^/api/users$`, RequiredPermission: "read:users", Description: "Список профілів"},
+		{Method: "GET", PathPattern: `^/api/users/?$`, RequiredPermission: "read:users", Description: "Список профілів"},
 		{Method: "GET", PathPattern: `^/api/users/me`, RequiredPermission: "", Description: "Мій профіль"},
 		{Method: "PUT", PathPattern: `^/api/users/me`, RequiredPermission: "", Description: "Оновлення мого профілю"},
-		{Method: "POST", PathPattern: `^/api/users/$`, RequiredPermission: "create:users", Description: "Створення профілю"},
+		{Method: "POST", PathPattern: `^/api/users/?$`, RequiredPermission: "create:users", Description: "Створення профілю"},
 		{Method: "*", PathPattern: `^/api/users/.*`, RequiredPermission: "update:users", Description: "Керування профілями"},
 	}
 

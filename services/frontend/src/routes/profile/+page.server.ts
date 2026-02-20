@@ -2,9 +2,19 @@ import type { Actions, PageServerLoad } from './$types';
 import { fail } from '@sveltejs/kit';
 
 export const load: PageServerLoad = async ({ locals }) => {
-    const profile = await locals.coreClient.getMyProfile();
+    let profile = {};
+    try {
+        profile = (await locals.coreClient.getMyProfile()) || {};
+    } catch (e) {
+        console.error("Failed to fetch profile", e);
+    }
+
+    const postsResponse = await locals.coreClient.listData<any>('posts', 1, 100);
+    
     return {
-        profile: profile || {}
+        user: locals.user,
+        profile,
+        posts: postsResponse.data
     };
 };
 
@@ -19,13 +29,16 @@ export const actions: Actions = {
         const email = data.get('email') as string;
         const notes = data.get('notes') as string;
 
+        const customsPostId = data.get('customs_post_id');
+        
         const updatedProfile = await locals.coreClient.updateMyProfile({
             first_name: firstName,
             last_name: lastName,
             third_name: thirdName,
             phone_number: phone,
             email,
-            notes
+            notes,
+            customs_post_id: customsPostId ? Number(customsPostId) : null
         });
 
         if (!updatedProfile) {

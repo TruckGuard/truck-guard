@@ -9,12 +9,14 @@
 
   let { data } = $props();
 
-  let { profile, user } = $derived(data);
+  let { profile, user, posts } = $derived(data);
 
   let rawRole = $derived(profile?.role || user.role);
   let roleName = $derived(
     typeof rawRole === "object" ? rawRole?.name : rawRole,
   );
+
+  let currentPostId = $derived(profile?.customs_post_id);
 </script>
 
 <div class="container max-w-2xl py-10 mx-auto">
@@ -68,7 +70,7 @@
             <Input
               id="last_name"
               name="last_name"
-              value={user.last_name || ""}
+              value={profile?.last_name || ""}
             />
           </div>
           <div class="space-y-2">
@@ -76,7 +78,7 @@
             <Input
               id="first_name"
               name="first_name"
-              value={user.first_name || ""}
+              value={profile?.first_name || ""}
             />
           </div>
           <div class="space-y-2">
@@ -84,7 +86,7 @@
             <Input
               id="third_name"
               name="third_name"
-              value={user.third_name || ""}
+              value={profile?.third_name || ""}
             />
           </div>
         </div>
@@ -97,7 +99,7 @@
             id="email"
             name="email"
             type="email"
-            value={user.email || ""}
+            value={profile?.email || ""}
           />
         </div>
 
@@ -108,8 +110,23 @@
           <Input
             id="phone_number"
             name="phone_number"
-            value={user.phone_number || ""}
+            value={profile?.phone_number || ""}
           />
+        </div>
+
+        <div class="space-y-2">
+          <Label for="customs_post_id">Митний пост (Робоче місце)</Label>
+          <select
+            id="customs_post_id"
+            name="customs_post_id"
+            class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+            value={profile?.customs_post_id}
+          >
+            <option value="">Не закріплено</option>
+            {#each posts as post}
+              <option value={post.ID}>{post.name}</option>
+            {/each}
+          </select>
         </div>
 
         <div class="space-y-2">
@@ -119,7 +136,7 @@
           <Textarea
             id="notes"
             name="notes"
-            value={user.notes || ""}
+            value={profile?.notes || ""}
             placeholder="Додаткова інформація про себе..."
             class="min-h-[100px]"
           />

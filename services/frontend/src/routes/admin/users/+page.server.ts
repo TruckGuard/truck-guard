@@ -8,13 +8,11 @@ export const load: PageServerLoad = async ({ locals }) => {
         throw error(500, 'Failed to fetch users from Auth Service');
     }
 
+    const postsResponse = await locals.coreClient.listData<any>('posts', 1, 100);
     const coreUsers = await locals.coreClient.listUsers();
-    if (!coreUsers) {
-         console.error("Failed to fetch Core users");
-    }
 
     const users = authUsers.map((authUser: any) => {
-        const profile = coreUsers?.find((cu: any) => cu.auth_id === authUser.id);
+        const profile = coreUsers?.find((cu: any) => String(cu.auth_id) === String(authUser.id));
         return {
             ...authUser,
             profile: profile || null
@@ -22,7 +20,8 @@ export const load: PageServerLoad = async ({ locals }) => {
     });
 
     return {
-        users
+        users,
+        posts: postsResponse.data
     };
 };
 

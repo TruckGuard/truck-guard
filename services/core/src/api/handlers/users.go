@@ -136,7 +136,7 @@ func HandleDeleteUser(c *gin.Context) {
 }
 
 func HandleUpdateUser(c *gin.Context) {
-	id := c.Param("id")
+	idStr := c.Param("id")
 	var input struct {
 		FirstName     string `json:"first_name"`
 		LastName      string `json:"last_name"`
@@ -152,10 +152,19 @@ func HandleUpdateUser(c *gin.Context) {
 		return
 	}
 
+	var rid uint64
+	fmt.Sscanf(idStr, "%d", &rid)
+	realAuthID := uint(rid)
+
 	var user models.User
-	if err := repository.DB.WithContext(c.Request.Context()).Where("auth_id = ?", id).First(&user).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "User profile not found"})
-		return
+	result := repository.DB.WithContext(c.Request.Context()).Where("auth_id = ?", realAuthID).First(&user)
+
+	isNew := false
+	if result.Error != nil {
+		user = models.User{
+			AuthID: realAuthID,
+		}
+		isNew = true
 	}
 
 	user.FirstName = input.FirstName
@@ -166,8 +175,15 @@ func HandleUpdateUser(c *gin.Context) {
 	user.Notes = input.Notes
 	user.CustomsPostID = input.CustomsPostID
 
-	if err := repository.DB.WithContext(c.Request.Context()).Save(&user).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update profile in Core"})
+	var err error
+	if isNew {
+		err = repository.DB.WithContext(c.Request.Context()).Create(&user).Error
+	} else {
+		err = repository.DB.WithContext(c.Request.Context()).Save(&user).Error
+	}
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save profile in Core"})
 		return
 	}
 
@@ -187,23 +203,29 @@ func HandleGetMyProfile(c *gin.Context) {
 		return
 	}
 
+	var rid uint64
+	fmt.Sscanf(authID, "%d", &rid)
+	realAuthID := uint(rid)
+
 	var user models.User
-	if err := repository.DB.WithContext(c.Request.Context()).Where("auth_id = ?", authID).First(&user).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Profile not found"})
-		return
+	if err := repository.DB.WithContext(c.Request.Context()).Where("auth_id = ?", realAuthID).First(&user).Error; err != nil {
+		user = models.User{
+			AuthID: realAuthID,
+		}
 	}
 
 	response := gin.H{
-		"id":           user.ID,
-		"auth_id":      user.AuthID,
-		"first_name":   user.FirstName,
-		"last_name":    user.LastName,
-		"third_name":   user.ThirdName,
-		"phone_number": user.PhoneNumber,
-		"email":        user.Email,
-		"notes":        user.Notes,
-		"username":     authUser.Username,
-		"role":         authUser.Role,
+		"id":              user.ID,
+		"auth_id":         user.AuthID,
+		"first_name":      user.FirstName,
+		"last_name":       user.LastName,
+		"third_name":      user.ThirdName,
+		"phone_number":    user.PhoneNumber,
+		"email":           user.Email,
+		"notes":           user.Notes,
+		"customs_post_id": user.CustomsPostID,
+		"username":        authUser.Username,
+		"role":            authUser.Role,
 	}
 
 	c.JSON(http.StatusOK, response)
@@ -225,12 +247,13 @@ func HandleUpdateMyProfile(c *gin.Context) {
 	realAuthID := uint(authID)
 
 	var input struct {
-		FirstName   string `json:"first_name"`
-		LastName    string `json:"last_name"`
-		ThirdName   string `json:"third_name"`
-		PhoneNumber string `json:"phone_number"`
-		Email       string `json:"email"`
-		Notes       string `json:"notes"`
+		FirstName     string `json:"first_name"`
+		LastName      string `json:"last_name"`
+		ThirdName     string `json:"third_name"`
+		PhoneNumber   string `json:"phone_number"`
+		Email         string `json:"email"`
+		Notes         string `json:"notes"`
+		CustomsPostID *uint  `json:"customs_post_id"`
 	}
 
 	if err := c.ShouldBindJSON(&input); err != nil {
@@ -253,6 +276,7 @@ func HandleUpdateMyProfile(c *gin.Context) {
 	user.PhoneNumber = input.PhoneNumber
 	user.Email = input.Email
 	user.Notes = input.Notes
+	user.CustomsPostID = input.CustomsPostID
 
 	if result.Error != nil {
 		if err := repository.DB.WithContext(c.Request.Context()).Create(&user).Error; err != nil {

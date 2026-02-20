@@ -9,9 +9,11 @@ export const load: PageServerLoad = async ({ locals, cookies }) => {
     }
 
     const roles = await locals.authClient.getRoles();
+    const postsResponse = await locals.coreClient.listData<any>('posts', 1, 100);
 
     return {
-        roles
+        roles,
+        posts: postsResponse.data
     };
 };
 
@@ -32,6 +34,7 @@ export const actions: Actions = {
         const phone = data.get('phone_number') as string;
         const email = data.get('email') as string;
         const notes = data.get('notes') as string;
+        const customsPostId = data.get('customs_post_id');
 
         if (!username || !password || !role) {
              return fail(400, { error: 'Username, password and role are required' });
@@ -46,8 +49,9 @@ export const actions: Actions = {
             third_name: thirdName,
             phone_number: phone,
             email,
-            notes
-        });
+            notes,
+            customs_post_id: customsPostId ? Number(customsPostId) : null
+        } as any);
 
         if (!result) {
             return fail(500, { error: 'Failed to create user. It might already exist.' });

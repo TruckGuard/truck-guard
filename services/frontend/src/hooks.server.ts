@@ -17,7 +17,7 @@ export const handle: Handle = async ({ event, resolve }) => {
         const user = await event.locals.authClient.validate();
         if (user) {
             event.locals.user = user;
-            event.locals.coreClient = new CoreClient(session)
+            event.locals.coreClient = new CoreClient(session, user.permissions, user.id);
         } else {
             console.log('Invalid session, clearing cookie');
             event.cookies.delete('session', { path: '/' });

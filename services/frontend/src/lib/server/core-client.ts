@@ -30,7 +30,7 @@ export class CoreClient {
     // --- User Management ---
 
     async listUsers(): Promise<CoreUser[]> {
-        return this.fetchWithAuth<CoreUser[]>('/users/');
+        return this.fetchWithAuth<CoreUser[]>('/users');
     }
 
     async getUser(authId: string): Promise<CoreUser | null> {
@@ -46,7 +46,7 @@ export class CoreClient {
     }
 
     async createUser(data: Omit<CoreUser, 'ID'>): Promise<CoreUser | null> {
-        return this.fetchWithAuth<CoreUser>('/users/', 'POST', data);
+        return this.fetchWithAuth<CoreUser>('/users', 'POST', data);
     }
 
     async updateUser(authId: string, data: Partial<CoreUser>): Promise<CoreUser | null> {

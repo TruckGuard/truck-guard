@@ -117,14 +117,30 @@
       </div>
     </div>
 
-    <div class="space-y-2">
-      <Label for="notes">Примітки</Label>
-      <Textarea
-        id="notes"
-        name="notes"
-        value={user.profile.notes || ""}
-        placeholder="Додаткова інформація..."
-      />
+    <div class="grid gap-4 md:grid-cols-2">
+      <div class="space-y-2">
+        <Label for="notes">Примітки</Label>
+        <Textarea
+          id="notes"
+          name="notes"
+          value={user.profile.notes || ""}
+          placeholder="Додаткова інформація..."
+        />
+      </div>
+      <div class="space-y-2">
+        <Label for="customs_post_id">Митний пост (Робоче місце)</Label>
+        <select
+          id="customs_post_id"
+          name="customs_post_id"
+          class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+          value={user.profile.customs_post_id}
+        >
+          <option value="">Не закріплено</option>
+          {#each data.posts as post}
+            <option value={post.ID}>{post.name}</option>
+          {/each}
+        </select>
+      </div>
     </div>
 
     <div class="flex justify-end gap-4">

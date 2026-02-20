@@ -45,6 +45,7 @@
           <Table.Head>ПІБ</Table.Head>
           <Table.Head>Email</Table.Head>
           <Table.Head>Телефон</Table.Head>
+          <Table.Head>Пост</Table.Head>
           <Table.Head>Останній вхід</Table.Head>
           <Table.Head class="text-right">Дії</Table.Head>
         </Table.Row>
@@ -57,7 +58,6 @@
               {#if user.id === data.user.id}
                 <Badge variant="outline">Ви</Badge>
               {/if}
-
             </Table.Cell>
             <Table.Cell>
               <Badge variant="outline">{user.role?.name || "No Role"}</Badge>
@@ -83,6 +83,16 @@
             <Table.Cell>
               {#if user.profile?.phone_number}
                 {user.profile.phone_number}
+              {:else}
+                -
+              {/if}
+            </Table.Cell>
+            <Table.Cell>
+              {#if user.profile?.customs_post_id}
+                {@const post = data.posts?.find(
+                  (p: any) => p.ID === user.profile.customs_post_id,
+                )}
+                {post?.name || user.profile.customs_post_id}
               {:else}
                 -
               {/if}

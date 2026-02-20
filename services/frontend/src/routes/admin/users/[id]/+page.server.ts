@@ -19,13 +19,15 @@ export const load: PageServerLoad = async ({ params, locals, cookies }) => {
     }
 
     const coreUser = await locals.coreClient.getUser(id);
+    const postsResponse = await locals.coreClient.listData<any>('posts', 1, 100);
 
     return {
         user: {
             ...authUser,
             profile: coreUser || {}
         },
-        roles
+        roles,
+        posts: postsResponse.data
     };
 };
 
@@ -45,6 +47,7 @@ export const actions: Actions = {
         const phone = data.get('phone_number') as string;
         const email = data.get('email') as string;
         const notes = data.get('notes') as string;
+        const customsPostId = data.get('customs_post_id');
 
         if (roleId) {
              const success = await locals.authClient.updateUserRole(id, Number(roleId));
@@ -59,7 +62,8 @@ export const actions: Actions = {
             third_name: thirdName,
             phone_number: phone,
             email,
-            notes
+            notes,
+            customs_post_id: customsPostId ? Number(customsPostId) : null
         });
 
         if (!result) {
