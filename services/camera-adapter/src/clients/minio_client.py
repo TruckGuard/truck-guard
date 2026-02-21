@@ -5,12 +5,12 @@ from src.utils.logging_utils import logger
 class MinioStorage:
     def __init__(self):
         self.client = Minio(
-            cfg.MINIO_ENDPOINT,
-            access_key=cfg.MINIO_ACCESS_KEY,
-            secret_key=cfg.MINIO_SECRET_KEY,
+            cfg.STORAGE_ENDPOINT,
+            access_key=cfg.STORAGE_ACCESS_KEY,
+            secret_key=cfg.STORAGE_SECRET_KEY,
             secure=False
         )
-        self.bucket = cfg.MINIO_BUCKET
+        self.bucket = cfg.STORAGE_BUCKET
 
     def get_image(self, image_key: str) -> bytes:
         """Завантажує зображення з MinIO та повертає байти"""

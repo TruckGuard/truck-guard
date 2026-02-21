@@ -15,6 +15,7 @@ INGEST_CAMERA_URL = f"{BASE_URL}/ingest/camera"
 INGEST_WEIGHT_URL = f"{BASE_URL}/ingest/weight"
 
 ADMIN_USER = os.getenv("ADMIN_USER", "admin")
+# Пріоритет на пароль з .env, інакше дефолтний
 ADMIN_PASS = os.getenv("ADMIN_DEFAULT_PASSWORD", "secret123")
 
 # Дані фури
@@ -24,10 +25,12 @@ def get_headers(token):
     return {"Authorization": f"Bearer {token}"}
 
 def cleanup(token):
-    """Видаляємо всі старі налаштування"""
-    print("🧹 Повна очистка конфігурацій (Flows, Scales, Cameras, Gates)...")
+    """Повна очистка перед тестом"""
+    print("🧹 Повна очистка конфігурацій та довідників...")
     h = get_headers(token)
-    for ep in ["flows", "scales", "cameras", "gates"]:
+    
+    # 1. Configs
+    for ep in ["flows", "gates", "scales", "cameras"]:
         try:
             resp = requests.get(f"{CORE_API_URL}/configs/{ep}", headers=h)
             items = resp.json().get('data', []) if isinstance(resp.json(), dict) else resp.json()
@@ -35,119 +38,141 @@ def cleanup(token):
                 for i in items:
                     requests.delete(f"{CORE_API_URL}/configs/{ep}/{i['ID']}", headers=h)
         except: pass
+
+    # 2. Data entities
+    for ep in ["posts", "modes", "vehicle-types", "payment-types", "companies"]:
+        try:
+            resp = requests.get(f"{CORE_API_URL}/data/{ep}", headers=h)
+            items = resp.json().get('data', []) if isinstance(resp.json(), dict) else resp.json()
+            if items:
+                for i in items:
+                    requests.delete(f"{CORE_API_URL}/data/{ep}/{i['ID']}", headers=h)
+        except: pass
+    
     print("✨ Система чиста.")
 
-def setup_env(token):
-    """Налаштування: 3 гейти, по 2 камери на кожному"""
+def setup_data(token):
+    """Створення довідників"""
     h = get_headers(token)
-    print("🏗️ Створення інфраструктури (по 2 камери на гейт)...")
+    print("📦 Наповнення довідників...")
     
-    # 1. Гейти
-    g_in = requests.post(f"{CORE_API_URL}/configs/gates", headers=h, json={"name":"ENTRY", "is_entry":True}).json()['ID']
-    g_sc = requests.post(f"{CORE_API_URL}/configs/gates", headers=h, json={"name":"SCALE"}).json()['ID']
-    g_out = requests.post(f"{CORE_API_URL}/configs/gates", headers=h, json={"name":"EXIT", "is_exit":True}).json()['ID']
+    # 1. Митний пост
+    post_id = requests.post(f"{CORE_API_URL}/data/posts", headers=h, 
+                            json={"name": "Головний Термінал", "description": "Автоматично створений пост"}).json()['ID']
     
-    env_keys = {
-        "gate_ids": [g_in, g_sc, g_out],
-        "cam_keys": {}
+    # 2. Режими
+    requests.post(f"{CORE_API_URL}/data/modes", headers=h, json={"name": "Імпорт", "code": "IM", "description": "Ввезення"})
+    requests.post(f"{CORE_API_URL}/data/modes", headers=h, json={"name": "Експорт", "code": "EK", "description": "Вивезення"})
+    
+    # 3. Типи ТЗ
+    requests.post(f"{CORE_API_URL}/data/vehicle-types", headers=h, 
+                  json={"name": "Вантажівка", "code": "TRUCK", "entry_price": 200, "daily_price": 50})
+    
+    # 4. Компанії
+    requests.post(f"{CORE_API_URL}/data/companies", headers=h, 
+                  json={"name": "ТрансЛогістик", "edrpou": "12345678", "details": '{"address":"Kyiv"}'})
+    
+    # 5. Типи оплати
+    requests.post(f"{CORE_API_URL}/data/payment-types", headers=h, 
+                  json={"name": "Готівка", "code": "CASH", "is_active": True})
+
+    return post_id
+
+def setup_infra(token, post_id):
+    """Налаштування обладнання"""
+    h = get_headers(token)
+    print(f"🏗️ Створення обладнання для посту {post_id}...")
+    
+    # Створюємо камери
+    # Камера на в'їзд (Front) - вона тригерить створення перепустки
+    cam_in_f = requests.post(f"{CORE_API_URL}/configs/cameras", headers=h, 
+                             json={"name": "ENTRY_Front", "type": "front", "customs_post_id": post_id, 
+                                   "trigger_permit_creation": True, "format": "json", "field_mapping": '{"plate":"plate"}'}).json()
+    
+    # Камера на в'їзд (Back)
+    cam_in_b = requests.post(f"{CORE_API_URL}/configs/cameras", headers=h, 
+                             json={"name": "ENTRY_Back", "type": "back", "customs_post_id": post_id, 
+                                   "format": "json", "field_mapping": '{"plate":"plate"}'}).json()
+    
+    # Ваги
+    scale = requests.post(f"{CORE_API_URL}/configs/scales", headers=h, 
+                          json={"name": "Main_Scale", "customs_post_id": post_id, 
+                                "format": "json", "field_mapping": '{"weight":"weight"}'}).json()
+    
+    return {
+        "cam_in_f": cam_in_f['api_key'],
+        "cam_in_b": cam_in_b['api_key'],
+        "scale_key": scale['api_key']
     }
-
-    # 2. Створюємо по 2 камери для кожного гейту
-    gate_configs = [
-        ("IN", g_in),
-        ("SC", g_sc),
-        ("OUT", g_out)
-    ]
-
-    for prefix, g_id in gate_configs:
-        # Передня камера
-        key_f = requests.post(f"{CORE_API_URL}/configs/cameras", headers=h, 
-                              json={"name": f"{prefix}_Front", "gate_id": g_id, "format": "json", "field_mapping": '{"plate":"plate"}'}).json()['api_key']
-        # Задня камера
-        key_b = requests.post(f"{CORE_API_URL}/configs/cameras", headers=h, 
-                              json={"name": f"{prefix}_Back", "gate_id": g_id, "format": "json", "field_mapping": '{"plate":"plate"}'}).json()['api_key']
-        
-        env_keys["cam_keys"][prefix] = [key_f, key_b]
-
-    # 3. Вага
-    s_key = requests.post(f"{CORE_API_URL}/configs/scales", headers=h, 
-                          json={"name": "Main_Scale", "gate_id": g_sc, "format": "json", "field_mapping": '{"weight":"weight"}'}).json()['api_key']
-    env_keys["scale_key"] = s_key
-
-    return env_keys
-
-def setup_flow(token, gate_ids):
-    print("🌊 Налаштування Flow маршруту...")
-    h = get_headers(token)
-    requests.post(f"{CORE_API_URL}/configs/flows", headers=h, json={
-        "name": "Повний цикл (2 камери)",
-        "steps": [
-            {"gate_id": gate_ids[0], "sequence": 1},
-            {"gate_id": gate_ids[1], "sequence": 2},
-            {"gate_id": gate_ids[2], "sequence": 3}
-        ]
-    })
 
 def send_cam(key, plate, cam_label=""):
     f = io.BytesIO()
-    Image.new('RGB', (100, 100), color=(random.randint(0,255), 50, 50)).save(f, 'jpeg')
+    # Створюємо унікальну картинку кожного разу (шляхом випадкового кольору)
+    color = (random.randint(0,255), random.randint(0,255), random.randint(0,255))
+    Image.new('RGB', (100, 100), color=color).save(f, 'jpeg')
     f.seek(0)
+    
+    print(f"   📸 Відправка фото ({cam_label}): {plate}")
     requests.post(INGEST_CAMERA_URL, headers={'X-API-Key':key}, files={'image':('p.jpg',f)}, 
                   data={'device_id':'SIM','payload':json.dumps({"plate":plate})})
-    print(f"   📸 {cam_label}: {plate}")
 
 def send_weight(key, val):
+    print(f"   ⚖️  Зчитування ваги: {val} kg")
     requests.post(INGEST_WEIGHT_URL, headers={'X-API-Key':key}, 
                   data={'device_id':'SCALE','payload':json.dumps({"weight":val})})
-    print(f"   ⚖️  Вага: {val} kg")
 
 def main():
-    token = requests.post(f"{AUTH_URL}/login", json={"username":ADMIN_USER, "password":ADMIN_PASS}).json().get("token")
-    if not token: return
+    print("🚀 Початок Flow-тесту...")
+    
+    # 0. Авторизація
+    login_resp = requests.post(f"{AUTH_URL}/login", json={"username":ADMIN_USER, "password":ADMIN_PASS})
+    if login_resp.status_code != 200:
+        print(f"❌ Помилка входу: {login_resp.status_code} {login_resp.text}")
+        return
+    token = login_resp.json().get("token")
 
+    # 1. Підготовка
     cleanup(token)
-    env = setup_env(token)
-    setup_flow(token, env['gate_ids'])
+    post_id = setup_data(token)
+    keys = setup_infra(token, post_id)
     
-    k = env['cam_keys']
-    s_k = env['scale_key']
-
-    print("\n--- 🚛 ЕТАП 1: ЗАЇЗД (2 камери) ---")
-    send_cam(k['IN'][0], TRUCK['f'], "ENTRY Front")
-    time.sleep(0.5)
-    send_cam(k['IN'][1], TRUCK['b'], "ENTRY Back")
+    # 2. Симуляція
+    print("\n--- 🚛 СЦЕНАРІЙ: ЗАЇЗД ТА ЗВАЖУВАННЯ ---")
     
-    print("\n--- ⚖️  ЕТАП 2: ВАГА (2 камери + вага) ---")
-    send_cam(k['SC'][0], TRUCK['f'], "SCALE Front")
-    send_cam(k['SC'][1], TRUCK['b'], "SCALE Back")
-    time.sleep(1) 
-    send_weight(s_k, TRUCK['w'])
+    # ПЕРЕДНЯ КАМЕРА (Створює перепустку)
+    send_cam(keys['cam_in_f'], TRUCK['f'], "ENTRY Front")
+    time.sleep(1)
+    
+    # ЗАДНЯ КАМЕРА (Доповнює перепустку)
+    send_cam(keys['cam_in_b'], TRUCK['b'], "ENTRY Back")
+    time.sleep(1)
+    
+    # ВАГА
+    send_weight(keys['scale_key'], TRUCK['w'])
 
-    print("\n--- 🏁 ЕТАП 3: ВИЇЗД (2 камери) ---")
-    send_cam(k['OUT'][0], TRUCK['f'], "EXIT Front")
-    send_cam(k['OUT'][1], TRUCK['b'], "EXIT Back")
-
-
-    # Перевірка
-    time.sleep(2)
-    print("\n📊 ПЕРЕВІРКА РЕЗУЛЬТАТІВ:")
+    # 3. Перевірка
+    print("\n📊 ПЕРЕВІРКА РЕЗУЛЬТАТІВ...")
+    time.sleep(3) # Час на асинхронну обробку
+    
     h = get_headers(token)
-    r = requests.get(f"{CORE_API_URL}/permits/?plate={TRUCK['f']}", headers=h).json()
+    r = requests.get(f"{CORE_API_URL}/permits?plate={TRUCK['f']}", headers=h).json()
     
-    if r['data']:
-        print("✅ Перепустку знайдено!")
-        print(r['data'][0]["ID"])
+    if r.get('data') and len(r['data']) > 0:
         p = r['data'][0]
-        print(f"   🚚 Фура: {p['plate_front']} / {p['plate_back']}")
+        print(f"✅ Перепустку знайдено! [ID: {p['ID']}]")
+        print(f"   🚚 Номери: {p['plate_front']} / {p['plate_back']}")
         print(f"   ⚖️  Вага: {p['total_weight']} кг")
-        events_count = 0
-        for ge in p.get('gate_events', []):
-             events_count += len(ge.get('plate_events', []))
-             events_count += len(ge.get('weight_events', []))
-        print(f"   📸 Кількість подій: {events_count}")
-        print(f"   🏁 Статус: {'✅ ЗАКРИТО' if p['is_closed'] else '❌ ВІДКРИТО'}")
+        # Перевірка подій
+        events_resp = requests.get(f"{CORE_API_URL}/events/plate?permit_id={p['ID']}", headers=h).json()
+        events_count = len(events_resp.get('data', []))
+        print(f"   📸 Кількість Plate-подій: {events_count}")
+        
+        if p['plate_front'] == TRUCK['f'] and p['total_weight'] == TRUCK['w']:
+            print("\n🏆 ТЕСТ УСПІШНО ПРОЙДЕНО!")
+        else:
+            print("\n❌ Дані перепустки не співпадають.")
     else:
-        print("❌ Перепустку не знайдено!")
+        print(f"❌ Перепустку для {TRUCK['f']} не знайдено.")
 
 if __name__ == "__main__":
     main()

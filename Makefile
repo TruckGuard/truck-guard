@@ -35,3 +35,15 @@ dev-down:
 
 .PHONY: dev-rebuild
 dev-rebuild: dev-down dev-up-build
+
+.PHONY: dev-restart
+dev-restart: dev-down dev-up
+
+.PHONY: dev-restart-core
+dev-restart-core: 
+	docker compose -f docker-compose.dev.yaml up -d ingestor camera-adapter weight-adapter auth core
+
+.PHONY: dev-init
+dev-init:
+	bash init-garage.sh
+	$(MAKE) dev-restart-core

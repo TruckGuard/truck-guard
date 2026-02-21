@@ -49,7 +49,7 @@ class EventProcessor:
             final_event = {
                 "camera_source_id": source_id,
                 "camera_source_name": config.get("name", source_id),
-                "camera_id": f"{config.get('ID')}",
+                "camera_id": source_id,
                 "plate": plate.upper().replace(" ", ""),
                 "suggestions": json.dumps(suggestions), 
                 "image_key": image_key,

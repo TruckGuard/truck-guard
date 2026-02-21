@@ -9,11 +9,11 @@ class Config:
         "WORKER_API_KEY", "worker_internal_secret_2025_token"
     )
     ANPR_URL: str = os.getenv("ANPR_URL", "http://anpr:8000/recognize")
-    REDIS_ADDR: str = os.getenv("REDIS_ADDR", "redis:6379")
-    MINIO_ENDPOINT: str = os.getenv("MINIO_ENDPOINT", "minio:9000")
-    MINIO_ACCESS_KEY: str = os.getenv("MINIO_ACCESS_KEY", "minioadmin")
-    MINIO_SECRET_KEY: str = os.getenv("MINIO_SECRET_KEY", "minioadmin")
-    MINIO_BUCKET: str = os.getenv("MINIO_BUCKET", "truck-images")
+    REDIS_ADDR: str = os.getenv("VALKEY_ADDR", "valkey:6379")
+    STORAGE_ENDPOINT: str = os.getenv("STORAGE_ENDPOINT", "garage:3900")
+    STORAGE_ACCESS_KEY: str = os.getenv("STORAGE_ACCESS_KEY", "local-admin")
+    STORAGE_SECRET_KEY: str = os.getenv("STORAGE_SECRET_KEY", "local-admin")
+    STORAGE_BUCKET: str = os.getenv("STORAGE_BUCKET", "truck-images")
 
     STREAM_RAW: str = "camera:raw"
     STREAM_DLQ: str = "camera:dlq"

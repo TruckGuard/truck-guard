@@ -74,7 +74,7 @@ type VehicleType struct {
 type PaymentType struct {
 	gorm.Model
 	Name        string `json:"name"`
-	Code        string `gorm:"uniqueIndex;not null" json:"code"`
+	Code        string `gorm:"uniqueIndex:idx_payment_types_code,where:deleted_at is null;not null" json:"code"`
 	Description string `json:"description"`
 	IsActive    bool   `json:"is_active" gorm:"default:true"`
 	Icon        string `json:"icon"`

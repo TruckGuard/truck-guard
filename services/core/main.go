@@ -27,7 +27,11 @@ func main() {
 	defer telemetry.Shutdown(context.Background())
 
 	repository.InitDB(os.Getenv("DATABASE_URL"))
-	repository.InitRedis(os.Getenv("REDIS_ADDR"))
+	valkeyAddr := os.Getenv("VALKEY_ADDR")
+	if valkeyAddr == "" {
+		valkeyAddr = os.Getenv("REDIS_ADDR")
+	}
+	repository.InitRedis(valkeyAddr)
 
 	r := gin.New()
 	r.Use(gin.Recovery())

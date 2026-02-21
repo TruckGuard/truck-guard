@@ -23,6 +23,7 @@ func InitDB(dsn string) {
 	}
 
 	db.AutoMigrate(
+		&models.CustomsPost{},
 		&models.SystemEvent{},
 		&models.PlateEvent{},
 		&models.WeightEvent{},
@@ -34,6 +35,10 @@ func InitDB(dsn string) {
 		&models.PermitCustomsData{},
 		&models.PermitAudit{},
 		&models.User{},
+		&models.CustomsMode{},
+		&models.Company{},
+		&models.VehicleType{},
+		&models.PaymentType{},
 	)
 	DB = db
 }

@@ -45,26 +45,27 @@ func getPermitTimeout(ctx context.Context) time.Duration {
 	return time.Duration(sec) * time.Second
 }
 
-func GetOrCreatePermit(ctx context.Context, customsPostID uint) *models.Permit {
+func GetOrCreatePermit(ctx context.Context, customsPostID uint, currentSourceID string) *models.Permit {
 	db := repository.DB.WithContext(ctx)
 	key := fmt.Sprintf("active_permit:customs_post:%d", customsPostID)
+	lockKey := fmt.Sprintf("lock:active_permit:%d", customsPostID)
+
+	// Try to get lock for 5 seconds to prevent race conditions
+	lockOk, err := repository.RDB.SetNX(ctx, lockKey, "1", 5*time.Second).Result()
+	if err != nil || !lockOk {
+		slog.Debug("Waiting for permit lock", "post_id", customsPostID)
+		time.Sleep(200 * time.Millisecond)
+		return GetOrCreatePermit(ctx, customsPostID, currentSourceID)
+	}
+	defer repository.RDB.Del(ctx, lockKey)
 
 	permitID, _ := repository.RDB.Get(ctx, key).Uint64()
 	var permit models.Permit
 
 	if permitID > 0 {
-		// Load permit with events to check completeness
 		if err := db.Preload("PlateEvents").Preload("WeightEvents").First(&permit, permitID).Error; err == nil {
-			// Basic checks
 			timeout := getPermitTimeout(ctx)
 			if !permit.IsClosed && !permit.IsVoid && permit.VerifiedBy == nil && time.Since(permit.LastActivityAt) < timeout {
-
-				// Check if it's "full" based on trigger sources
-				var triggerCameras []models.CameraConfig
-				db.Where("customs_post_id = ? AND trigger_permit_creation = ?", customsPostID, true).Find(&triggerCameras)
-
-				var triggerScales []models.ScaleConfig
-				db.Where("customs_post_id = ? AND trigger_permit_creation = ?", customsPostID, true).Find(&triggerScales)
 
 				alreadySentSources := make(map[string]bool)
 				for _, pe := range permit.PlateEvents {
@@ -73,6 +74,11 @@ func GetOrCreatePermit(ctx context.Context, customsPostID uint) *models.Permit {
 				for _, we := range permit.WeightEvents {
 					alreadySentSources[we.ScaleID] = true
 				}
+
+				var triggerCameras []models.CameraConfig
+				db.Where("customs_post_id = ? AND trigger_permit_creation = ?", customsPostID, true).Find(&triggerCameras)
+				var triggerScales []models.ScaleConfig
+				db.Where("customs_post_id = ? AND trigger_permit_creation = ?", customsPostID, true).Find(&triggerScales)
 
 				allTriggered := true
 				for _, cam := range triggerCameras {
@@ -90,16 +96,64 @@ func GetOrCreatePermit(ctx context.Context, customsPostID uint) *models.Permit {
 					}
 				}
 
-				if !allTriggered {
+				isTriggerSource := false
+				for _, cam := range triggerCameras {
+					if cam.SourceID == currentSourceID {
+						isTriggerSource = true
+						break
+					}
+				}
+				if !isTriggerSource {
+					for _, scale := range triggerScales {
+						if scale.SourceID == currentSourceID {
+							isTriggerSource = true
+							break
+						}
+					}
+				}
+
+				// Equipment counts
+				var totalCams int64
+				db.Model(&models.CameraConfig{}).Where("customs_post_id = ?", customsPostID).Count(&totalCams)
+				var totalScales int64
+				db.Model(&models.ScaleConfig{}).Where("customs_post_id = ?", customsPostID).Count(&totalScales)
+				totalEvents := int64(len(permit.PlateEvents) + len(permit.WeightEvents))
+
+				slog.Debug("Checking permit reuse",
+					"permit_id", permit.ID,
+					"source", currentSourceID,
+					"already_sent", alreadySentSources[currentSourceID],
+					"all_triggered", allTriggered,
+					"is_trigger_source", isTriggerSource,
+					"count", totalEvents,
+					"limit", totalCams+totalScales,
+				)
+
+				// Decision Logic:
+				// 1. If SAME SOURCE sent an event again -> New Permit
+				// 2. If permit is ALREADY TRIGGERED and a NEW TRIGGER arrives -> New Permit
+				// 3. If PERMIT IS FULL (all equipment reported) -> New Permit
+
+				shouldCreateNew := false
+				if alreadySentSources[currentSourceID] {
+					shouldCreateNew = true
+					slog.Info("Same source sent duplicate event, starting new permit", "permit_id", permit.ID, "source", currentSourceID)
+				} else if isTriggerSource && allTriggered {
+					shouldCreateNew = true
+					slog.Info("All triggers met and new trigger event arrived, starting new permit", "permit_id", permit.ID, "source", currentSourceID)
+				} else if totalEvents >= (totalCams + totalScales) {
+					shouldCreateNew = true
+					slog.Info("Permit is physically full, starting new", "permit_id", permit.ID, "events", totalEvents, "limit", totalCams+totalScales)
+				}
+
+				if !shouldCreateNew {
 					slog.Debug("Reusing active permit", "permit_id", permit.ID)
 					return &permit
 				}
-				slog.Debug("Active permit is full, will create new one", "permit_id", permit.ID)
 			}
 		}
 	}
 
-	// Create new permit
 	permit = models.Permit{
 		CustomsPostID:  &customsPostID,
 		Code:           fmt.Sprintf("PRM-%d-%d", customsPostID, time.Now().Unix()),
@@ -128,8 +182,6 @@ func MatchPlateEvent(ctx context.Context, event *models.PlateEvent) {
 	defer span.End()
 
 	db := repository.DB
-	// Reload event to get associations if needed, or assume it's passed with ID.
-	// We need Camera to get CustomsPostID.
 	if err := db.WithContext(ctx).Preload("Camera").First(event).Error; err != nil {
 		slog.Error("Failed to load plate event", "error", err)
 		span.RecordError(err)
@@ -142,14 +194,14 @@ func MatchPlateEvent(ctx context.Context, event *models.PlateEvent) {
 	}
 	customsPostID := *event.Camera.CustomsPostID
 
-	processEvent(ctx, customsPostID, event, func(permit *models.Permit) {
+	processEvent(ctx, customsPostID, event.CameraID, event, func(permit *models.Permit) {
 		plate := event.Plate
 		if event.PlateCorrected != "" {
 			plate = event.PlateCorrected
 		}
 
 		switch event.Camera.Type {
-case "front":
+		case "front":
 			permit.PlateFront = plate
 		case "back":
 			permit.PlateBack = plate
@@ -186,7 +238,7 @@ func MatchWeightEvent(ctx context.Context, event *models.WeightEvent) {
 	}
 	customsPostID := *event.Scale.CustomsPostID
 
-	processEvent(ctx, customsPostID, event, func(permit *models.Permit) {
+	processEvent(ctx, customsPostID, event.ScaleID, event, func(permit *models.Permit) {
 		if event.Weight > 0 {
 			permit.TotalWeight = event.Weight
 		}
@@ -198,9 +250,9 @@ func MatchWeightEvent(ctx context.Context, event *models.WeightEvent) {
 }
 
 // processEvent handles the common logic: find active permit or create new, then apply updates
-func processEvent(ctx context.Context, customsPostID uint, event interface{}, updateFn func(*models.Permit)) {
+func processEvent(ctx context.Context, customsPostID uint, sourceID string, event interface{}, updateFn func(*models.Permit)) {
 	db := repository.DB.WithContext(ctx)
-	permit := GetOrCreatePermit(ctx, customsPostID)
+	permit := GetOrCreatePermit(ctx, customsPostID, sourceID)
 	if permit == nil {
 		return
 	}

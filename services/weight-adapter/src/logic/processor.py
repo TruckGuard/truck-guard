@@ -36,7 +36,7 @@ class EventProcessor:
         if weight is not None:
             final_event = {
                 "scale_source_id": source_id,
-                "scale_id": f"{config.get('ID')}",
+                "scale_id": source_id,
                 "weight": weight,
                 "timestamp": data.get("at"),
                 "raw_payload": data.get("payload"),

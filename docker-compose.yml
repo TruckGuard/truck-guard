@@ -58,13 +58,13 @@ services:
     depends_on:
       db:
         condition: service_healthy
-      redis:
+      valkey:
         condition: service_started
     environment:
       - DATABASE_URL=postgres://${AUTH_DB_USER}:${AUTH_DB_PASSWORD}@db:5432/${AUTH_DB_NAME}
       - JWT_SECRET=${JWT_SECRET}
       - PORT=8080
-      - REDIS_ADDR=redis:6379
+      - VALKEY_ADDR=${VALKEY_ADDR}
       - WORKER_SYSTEM_KEY=${WORKER_SYSTEM_KEY}
       - ADMIN_DEFAULT_PASSWORD=${ADMIN_DEFAULT_PASSWORD}
     ports:
@@ -76,17 +76,17 @@ services:
       dockerfile: Dockerfile
     restart: on-failure
     depends_on:
-      redis:
+      valkey:
         condition: service_started
-      minio:
+      garage:
         condition: service_healthy
     environment:
       - PORT=8080
-      - REDIS_ADDR=redis:6379
-      - MINIO_ENDPOINT=minio:9000
-      - MINIO_ACCESS_KEY=${MINIO_ROOT_USER}
-      - MINIO_SECRET_KEY=${MINIO_ROOT_PASSWORD}
-      - BUCKET_NAME=${MINIO_BUCKET_NAME}
+      - VALKEY_ADDR=${VALKEY_ADDR}
+      - STORAGE_ENDPOINT=garage:3900
+      - STORAGE_ACCESS_KEY=local-admin
+      - STORAGE_SECRET_KEY=local-admin
+      - BUCKET_NAME=${STORAGE_BUCKET_NAME}
     ports:
       - "8082:8080"
 
@@ -113,17 +113,17 @@ services:
     environment:
       - CORE_URL=http://gateway/api
       - ANPR_URL=http://anpr:8000/recognize
-      - REDIS_ADDR=redis:6379
-      - MINIO_ENDPOINT=minio:9000
-      - MINIO_BUCKET=${MINIO_BUCKET_NAME}
-      - MINIO_ACCESS_KEY=${MINIO_ROOT_USER}
-      - MINIO_SECRET_KEY=${MINIO_ROOT_PASSWORD}
+      - VALKEY_ADDR=${VALKEY_ADDR}
+      - STORAGE_ENDPOINT=garage:3900
+      - STORAGE_BUCKET=${STORAGE_BUCKET_NAME}
+      - STORAGE_ACCESS_KEY=local-admin
+      - STORAGE_SECRET_KEY=local-admin
       - WORKER_API_KEY=${WORKER_SYSTEM_KEY}
       - PYTHONUNBUFFERED=1
     depends_on:
-      - redis
+      - valkey
       - core
-      - minio
+      - garage
 
   weight-adapter:
     build:
@@ -132,11 +132,11 @@ services:
     restart: unless-stopped
     environment:
       - CORE_URL=http://gateway/api
-      - REDIS_ADDR=redis:6379
+      - VALKEY_ADDR=${VALKEY_ADDR}
       - WORKER_API_KEY=${WORKER_SYSTEM_KEY}
       - PYTHONUNBUFFERED=1
     depends_on:
-      - redis
+      - valkey
       - core
 
   anpr:
@@ -152,48 +152,63 @@ services:
     volumes:
       - nomeroff_models_cache:/root/.nomeroff_net
 
-  redis:
-    image: redis:7-alpine
+  valkey:
+    image: valkey/valkey:8.0-alpine
     ports:
       - "6379:6379"
+    restart: always
 
-  minio:
-    image: minio/minio
+  garage:
+    image: dxflrs/garage:v2.0.0
     restart: unless-stopped
+    command: /garage server
     environment:
-      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
-      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
-    command: server /data --console-address ":9001"
-    ports:
-      - "9000:9000"
-      - "9001:9001"
+      - GARAGE_RPC_SECRET=${STORAGE_SECRET}
+      - GARAGE_ADMIN_TOKEN=${STORAGE_ROOT_PASSWORD}
     volumes:
-      - minio_data:/data
+      - ./infra/garage/garage.toml:/etc/garage.toml
+      - garage_meta:/var/lib/garage/meta
+      - garage_data:/var/lib/garage/data
+    ports:
+      - "3900:3900" # S3 API
+      - "3901:3901" # RPC
+      - "3903:3903" # Admin API
     healthcheck:
-      test: [ "CMD", "curl", "-f", "http://localhost:9000/minio/health/live" ]
-      interval: 10s
+      test: ["CMD", "/garage", "status"]
+      interval: 5s
       timeout: 5s
-      retries: 3
+      retries: 10
 
-  minio-init:
-    image: minio/mc
+  garage-init:
+    image: alpine:3.18
     depends_on:
-      minio:
-        condition: service_healthy
+      garage:
+        condition: service_started
+    environment:
+      - STORAGE_ROOT_USER=${STORAGE_ROOT_USER}
+      - STORAGE_ROOT_PASSWORD=${STORAGE_ROOT_PASSWORD}
+      - STORAGE_BUCKET_NAME=${STORAGE_BUCKET_NAME}
+      - GARAGE_RPC_SECRET=${STORAGE_SECRET}
+      - GARAGE_ADMIN_TOKEN=${STORAGE_ROOT_PASSWORD}
     entrypoint: >
       /bin/sh -c "
-        /usr/bin/mc alias set myminio http://minio:9000 ${MINIO_ROOT_USER} ${MINIO_ROOT_PASSWORD};
-        if ! /usr/bin/mc ls myminio/${MINIO_BUCKET_NAME} > /dev/null 2>&1; then
-          /usr/bin/mc mb myminio/${MINIO_BUCKET_NAME};
-          /usr/bin/mc anonymous set public myminio/${MINIO_BUCKET_NAME};
-          echo 'Bucket ${MINIO_BUCKET_NAME} created';
-        else
-          echo 'Bucket ${MINIO_BUCKET_NAME} already exists';
-        fi;
-        exit 0;
+        set -e;
+        apk add --no-cache curl;
+        wget -q -O /usr/local/bin/garage https://garagehq.deuxfleurs.fr/_releases/v2.0.0/x86_64-unknown-linux-musl/garage;
+        chmod +x /usr/local/bin/garage;
+        echo 'Waiting for Garage to be fully ready...';
+        sleep 10;
+        NODE_ID=$$(garage -u http://garage:3903 -t $$GARAGE_ADMIN_TOKEN status | grep 'Local node' | awk '{print $$3}');
+        if [ -z \"$$NODE_ID\" ]; then echo \"Node ID not found\"; exit 1; fi;
+        garage -u http://garage:3903 -t $$GARAGE_ADMIN_TOKEN layout assign $$NODE_ID -z garage -c 1G -t garage;
+        garage -u http://garage:3903 -t $$GARAGE_ADMIN_TOKEN layout apply --version 1 || true;
+        garage -u http://garage:3903 -t $$GARAGE_ADMIN_TOKEN bucket create ${STORAGE_BUCKET_NAME} || true;
+        garage -u http://garage:3903 -t $$GARAGE_ADMIN_TOKEN bucket allow ${STORAGE_BUCKET_NAME} --key local-admin --read --write || true;
+        echo 'Garage initialization complete';
       "
 
 volumes:
   postgres_data:
-  minio_data:
   nomeroff_models_cache:
+  garage_meta:
+  garage_data:

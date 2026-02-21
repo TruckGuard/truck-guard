@@ -23,11 +23,15 @@ func main() {
 	}
 	defer telemetry.Shutdown(context.Background())
 
-	repository.InitRedis(os.Getenv("REDIS_ADDR"))
+	valkeyAddr := os.Getenv("VALKEY_ADDR")
+	if valkeyAddr == "" {
+		valkeyAddr = os.Getenv("REDIS_ADDR")
+	}
+	repository.InitRedis(valkeyAddr)
 
-	endpoint := os.Getenv("MINIO_ENDPOINT")
-	accessKey := os.Getenv("MINIO_ACCESS_KEY")
-	secretKey := os.Getenv("MINIO_SECRET_KEY")
+	endpoint := os.Getenv("STORAGE_ENDPOINT")
+	accessKey := os.Getenv("STORAGE_ACCESS_KEY")
+	secretKey := os.Getenv("STORAGE_SECRET_KEY")
 	repository.InitMinio(endpoint, accessKey, secretKey)
 
 	r := gin.New()

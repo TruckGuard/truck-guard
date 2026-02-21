@@ -60,13 +60,13 @@ services:
     depends_on:
       db:
         condition: service_healthy
-      redis:
+      valkey:
         condition: service_started
     environment:
       - DATABASE_URL=postgres://${AUTH_DB_USER}:${AUTH_DB_PASSWORD}@db:5432/${AUTH_DB_NAME}
       - JWT_SECRET=${JWT_SECRET}
       - PORT=8080
-      - REDIS_ADDR=redis:6379
+      - VALKEY_ADDR=${VALKEY_ADDR}
       - WORKER_SYSTEM_KEY=${WORKER_SYSTEM_KEY}
       - ADMIN_DEFAULT_PASSWORD=${ADMIN_DEFAULT_PASSWORD}
       - OTEL_EXPORTER_OTLP_ENDPOINT=otel-collector:4317
@@ -81,17 +81,17 @@ services:
       dockerfile: Dockerfile.dev
     restart: on-failure
     depends_on:
-      redis:
+      valkey:
         condition: service_started
-      minio:
-        condition: service_healthy
+      garage:
+        condition: service_started
     environment:
       - PORT=8080
-      - REDIS_ADDR=redis:6379
-      - MINIO_ENDPOINT=minio:9000
-      - MINIO_ACCESS_KEY=${MINIO_ROOT_USER}
-      - MINIO_SECRET_KEY=${MINIO_ROOT_PASSWORD}
-      - BUCKET_NAME=${MINIO_BUCKET_NAME}
+      - VALKEY_ADDR=${VALKEY_ADDR}
+      - STORAGE_ENDPOINT=garage:3900
+      - STORAGE_ACCESS_KEY=${STORAGE_ACCESS_KEY}
+      - STORAGE_SECRET_KEY=${STORAGE_SECRET_KEY}
+      - BUCKET_NAME=${STORAGE_BUCKET_NAME}
       - OTEL_EXPORTER_OTLP_ENDPOINT=otel-collector:4317
     ports:
       - "8082:8080"
@@ -108,7 +108,7 @@ services:
         condition: service_healthy
     environment:
       - DATABASE_URL=postgres://${CORE_DB_USER}:${CORE_DB_PASSWORD}@db:5432/${CORE_DB_NAME}
-      - REDIS_ADDR=redis:6379
+      - VALKEY_ADDR=${VALKEY_ADDR}
       - PORT=8080
       - AUTH_SERVICE_URL=http://gateway/auth
       - OTEL_EXPORTER_OTLP_ENDPOINT=otel-collector:4317
@@ -125,18 +125,18 @@ services:
     environment:
       - CORE_URL=http://gateway/api
       - ANPR_URL=http://anpr:8000/recognize
-      - REDIS_ADDR=redis:6379
-      - MINIO_ENDPOINT=minio:9000
-      - MINIO_BUCKET=${MINIO_BUCKET_NAME}
-      - MINIO_ACCESS_KEY=${MINIO_ROOT_USER}
-      - MINIO_SECRET_KEY=${MINIO_ROOT_PASSWORD}
+      - VALKEY_ADDR=${VALKEY_ADDR}
+      - STORAGE_ENDPOINT=garage:3900
+      - STORAGE_BUCKET=${STORAGE_BUCKET_NAME}
+      - STORAGE_ACCESS_KEY=local-admin
+      - STORAGE_SECRET_KEY=local-admin
       - WORKER_API_KEY=${WORKER_SYSTEM_KEY}
       - PYTHONUNBUFFERED=1
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
     depends_on:
-      - redis
+      - valkey
       - core
-      - minio
+      - garage
     volumes:
       - ./services/camera-adapter:/app
 
@@ -147,12 +147,12 @@ services:
     restart: unless-stopped
     environment:
       - CORE_URL=http://gateway/api
-      - REDIS_ADDR=redis:6379
+      - VALKEY_ADDR=${VALKEY_ADDR}
       - WORKER_API_KEY=${WORKER_SYSTEM_KEY}
       - PYTHONUNBUFFERED=1
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
     depends_on:
-      - redis
+      - valkey
       - core
     volumes:
       - ./services/weight-adapter:/app
@@ -171,47 +171,42 @@ services:
   #     - nomeroff_models_cache:/root/.nomeroff_net
   #     - ./services/anpr:/app
 
-  redis:
-    image: redis:7-alpine
+  valkey:
+    image: valkey/valkey:8.0-alpine
     ports:
       - "6379:6379"
+    restart: always
 
-  minio:
-    image: minio/minio
+  garage:
+    image: dxflrs/garage:v2.2.0
     restart: unless-stopped
     environment:
-      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
-      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
-    command: server /data --console-address ":9001"
-    ports:
-      - "9000:9000"
-      - "9001:9001"
+      - GARAGE_RPC_SECRET=${STORAGE_SECRET}
+      - GARAGE_ADMIN_TOKEN=${STORAGE_ROOT_PASSWORD}
+      - GARAGE_ALLOW_WORLD_READABLE_SECRETS=true
     volumes:
-      - minio_data:/data
-    healthcheck:
-      test: [ "CMD", "curl", "-f", "http://localhost:9000/minio/health/live" ]
-      interval: 10s
-      timeout: 5s
-      retries: 3
+      - ./infra/garage/garage.toml:/etc/garage.toml
+      - garage_meta:/var/lib/garage/meta
+      - garage_data:/var/lib/garage/data
+    ports:
+      - "3900:3900" # S3 API
+      - "3901:3901" # RPC
+      - "3902:3902" # Web Access
+      - "3903:3903" # Admin API
 
-  minio-init:
-    image: minio/mc
+  webui:
+    image: khairul169/garage-webui:latest
+    restart: unless-stopped
+    volumes:
+      - ./infra/garage/garage.toml:/etc/garage.toml:ro
     depends_on:
-      minio:
-        condition: service_healthy
-    entrypoint: >
-      /bin/sh -c "
-        /usr/bin/mc alias set myminio http://minio:9000 ${MINIO_ROOT_USER} ${MINIO_ROOT_PASSWORD};
-        if ! /usr/bin/mc ls myminio/${MINIO_BUCKET_NAME} > /dev/null 2>&1; then
-          /usr/bin/mc mb myminio/${MINIO_BUCKET_NAME};
-          /usr/bin/mc anonymous set public myminio/${MINIO_BUCKET_NAME};
-          echo 'Bucket ${MINIO_BUCKET_NAME} created';
-        else
-          echo 'Bucket ${MINIO_BUCKET_NAME} already exists';
-        fi;
-        exit 0;
-      "
-
+      - garage
+    environment:
+      API_BASE_URL: "http://garage:3903"
+      S3_ENDPOINT_URL: "http://garage:3900"
+      ADMIN_TOKEN: ${STORAGE_ACCESS_KEY} 
+    ports:
+      - 3909:3909
   otel-collector:
     image: otel/opentelemetry-collector-contrib:latest
     command: ["--config=/etc/otel-config.yaml"]
@@ -224,6 +219,7 @@ services:
 
 volumes:
   postgres_data:
-  minio_data:
+  garage_meta:
+  garage_data:
   nomeroff_models_cache:
   pgadmin-data:
