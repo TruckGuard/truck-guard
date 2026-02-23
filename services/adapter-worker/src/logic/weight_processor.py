@@ -1,7 +1,7 @@
 import json
 from src.utils.logging_utils import logger
 
-class EventProcessor:
+class WeightProcessor:
     def __init__(self, core_client, parser):
         self.core = core_client
         self.parser = parser
@@ -15,8 +15,7 @@ class EventProcessor:
             self.config_cache[source_id] = config
         return config
 
-    def process(self, raw_data_str: str):
-        data = json.loads(raw_data_str)
+    def process(self, data: dict):
         source_id = data.get("source_id")
 
         config = self._get_cached_config(source_id)

@@ -15,8 +15,8 @@ class Config:
     STORAGE_SECRET_KEY: str = os.getenv("STORAGE_SECRET_KEY", "local-admin")
     STORAGE_BUCKET: str = os.getenv("STORAGE_BUCKET", "truck-images")
 
-    STREAM_RAW: str = "camera:raw"
-    STREAM_DLQ: str = "camera:dlq"
+    STREAM_RAW: str = "events:adapter"
+    STREAM_DLQ: str = "events:dlq"
     CACHE_TTL: int = 60
 
 

@@ -29,7 +29,7 @@ func HandleCameraIngest(c *gin.Context) {
 
 	slog.Debug("Incoming camera event", "device_id", deviceID, "source", sourceName)
 
-	event, err := repository.ProcessIncomingEvent(file, deviceID, payload, sourceID, sourceName, "camera", "camera:raw")
+	event, err := repository.ProcessIncomingEvent(file, deviceID, payload, sourceID, sourceName, "camera", "events:adapter")
 	if err != nil {
 		slog.Error("Failed to process camera event", "device_id", deviceID, "error", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -49,7 +49,7 @@ func HandleWeightIngest(c *gin.Context) {
 
 	slog.Debug("Incoming weight event", "device_id", deviceID, "source", sourceName)
 
-	event, err := repository.ProcessIncomingEvent(nil, deviceID, payload, sourceID, sourceName, "weight", "weight:raw")
+	event, err := repository.ProcessIncomingEvent(nil, deviceID, payload, sourceID, sourceName, "weight", "events:adapter")
 	if err != nil {
 		slog.Error("Failed to process weight event", "device_id", deviceID, "error", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})

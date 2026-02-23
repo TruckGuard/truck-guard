@@ -18,7 +18,8 @@ services:
       - ./infra/postgres/init-db.sh:/docker-entrypoint-initdb.d/init-db.sh
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U ${MASTER_DB_USER} -d ${MASTER_DB_NAME}" ]
+      test:
+        ["CMD-SHELL", "pg_isready -U ${MASTER_DB_USER} -d ${MASTER_DB_NAME}"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -105,9 +106,9 @@ services:
     ports:
       - "8081:8080"
 
-  camera-adapter:
+  adapter-worker:
     build:
-      context: ./services/camera-adapter
+      context: ./services/adapter-worker
       dockerfile: Dockerfile
     restart: unless-stopped
     environment:
@@ -124,20 +125,6 @@ services:
       - valkey
       - core
       - garage
-
-  weight-adapter:
-    build:
-      context: ./services/weight-adapter
-      dockerfile: Dockerfile
-    restart: unless-stopped
-    environment:
-      - CORE_URL=http://gateway/api
-      - VALKEY_ADDR=${VALKEY_ADDR}
-      - WORKER_API_KEY=${WORKER_SYSTEM_KEY}
-      - PYTHONUNBUFFERED=1
-    depends_on:
-      - valkey
-      - core
 
   anpr:
     build:

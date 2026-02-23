@@ -11,7 +11,7 @@ from src.telemetry import init_telemetry
 
 def main():
     # Initialize OpenTelemetry
-    init_telemetry("truckguard-camera-adapter")
+    init_telemetry("truckguard-adapter-worker")
     
     logger.info("Starting Adapter Worker...")
     

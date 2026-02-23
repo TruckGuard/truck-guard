@@ -117,9 +117,9 @@ services:
     volumes:
       - ./services/core:/app
 
-  camera-adapter:
+  adapter-worker:
     build:
-      context: ./services/camera-adapter
+      context: ./services/adapter-worker
       dockerfile: Dockerfile.dev
     restart: unless-stopped
     environment:
@@ -138,24 +138,7 @@ services:
       - core
       - garage
     volumes:
-      - ./services/camera-adapter:/app
-
-  weight-adapter:
-    build:
-      context: ./services/weight-adapter
-      dockerfile: Dockerfile.dev
-    restart: unless-stopped
-    environment:
-      - CORE_URL=http://gateway/api
-      - VALKEY_ADDR=${VALKEY_ADDR}
-      - WORKER_API_KEY=${WORKER_SYSTEM_KEY}
-      - PYTHONUNBUFFERED=1
-      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
-    depends_on:
-      - valkey
-      - core
-    volumes:
-      - ./services/weight-adapter:/app
+      - ./services/adapter-worker:/app
 
   # anpr:
   #   build:

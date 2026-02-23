@@ -1,8 +1,7 @@
 import json
 from src.utils.logging_utils import logger
 
-
-class EventProcessor:
+class CameraProcessor:
     def __init__(self, core_client, parser, minio_client, anpr_client):
         self.core = core_client
         self.parser = parser
@@ -18,8 +17,7 @@ class EventProcessor:
             self.config_cache[source_id] = config
         return config
 
-    def process(self, raw_data_str: str):
-        data = json.loads(raw_data_str)
+    def process(self, data: dict):
         source_id = data.get("source_id")
         image_key = data.get("image_key")
 

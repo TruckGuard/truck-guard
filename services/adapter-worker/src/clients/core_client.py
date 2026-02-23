@@ -9,6 +9,17 @@ class CoreClient:
             "X-API-Key": cfg.WORKER_API_KEY, 
             "Content-Type": "application/json"
         }
+
+    def get_camera_config(self, source_id: str) -> dict | None:
+        url = f"{cfg.CORE_URL}/cameras/by-id/{source_id}" 
+        try:
+            resp = requests.get(url, headers=self.headers, timeout=5)
+            if resp.status_code == 200:
+                return resp.json()
+        except Exception as e:
+            logger.error("Error fetching config", extra={"source_id": source_id, "error": str(e)})
+        return None
+
     def get_scale_config(self, source_id: str) -> dict | None:
         url = f"{cfg.CORE_URL}/scales/by-id/{source_id}"
         try:
@@ -18,6 +29,12 @@ class CoreClient:
         except Exception as e:
             logger.error("Error fetching scale config", extra={"source_id": source_id, "error": str(e)})
         return None
+
+    @retry(stop=stop_after_attempt(5), wait=wait_exponential(multiplier=1, min=2, max=10))
+    def send_event(self, event_data: dict):
+        url = f"{cfg.CORE_URL}/events/plate" 
+        resp = requests.post(url, json=event_data, headers=self.headers, timeout=5) 
+        resp.raise_for_status()
 
     @retry(stop=stop_after_attempt(5), wait=wait_exponential(multiplier=1, min=2, max=10))
     def send_weight_event(self, event_data: dict):
