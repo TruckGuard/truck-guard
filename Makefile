@@ -33,6 +33,10 @@ dev-up-build:
 dev-down:
 	docker compose -f docker-compose.dev.yaml down -v
 
+.PHONY: dev-down-soft
+dev-down-soft: 
+	docker compose -f docker-compose.dev.yaml down
+
 .PHONY: dev-rebuild
 dev-rebuild: dev-down dev-up-build
 

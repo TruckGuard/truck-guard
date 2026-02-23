@@ -217,6 +217,7 @@ type SystemSetting struct {
 	Name        string `json:"name"`
 	Description string `json:"description"`
 	Value       string `json:"value"`
+	Default     string `json:"default"`
 }
 
 type ExcludedPlate struct {
