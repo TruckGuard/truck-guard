@@ -98,25 +98,13 @@ func HandlePatchPlateEvent(c *gin.Context) {
 }
 
 func HandleGetPlateEvents(c *gin.Context) {
-	var events []models.PlateEvent
-	var total int64
 	limit, offset, page := utils.GetPagination(c)
+	plate := c.Query("plate")
+	from := c.Query("from")
+	to := c.Query("to")
 
-	query := repository.DB.WithContext(c.Request.Context()).Model(&models.PlateEvent{})
-
-	if plate := c.Query("plate"); plate != "" {
-		query = query.Where("plate LIKE ?", "%"+plate+"%")
-	}
-	if from := c.Query("from"); from != "" {
-		query = query.Where("created_at >= ?", from)
-	}
-	if to := c.Query("to"); to != "" {
-		query = query.Where("created_at <= ?", to)
-	}
-
-	query.Count(&total)
-
-	if err := query.Limit(limit).Offset(offset).Order("created_at desc").Find(&events).Error; err != nil {
+	events, total, err := repository.GetPlateEvents(c.Request.Context(), limit, offset, plate, from, to)
+	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch events"})
 		return
 	}
@@ -125,8 +113,8 @@ func HandleGetPlateEvents(c *gin.Context) {
 
 func HandleGetPlateEventByID(c *gin.Context) {
 	id := c.Param("id")
-	var event models.PlateEvent
-	if err := repository.DB.WithContext(c.Request.Context()).First(&event, id).Error; err != nil {
+	event, err := repository.GetPlateEventByID(c.Request.Context(), id)
+	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Event not found"})
 		return
 	}
@@ -178,22 +166,12 @@ func HandleWeightEvent(c *gin.Context) {
 }
 
 func HandleGetWeightEvents(c *gin.Context) {
-	var events []models.WeightEvent
-	var total int64
 	limit, offset, page := utils.GetPagination(c)
+	from := c.Query("from")
+	to := c.Query("to")
 
-	query := repository.DB.WithContext(c.Request.Context()).Model(&models.WeightEvent{})
-
-	if from := c.Query("from"); from != "" {
-		query = query.Where("created_at >= ?", from)
-	}
-	if to := c.Query("to"); to != "" {
-		query = query.Where("created_at <= ?", to)
-	}
-
-	query.Count(&total)
-
-	if err := query.Limit(limit).Offset(offset).Order("created_at desc").Find(&events).Error; err != nil {
+	events, total, err := repository.GetWeightEvents(c.Request.Context(), limit, offset, from, to)
+	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch weight events"})
 		return
 	}
@@ -202,8 +180,8 @@ func HandleGetWeightEvents(c *gin.Context) {
 
 func HandleGetWeightEventByID(c *gin.Context) {
 	id := c.Param("id")
-	var event models.WeightEvent
-	if err := repository.DB.WithContext(c.Request.Context()).First(&event, id).Error; err != nil {
+	event, err := repository.GetWeightEventByID(c.Request.Context(), id)
+	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Weight event not found"})
 		return
 	}
@@ -211,25 +189,13 @@ func HandleGetWeightEventByID(c *gin.Context) {
 }
 
 func HandleGetSystemEvents(c *gin.Context) {
-	var events []models.SystemEvent
-	var total int64
 	limit, offset, page := utils.GetPagination(c)
+	eventType := c.Query("type")
+	from := c.Query("from")
+	to := c.Query("to")
 
-	query := repository.DB.WithContext(c.Request.Context()).Model(&models.SystemEvent{})
-
-	if eventType := c.Query("type"); eventType != "" {
-		query = query.Where("type = ?", eventType)
-	}
-	if from := c.Query("from"); from != "" {
-		query = query.Where("created_at >= ?", from)
-	}
-	if to := c.Query("to"); to != "" {
-		query = query.Where("created_at <= ?", to)
-	}
-
-	query.Count(&total)
-
-	if err := query.Limit(limit).Offset(offset).Order("created_at desc").Find(&events).Error; err != nil {
+	events, total, err := repository.GetSystemEvents(c.Request.Context(), limit, offset, eventType, from, to)
+	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch system events"})
 		return
 	}
@@ -238,8 +204,8 @@ func HandleGetSystemEvents(c *gin.Context) {
 
 func HandleGetSystemEventByID(c *gin.Context) {
 	id := c.Param("id")
-	var event models.SystemEvent
-	if err := repository.DB.WithContext(c.Request.Context()).First(&event, id).Error; err != nil {
+	event, err := repository.GetSystemEventByID(c.Request.Context(), id)
+	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "System event not found"})
 		return
 	}

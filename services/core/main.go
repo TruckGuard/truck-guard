@@ -38,6 +38,7 @@ func main() {
 	r.Use(otelgin.Middleware("truckguard-core"))
 	r.Use(middleware.Logger())
 	r.Use(middleware.MetricsMiddleware())
+	r.Use(middleware.AuthContextMiddleware())
 
 	// Health check with service_up gauge
 	meter := otel.Meter("truckguard-core")

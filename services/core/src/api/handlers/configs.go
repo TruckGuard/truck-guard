@@ -37,7 +37,7 @@ func HandleCreateCamera(c *gin.Context) {
 
 	slog.Debug("Camera config created", "config", config, "source_id", config.SourceID)
 
-	if err := repository.DB.WithContext(c.Request.Context()).Create(&config).Error; err != nil {
+	if err := repository.CreateCamera(c.Request.Context(), &config); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save camera configuration"})
 		return
 	}
@@ -49,20 +49,21 @@ func HandleCreateCamera(c *gin.Context) {
 }
 
 func HandleGetCameras(c *gin.Context) {
-	var configs []models.CameraConfig
-	var total int64
 	limit, offset, page := utils.GetPagination(c)
 
-	repository.DB.WithContext(c.Request.Context()).Model(&models.CameraConfig{}).Count(&total)
-	repository.DB.WithContext(c.Request.Context()).Limit(limit).Offset(offset).Find(&configs)
+	configs, total, err := repository.GetCameras(c.Request.Context(), limit, offset)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch cameras"})
+		return
+	}
 
 	utils.SendPaginatedResponse(c, configs, total, page, limit)
 }
 
 func HandleGetConfigByID(c *gin.Context) {
 	sourceID := c.Param("id")
-	var config models.CameraConfig
-	if err := repository.DB.WithContext(c.Request.Context()).Where("id = ?", sourceID).First(&config).Error; err != nil {
+	config, err := repository.GetCameraByID(c.Request.Context(), sourceID)
+	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Camera config not found"})
 		return
 	}
@@ -71,8 +72,8 @@ func HandleGetConfigByID(c *gin.Context) {
 
 func HandleGetConfigByCameraID(c *gin.Context) {
 	sourceID := c.Param("camera_id")
-	var config models.CameraConfig
-	if err := repository.DB.WithContext(c.Request.Context()).Where("camera_id = ?", sourceID).First(&config).Error; err != nil {
+	config, err := repository.GetCameraBySourceID(c.Request.Context(), sourceID)
+	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Camera config not found"})
 		return
 	}
@@ -81,9 +82,8 @@ func HandleGetConfigByCameraID(c *gin.Context) {
 
 func HandleUpdateCamera(c *gin.Context) {
 	id := c.Param("id")
-	var config models.CameraConfig
-
-	if err := repository.DB.WithContext(c.Request.Context()).First(&config, id).Error; err != nil {
+	config, err := repository.GetCameraByID(c.Request.Context(), id)
+	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Camera configuration not found"})
 		return
 	}
@@ -93,7 +93,7 @@ func HandleUpdateCamera(c *gin.Context) {
 		return
 	}
 
-	if err := repository.DB.WithContext(c.Request.Context()).Save(&config).Error; err != nil {
+	if err := repository.UpdateCamera(c.Request.Context(), &config); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update configuration"})
 		return
 	}
@@ -103,8 +103,8 @@ func HandleUpdateCamera(c *gin.Context) {
 
 func HandleDeleteCamera(c *gin.Context) {
 	id := c.Param("id")
-	var config models.CameraConfig
-	if err := repository.DB.WithContext(c.Request.Context()).First(&config, id).Error; err != nil {
+	config, err := repository.GetCameraByID(c.Request.Context(), id)
+	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Camera config not found"})
 		return
 	}
@@ -120,7 +120,11 @@ func HandleDeleteCamera(c *gin.Context) {
 			return
 		}
 	}
-	repository.DB.WithContext(c.Request.Context()).Delete(&config)
+
+	if err := repository.DeleteCamera(c.Request.Context(), &config); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete camera configuration"})
+		return
+	}
 	c.JSON(http.StatusOK, gin.H{"status": "deleted"})
 }
 
@@ -148,7 +152,7 @@ func HandleCreateScale(c *gin.Context) {
 	}
 
 	slog.Debug("Scale config created", "config", config, "match_permit", config.MatchPermit)
-	if err := repository.DB.WithContext(c.Request.Context()).Create(&config).Error; err != nil {
+	if err := repository.CreateScale(c.Request.Context(), &config); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save scale configuration"})
 		return
 	}
@@ -160,20 +164,21 @@ func HandleCreateScale(c *gin.Context) {
 }
 
 func HandleGetScales(c *gin.Context) {
-	var configs []models.ScaleConfig
-	var total int64
 	limit, offset, page := utils.GetPagination(c)
 
-	repository.DB.WithContext(c.Request.Context()).Model(&models.ScaleConfig{}).Count(&total)
-	repository.DB.WithContext(c.Request.Context()).Limit(limit).Offset(offset).Find(&configs)
+	configs, total, err := repository.GetScales(c.Request.Context(), limit, offset)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch scales"})
+		return
+	}
 
 	utils.SendPaginatedResponse(c, configs, total, page, limit)
 }
 
 func HandleGetConfigByScaleID(c *gin.Context) {
 	scaleID := c.Param("scale_id")
-	var config models.ScaleConfig
-	if err := repository.DB.WithContext(c.Request.Context()).Where("scale_id = ?", scaleID).First(&config).Error; err != nil {
+	config, err := repository.GetScaleBySourceID(c.Request.Context(), scaleID)
+	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "scale config not found"})
 		return
 	}
@@ -182,9 +187,8 @@ func HandleGetConfigByScaleID(c *gin.Context) {
 
 func HandleUpdateScale(c *gin.Context) {
 	id := c.Param("id")
-	var config models.ScaleConfig
-
-	if err := repository.DB.WithContext(c.Request.Context()).First(&config, id).Error; err != nil {
+	config, err := repository.GetScaleByID(c.Request.Context(), id)
+	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Scale configuration not found"})
 		return
 	}
@@ -194,7 +198,7 @@ func HandleUpdateScale(c *gin.Context) {
 		return
 	}
 
-	if err := repository.DB.WithContext(c.Request.Context()).Save(&config).Error; err != nil {
+	if err := repository.UpdateScale(c.Request.Context(), &config); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update scale configuration"})
 		return
 	}
@@ -204,9 +208,8 @@ func HandleUpdateScale(c *gin.Context) {
 
 func HandleDeleteScale(c *gin.Context) {
 	id := c.Param("id")
-	var config models.ScaleConfig
-
-	if err := repository.DB.WithContext(c.Request.Context()).First(&config, id).Error; err != nil {
+	config, err := repository.GetScaleByID(c.Request.Context(), id)
+	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Scale configuration not found"})
 		return
 	}
@@ -223,7 +226,7 @@ func HandleDeleteScale(c *gin.Context) {
 		}
 	}
 
-	if err := repository.DB.WithContext(c.Request.Context()).Unscoped().Delete(&config).Error; err != nil {
+	if err := repository.DeleteScale(c.Request.Context(), &config); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete scale configuration"})
 		return
 	}

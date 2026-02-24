@@ -28,23 +28,30 @@ func seedData() {
 
 		// Core
 		{ID: "read:cameras", Name: "Камери: Перегляд", Module: "core"},
-		{ID: "manage:cameras", Name: "Камери: Повний доступ", Module: "core"},
+		{ID: "read:cameras:all", Name: "Камери: Перегляд всіх", Module: "core"},
+		{ID: "manage:cameras", Name: "Камери: Редагування", Module: "core"},
+		{ID: "manage:cameras:all", Name: "Камери: Редагування всіх", Module: "core"},
 
 		{ID: "read:scales", Name: "Ваги: Перегляд", Module: "core"},
-		{ID: "manage:scales", Name: "Ваги: Повний доступ", Module: "core"},
+		{ID: "read:scales:all", Name: "Ваги: Перегляд всіх", Module: "core"},
+		{ID: "manage:scales", Name: "Ваги: Редагування", Module: "core"},
+		{ID: "manage:scales:all", Name: "Ваги: Редагування всіх", Module: "core"},
 
 		{ID: "read:events", Name: "Події: Перегляд", Module: "core"},
+		{ID: "read:events:all", Name: "Події: Перегляд всіх", Module: "core"},
 		{ID: "create:events", Name: "Події: Створення", Module: "core"},
 		{ID: "update:events", Name: "Події: Корекція", Module: "core"},
+		{ID: "update:events:all", Name: "Події: Корекція всіх", Module: "core"},
 
 		{ID: "read:permits", Name: "Перепустки: Перегляд", Module: "core"},
 		{ID: "read:permits:all", Name: "Перепустки: Перегляд всіх", Module: "core"},
 		{ID: "validate:permits", Name: "Перепустки: Валідація", Module: "core"},
+		{ID: "validate:permits:all", Name: "Перепустки: Валідація всіх", Module: "core"},
 		{ID: "create:permits", Name: "Перепустки: Створення", Module: "core"},
 		{ID: "update:permits", Name: "Перепустки: Редагування", Module: "core"},
+		{ID: "update:permits:all", Name: "Перепустки: Редагування всіх", Module: "core"},
 
 		{ID: "read:settings", Name: "Налаштування: Перегляд", Module: "core"},
-		{ID: "update:settings", Name: "Налаштування: Зміна", Module: "core"},
 		{ID: "manage:settings", Name: "Налаштування: Повний доступ", Module: "core"},
 
 		{ID: "read:data", Name: "Довідники: Перегляд", Module: "core"},
@@ -144,21 +151,20 @@ func seedData() {
 
 		// Core Service: CONFIGS
 		{Method: "GET", PathPattern: `^/api/configs/cameras.*`, RequiredPermission: "read:cameras", Description: "Перегляд камер"},
-		{Method: "POST", PathPattern: `^/api/configs/cameras.*`, RequiredPermission: "manage:cameras", Description: "Додавання камер"},
-		{Method: "PUT", PathPattern: `^/api/configs/cameras/.*`, RequiredPermission: "manage:cameras", Description: "Редагування камер"},
-		{Method: "DELETE", PathPattern: `^/api/configs/cameras/.*`, RequiredPermission: "manage:cameras", Description: "Видалення камер"},
+		{Method: "GET", PathPattern: `^/api/configs/cameras/.*`, RequiredPermission: "read:cameras:all", Description: "Перегляд всіх камер"},
+		{Method: "*", PathPattern: `^/api/configs/cameras.*`, RequiredPermission: "manage:cameras", Description: "Керування камерами"},
+		{Method: "*", PathPattern: `^/api/configs/cameras.*`, RequiredPermission: "manage:cameras:all", Description: "Керування всіма камерами"},
 
 		{Method: "GET", PathPattern: `^/api/configs/scales.*`, RequiredPermission: "read:scales", Description: "Перегляд ваг"},
-		{Method: "POST", PathPattern: `^/api/configs/scales.*`, RequiredPermission: "manage:scales", Description: "Додавання ваг"},
-		{Method: "PUT", PathPattern: `^/api/configs/scales/.*`, RequiredPermission: "manage:scales", Description: "Редагування ваг"},
-		{Method: "DELETE", PathPattern: `^/api/configs/scales/.*`, RequiredPermission: "manage:scales", Description: "Видалення ваг"},
+		{Method: "GET", PathPattern: `^/api/configs/scales/.*`, RequiredPermission: "read:scales:all", Description: "Перегляд всіх ваг"},
+		{Method: "*", PathPattern: `^/api/configs/scales.*`, RequiredPermission: "manage:scales", Description: "Керування вагами"},
+		{Method: "*", PathPattern: `^/api/configs/scales.*`, RequiredPermission: "manage:scales:all", Description: "Керування всіма вагами"},
 
 		{Method: "GET", PathPattern: `^/api/configs/settings.*`, RequiredPermission: "read:settings", Description: "Перегляд налаштувань"},
-		{Method: "POST", PathPattern: `^/api/configs/settings.*`, RequiredPermission: "update:settings", Description: "Зміна налаштувань"},
+		{Method: "*", PathPattern: `^/api/configs/settings.*`, RequiredPermission: "update:settings", Description: "Керування налаштуваннями"},
 
 		{Method: "GET", PathPattern: `^/api/configs/excluded-plates.*`, RequiredPermission: "read:settings", Description: "Перегляд чорного списку"},
-		{Method: "POST", PathPattern: `^/api/configs/excluded-plates.*`, RequiredPermission: "update:settings", Description: "Додавання у чорний список"},
-		{Method: "DELETE", PathPattern: `^/api/configs/excluded-plates/.*`, RequiredPermission: "update:settings", Description: "Видалення з чорного списку"},
+		{Method: "*", PathPattern: `^/api/configs/excluded-plates.*`, RequiredPermission: "update:settings", Description: "Керування чорним списком"},
 
 		// Core Service: DATA
 		{Method: "GET", PathPattern: `^/api/data/.*`, RequiredPermission: "read:data", Description: "Перегляд довідників"},
@@ -166,14 +172,17 @@ func seedData() {
 
 		// Core Service: EVENTS
 		{Method: "GET", PathPattern: `^/api/events/.*`, RequiredPermission: "read:events", Description: "Перегляд подій"},
+		{Method: "GET", PathPattern: `^/api/events/.*`, RequiredPermission: "read:events:all", Description: "Перегляд всіх подій"},
 		{Method: "POST", PathPattern: `^/api/events/.*`, RequiredPermission: "create:events", Description: "Реєстрація подій"},
 		{Method: "PATCH", PathPattern: `^/api/events/plate/.*`, RequiredPermission: "update:events", Description: "Корекція номерів"},
+		{Method: "PATCH", PathPattern: `^/api/events/plate/.*`, RequiredPermission: "update:events:all", Description: "Корекція всіх номерів"},
 
 		// Core Service: PERMITS
 		{Method: "GET", PathPattern: `^/api/permits.*`, RequiredPermission: "read:permits", Description: "Перегляд перепусток"},
 		{Method: "POST", PathPattern: `^/api/permits/.*/validate$`, RequiredPermission: "validate:permits", Description: "Валідація перепусток"},
-		{Method: "POST", PathPattern: `^/api/permits.*`, RequiredPermission: "create:permits", Description: "Створення перепусток"},
-		{Method: "PUT", PathPattern: `^/api/permits/.*`, RequiredPermission: "update:permits", Description: "Оновлення перепусток"},
+		{Method: "POST", PathPattern: `^/api/permits/.*/validate$`, RequiredPermission: "validate:permits:all", Description: "Валідація всіх перепусток"},
+		{Method: "*", PathPattern: `^/api/permits.*`, RequiredPermission: "manage:permits", Description: "Керування перепустками"},
+		{Method: "*", PathPattern: `^/api/permits.*`, RequiredPermission: "manage:permits:all", Description: "Керування всіма перепустками"},
 
 		// Core Service: USERS
 		{Method: "GET", PathPattern: `^/api/users/?$`, RequiredPermission: "read:users", Description: "Список профілів"},
@@ -181,6 +190,10 @@ func seedData() {
 		{Method: "PUT", PathPattern: `^/api/users/me`, RequiredPermission: "", Description: "Оновлення мого профілю"},
 		{Method: "POST", PathPattern: `^/api/users/?$`, RequiredPermission: "create:users", Description: "Створення профілю"},
 		{Method: "*", PathPattern: `^/api/users/.*`, RequiredPermission: "update:users", Description: "Керування профілями"},
+
+		// Images
+		{Method: "GET", PathPattern: `^/api/images/.*`, RequiredPermission: "read:events", Description: "Перегляд зображень"},
+		{Method: "GET", PathPattern: `^/api/images/.*`, RequiredPermission: "read:events:all", Description: "Перегляд зображень"},
 	}
 
 	for _, r := range rules {

@@ -186,6 +186,11 @@ func HandleUpdateUser(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save profile in Core"})
 		return
 	}
+	cacheKey := fmt.Sprintf("user:%s:post_id", idStr)
+	err = repository.RDB.Set(c.Request.Context(), cacheKey, user.CustomsPostID, 0).Err()
+	if err != nil {
+		slog.Error("Failed to save profile in Core", "auth_id", user.AuthID, "error", err)
+	}
 
 	c.JSON(http.StatusOK, user)
 }
