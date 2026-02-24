@@ -45,7 +45,7 @@ dev-restart: dev-down dev-up
 
 .PHONY: dev-restart-core
 dev-restart-core: 
-	docker compose -f docker-compose.dev.yaml up -d ingestor camera-adapter weight-adapter auth core
+	docker compose -f docker-compose.dev.yaml up -d ingestor adapter-worker auth core
 
 .PHONY: dev-init
 dev-init:

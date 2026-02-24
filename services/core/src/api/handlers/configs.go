@@ -147,7 +147,7 @@ func HandleCreateScale(c *gin.Context) {
 		config.SourceID = fmt.Sprintf("%v", authResp.ID)
 	}
 
-	slog.Debug("Scale config created", "config", config, "trigger", config.TriggerPermitCreation)
+	slog.Debug("Scale config created", "config", config, "match_permit", config.MatchPermit)
 	if err := repository.DB.WithContext(c.Request.Context()).Create(&config).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save scale configuration"})
 		return

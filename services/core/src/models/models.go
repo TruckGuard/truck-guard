@@ -33,11 +33,11 @@ type Company struct {
 
 type CameraConfig struct {
 	gorm.Model
-	SourceID              string `gorm:"column:camera_id;uniqueIndex;not null" json:"camera_id"`
-	Name                  string `json:"name"`
-	Description           string `json:"description"`
-	Type                  string `json:"type"` // front, back
-	TriggerPermitCreation bool   `json:"trigger_permit_creation"`
+	SourceID    string `gorm:"column:camera_id;uniqueIndex;not null" json:"camera_id"`
+	Name        string `json:"name"`
+	Description string `json:"description"`
+	Type        string `json:"type"` // front, back
+	MatchPermit bool   `json:"match_permit"`
 
 	Format       string `json:"format"`
 	RunANPR      *bool  `json:"run_anpr"`
@@ -49,10 +49,10 @@ type CameraConfig struct {
 
 type ScaleConfig struct {
 	gorm.Model
-	SourceID              string `gorm:"column:scale_id;uniqueIndex;not null" json:"scale_id"`
-	Name                  string `json:"name"`
-	Description           string `json:"description"`
-	TriggerPermitCreation bool   `json:"trigger_permit_creation"`
+	SourceID    string `gorm:"column:scale_id;uniqueIndex;not null" json:"scale_id"`
+	Name        string `json:"name"`
+	Description string `json:"description"`
+	MatchPermit bool   `json:"match_permit"`
 
 	Format       string `json:"format"`
 	FieldMapping string `json:"field_mapping"`
