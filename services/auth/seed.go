@@ -119,7 +119,7 @@ func seedData() {
 		err := repository.DB.Where("key_hash = ?", h).First(&existingKey).Error
 		if err != nil {
 			workerPerms := []models.Permission{}
-			repository.DB.Where("id IN ?", []string{"manage:configs", "create:events", "read:trips"}).Find(&workerPerms)
+			repository.DB.Where("id IN ?", []string{"create:events", "read:cameras:all", "read:scales:all"}).Find(&workerPerms)
 
 			newKey := models.APIKey{
 				KeyHash:     h,
