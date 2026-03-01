@@ -39,6 +39,7 @@ func InitDB(dsn string) {
 		&models.Company{},
 		&models.VehicleType{},
 		&models.PaymentType{},
+		&models.PermitPayer{},
 	)
 	DB = db
 }

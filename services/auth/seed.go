@@ -184,8 +184,8 @@ func seedData() {
 		{Method: "GET", PathPattern: `^/api/permits.*`, RequiredPermission: "read:permits", Description: "Перегляд перепусток"},
 		{Method: "POST", PathPattern: `^/api/permits/.*/validate$`, RequiredPermission: "validate:permits", Description: "Валідація перепусток"},
 		{Method: "POST", PathPattern: `^/api/permits/.*/validate$`, RequiredPermission: "validate:permits:all", Description: "Валідація всіх перепусток"},
-		{Method: "*", PathPattern: `^/api/permits.*`, RequiredPermission: "manage:permits", Description: "Керування перепустками"},
-		{Method: "*", PathPattern: `^/api/permits.*`, RequiredPermission: "manage:permits:all", Description: "Керування всіма перепустками"},
+		{Method: "*", PathPattern: `^/api/permits.*`, RequiredPermission: "update:permits", Description: "Керування перепустками"},
+		{Method: "*", PathPattern: `^/api/permits.*`, RequiredPermission: "update:permits:all", Description: "Керування всіма перепустками"},
 
 		// Core Service: USERS
 		{Method: "GET", PathPattern: `^/api/users/?$`, RequiredPermission: "read:users", Description: "Список профілів"},

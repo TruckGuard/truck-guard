@@ -45,7 +45,7 @@ func getPermitTimeout(ctx context.Context) time.Duration {
 	return time.Duration(sec) * time.Second
 }
 
-func GetOrCreatePermit(ctx context.Context, customsPostID uint, currentSourceID string) *models.Permit {
+func GetOrCreatePermit(ctx context.Context, customsPostID uint, currentSourceID string) (*models.Permit, bool) {
 	db := repository.DB.WithContext(ctx)
 	key := fmt.Sprintf("active_permit:customs_post:%d", customsPostID)
 
@@ -94,7 +94,7 @@ func GetOrCreatePermit(ctx context.Context, customsPostID uint, currentSourceID 
 
 				if !shouldCreateNew {
 					slog.Debug("Reusing active permit", "permit_id", permit.ID)
-					return &permit
+					return &permit, false
 				}
 			}
 		}
@@ -109,13 +109,13 @@ func GetOrCreatePermit(ctx context.Context, customsPostID uint, currentSourceID 
 
 	if err := db.Create(&permit).Error; err != nil {
 		slog.Error("Failed to create permit", "error", err)
-		return nil
+		return nil, false
 	}
 
 	permit.Code = fmt.Sprintf("%02d%06d", customsPostID, permit.ID)
 	if err := db.Save(&permit).Error; err != nil {
 		slog.Error("Failed to update permit code", "error", err)
-		return nil
+		return nil, false
 	}
 
 	// Set in Redis with timeout
@@ -125,7 +125,7 @@ func GetOrCreatePermit(ctx context.Context, customsPostID uint, currentSourceID 
 	permitsCreatedCounter.Add(ctx, 1)
 	slog.Info("Created new permit", "permit_id", permit.ID, "code", permit.Code)
 
-	return &permit
+	return &permit, true
 }
 
 func MatchPlateEvent(ctx context.Context, event *models.PlateEvent) {
@@ -139,7 +139,7 @@ func MatchPlateEvent(ctx context.Context, event *models.PlateEvent) {
 		span.RecordError(err)
 		return
 	}
-	
+
 	if !event.Camera.MatchPermit {
 		slog.Debug("Camera not configured to match permits", "camera_id", event.CameraID)
 		return
@@ -214,10 +214,14 @@ func MatchWeightEvent(ctx context.Context, event *models.WeightEvent) {
 // processEvent handles the common logic: find active permit or create new, then apply updates
 func processEvent(ctx context.Context, customsPostID uint, sourceID string, event interface{}, updateFn func(*models.Permit)) {
 	db := repository.DB.WithContext(ctx)
-	permit := GetOrCreatePermit(ctx, customsPostID, sourceID)
+	permit, isNew := GetOrCreatePermit(ctx, customsPostID, sourceID)
 	if permit == nil {
 		return
 	}
+
+	oldFront := permit.PlateFront
+	oldBack := permit.PlateBack
+	oldWeight := permit.TotalWeight
 
 	// Update existing
 	updateFn(permit)
@@ -227,6 +231,23 @@ func processEvent(ctx context.Context, customsPostID uint, sourceID string, even
 		return
 	}
 	slog.Info("Processed event for permit", "permit_id", permit.ID)
+
+	changes := make(map[string]interface{})
+	if permit.PlateFront != oldFront {
+		changes["plate_front"] = permit.PlateFront
+	}
+	if permit.PlateBack != oldBack {
+		changes["plate_back"] = permit.PlateBack
+	}
+	if permit.TotalWeight != oldWeight {
+		changes["total_weight"] = permit.TotalWeight
+	}
+
+	if isNew {
+		repository.LogSystemPermitAudit(ctx, permit.ID, "create", changes, "Перепустка ініційована камерою/вагами")
+	} else if len(changes) > 0 {
+		repository.LogSystemPermitAudit(ctx, permit.ID, "update", changes, "Дані оновлено подією з камери/ваг")
+	}
 
 	// Refresh Redis TTL
 	key := fmt.Sprintf("active_permit:customs_post:%d", customsPostID)

@@ -21,7 +21,7 @@ export class CoreClient {
         this.baseUrl = baseUrl;
         this.token = token || undefined;
         this.userId = userId;
-        
+
         if (permissions) {
             this.permissions = Array.isArray(permissions) ? permissions.join(',') : permissions;
         }
@@ -130,6 +130,50 @@ export class CoreClient {
         return this.fetchWithAuth<boolean>(`/data/${entity}/${id}`, 'DELETE');
     }
 
+    // --- Permits ---
+
+    async getPermits<T>(page: number = 1, limit: number = 10, filters?: Record<string, string | undefined>): Promise<{ data: T[], metadata: any }> {
+        const query = new URLSearchParams({
+            page: page.toString(),
+            limit: limit.toString(),
+        });
+
+        if (filters) {
+            Object.entries(filters).forEach(([key, value]) => {
+                if (value) query.append(key, value);
+            });
+        }
+
+        return this.fetchWithAuth<{ data: T[], metadata: any }>(`/permits?${query.toString()}`);
+    }
+
+    async getPermit<T>(id: string | number): Promise<T> {
+        return this.fetchWithAuth<T>(`/permits/${id}`);
+    }
+
+    async getPermitAuditEvents<T>(id: string | number): Promise<T> {
+        return this.fetchWithAuth<T>(`/permits/${id}/audit`);
+    }
+
+    async createPermit<T>(data: any): Promise<T> {
+        return this.fetchWithAuth<T>('/permits', 'POST', data);
+    }
+
+    async updatePermit<T>(id: string | number, data: any): Promise<T> {
+        return this.fetchWithAuth<T>(`/permits/${id}`, 'PUT', data);
+    }
+
+    async validatePermit<T>(id: string | number): Promise<T> {
+        return this.fetchWithAuth<T>(`/permits/${id}/validate`, 'POST');
+    }
+
+    // --- Customs Parser ---
+
+    async getCustomsDeclaration<T>(number: string): Promise<T> {
+        // We use the data-parser route exposed via Nginx
+        return this.fetchWithAuth<T>(`/data-parser/customs/declaration/${number}`);
+    }
+
     // --- System Settings ---
 
     async listSettings(): Promise<any[]> {
@@ -169,7 +213,7 @@ export class CoreClient {
             }
 
             const response = await fetch(`${this.baseUrl}${endpoint}`, options);
-            
+
             if (!response.ok) {
                 let errorMessage = `Request failed with status ${response.status}`;
                 try {

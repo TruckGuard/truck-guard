@@ -81,3 +81,16 @@ func HandleValidatePermit(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, permit)
 }
+
+func HandleGetPermitAuditEvents(c *gin.Context) {
+	id := c.Param("id")
+	var audits []models.PermitAudit
+
+	// Ensure permit exists? Or just query audits directly.
+	if err := repository.DB.WithContext(c.Request.Context()).Preload("User").Where("permit_id = ?", id).Order("created_at desc").Find(&audits).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch audit events"})
+		return
+	}
+
+	c.JSON(http.StatusOK, audits)
+}

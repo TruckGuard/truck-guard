@@ -43,6 +43,19 @@ func GetPermitByID(ctx context.Context, id string) (models.Permit, error) {
 		Preload("CustomsPost").
 		Preload("PlateEvents").
 		Preload("WeightEvents").
+		Preload("Verifier").
+		Preload("CustomsData").
+		Preload("VehicleType").
+		Preload("CustomsMode").
+		Preload("PaymentType").
+		Preload("Payers").
+		Preload("Creator").
+		Preload("ResponsibleUser").
+		Preload("AuditEvents", func(db *gorm.DB) *gorm.DB {
+			return db.Order("created_at desc")
+		}).
+		Preload("AuditEvents.User").
+		// Preload("Payers.Company").
 		First(&permit, id).Error; err != nil {
 		return permit, err
 	}
@@ -79,8 +92,19 @@ func UpdatePermit(ctx context.Context, id string, input map[string]interface{}, 
 	var user models.User
 	DB.WithContext(ctx).Where("auth_id = ?", authID).First(&user)
 
+	// Copy changes for audit trace before modification
+	auditChanges := make(map[string]interface{})
+	for k, v := range input {
+		auditChanges[k] = v
+	}
+
+	action := "update"
+	comment := "Оновлено оператором"
+
 	// Recalculate financials if exit time or status changes
 	if isClosed, ok := input["is_closed"].(bool); ok && isClosed {
+		action = "close"
+		comment = "Перепустку закрито"
 		if permit.ExitTime == nil {
 			now := time.Now()
 			input["exit_time"] = now
@@ -95,8 +119,25 @@ func UpdatePermit(ctx context.Context, id string, input map[string]interface{}, 
 		}
 	}
 
-	if err := DB.WithContext(ctx).Model(&permit).Updates(input).Error; err != nil {
-		return permit, err
+	// Extract and save CustomsData if present
+	if cdMap, ok := input["customs_data"]; ok && cdMap != nil {
+		cdBytes, _ := json.Marshal(cdMap)
+		var cd models.PermitCustomsData
+		json.Unmarshal(cdBytes, &cd)
+		cd.PermitID = permit.ID
+		// Upsert customs data. First try to find existing to keep ID.
+		var existingCD models.PermitCustomsData
+		if err := DB.WithContext(ctx).Where("permit_id = ?", permit.ID).First(&existingCD).Error; err == nil {
+			cd.ID = existingCD.ID
+		}
+		DB.WithContext(ctx).Save(&cd)
+		delete(input, "customs_data")
+	}
+
+	if len(input) > 0 {
+		if err := DB.WithContext(ctx).Model(&permit).Updates(input).Error; err != nil {
+			return permit, err
+		}
 	}
 
 	if val, ok := input["verified_by"]; ok && val != nil {
@@ -104,7 +145,11 @@ func UpdatePermit(ctx context.Context, id string, input map[string]interface{}, 
 		DB.WithContext(ctx).Model(&permit).Update("verified_at", now)
 	}
 
-	LogPermitAudit(ctx, permit.ID, user.ID, "update", input, "Оновлено оператором")
+	if input["responsible_user_id"] != nil {
+		DB.WithContext(ctx).Model(&permit).Update("responsible_user_id", input["responsible_user_id"])
+	}
+
+	LogPermitAudit(ctx, permit.ID, user.ID, action, auditChanges, comment)
 
 	return permit, nil
 }
@@ -142,6 +187,18 @@ func LogPermitAudit(ctx context.Context, permitID uint, userID uint, action stri
 	audit := models.PermitAudit{
 		PermitID: permitID,
 		UserID:   &userID,
+		Action:   action,
+		Changes:  datatypes.JSON(jsonBytes),
+		Comment:  comment,
+	}
+	DB.WithContext(ctx).Create(&audit)
+}
+
+func LogSystemPermitAudit(ctx context.Context, permitID uint, action string, changes interface{}, comment string) {
+	jsonBytes, _ := json.Marshal(changes)
+	audit := models.PermitAudit{
+		PermitID: permitID,
+		UserID:   nil,
 		Action:   action,
 		Changes:  datatypes.JSON(jsonBytes),
 		Comment:  comment,

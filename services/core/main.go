@@ -134,6 +134,7 @@ func main() {
 		{
 			permits.GET("", handlers.HandleGetPermits)
 			permits.GET("/:id", handlers.HandleGetPermitByID)
+			permits.GET("/:id/audit", handlers.HandleGetPermitAuditEvents)
 			permits.POST("", handlers.HandleCreatePermit)
 			permits.PUT("/:id", handlers.HandleUpdatePermit)
 			permits.POST("/:id/validate", handlers.HandleValidatePermit)
