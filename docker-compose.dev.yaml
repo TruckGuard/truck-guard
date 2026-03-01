@@ -117,6 +117,18 @@ services:
     volumes:
       - ./services/core:/app
 
+  customs-parser:
+    build:
+      context: ./services/customs-parser
+      dockerfile: Dockerfile.dev
+    restart: on-failure
+    environment:
+      - PORT=8085
+    ports:
+      - "8085:8085"
+    volumes:
+      - ./services/customs-parser:/app
+
   adapter-worker:
     build:
       context: ./services/adapter-worker

@@ -79,6 +79,22 @@ func UpdatePermit(ctx context.Context, id string, input map[string]interface{}, 
 	var user models.User
 	DB.WithContext(ctx).Where("auth_id = ?", authID).First(&user)
 
+	// Recalculate financials if exit time or status changes
+	if isClosed, ok := input["is_closed"].(bool); ok && isClosed {
+		if permit.ExitTime == nil {
+			now := time.Now()
+			input["exit_time"] = now
+			permit.ExitTime = &now
+		}
+		if err := CalculateFinancials(ctx, &permit, input); err != nil {
+			return permit, err
+		}
+	} else if _, hasExitTime := input["exit_time"]; hasExitTime {
+		if err := CalculateFinancials(ctx, &permit, input); err != nil {
+			return permit, err
+		}
+	}
+
 	if err := DB.WithContext(ctx).Model(&permit).Updates(input).Error; err != nil {
 		return permit, err
 	}
@@ -131,4 +147,93 @@ func LogPermitAudit(ctx context.Context, permitID uint, userID uint, action stri
 		Comment:  comment,
 	}
 	DB.WithContext(ctx).Create(&audit)
+}
+
+func CalculateFinancials(ctx context.Context, permit *models.Permit, updates map[string]interface{}) error {
+	// 1. Get ExitTime
+	var exitTime time.Time
+	if etVal, ok := updates["exit_time"]; ok {
+		switch v := etVal.(type) {
+		case time.Time:
+			exitTime = v
+		case *time.Time:
+			if v != nil {
+				exitTime = *v
+			}
+		case string:
+			parsed, _ := time.Parse(time.RFC3339, v)
+			exitTime = parsed
+		}
+	} else if permit.ExitTime != nil {
+		exitTime = *permit.ExitTime
+	} else {
+		return nil // Cannot calculate without exit time
+	}
+
+	// 2. Load necessary relations
+	if err := DB.WithContext(ctx).Preload("VehicleType").Preload("Payers.Company").First(permit, permit.ID).Error; err != nil {
+		return err
+	}
+
+	// 3. Calculate Days In Zone (each partial day counts as full day)
+	duration := exitTime.Sub(permit.EntryTime)
+	days := int(duration.Hours() / 24)
+	if duration.Hours() > float64(days*24) || duration <= 0 {
+		days++
+	}
+	if days < 1 {
+		days = 1 // Minimum 1 day
+	}
+	updates["days_in_zone"] = days
+
+	// 4. Calculate Exist Fee (Sum 2)
+	dailyPrice := 0.0
+	if permit.VehicleType != nil {
+		dailyPrice = permit.VehicleType.DailyPrice
+	}
+	exitFee := float64(days) * dailyPrice
+	updates["exit_fee"] = exitFee
+
+	// 5. Calculate Discount (use Payer 1 if exists, otherwise 0)
+	discountPct := 0.0
+	discountFixed := 0.0
+	if len(permit.Payers) > 0 {
+		for _, payer := range permit.Payers {
+			if payer.SlotIndex == 1 && payer.Company != nil {
+				discountPct = payer.Company.DiscountPercentage
+				discountFixed = payer.Company.DiscountFixed
+				break
+			}
+		}
+	}
+
+	// Sum 1 is EntryFee, Sum 2 is ExitFee
+	subtotal := permit.EntryFee + exitFee
+
+	// Default to applying fixed first, then percentage, or vice versa depending on logic.
+	// For now: Total = (Subtotal - Fixed) * (1 - Pct/100)
+	discountAmount := 0.0
+
+	// apply fixed
+	if discountFixed > 0 {
+		if subtotal >= discountFixed {
+			discountAmount += discountFixed
+			subtotal -= discountFixed
+		} else {
+			discountAmount += subtotal
+			subtotal = 0
+		}
+	}
+
+	// apply percentage
+	if discountPct > 0 && discountPct <= 100 {
+		pctDiscount := subtotal * (discountPct / 100.0)
+		discountAmount += pctDiscount
+		subtotal -= pctDiscount
+	}
+
+	updates["discount_amount"] = discountAmount
+	updates["total_sum"] = subtotal
+
+	return nil
 }

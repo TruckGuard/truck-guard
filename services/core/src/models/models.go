@@ -25,10 +25,12 @@ type CustomsMode struct {
 
 type Company struct {
 	gorm.Model
-	Name         string         `json:"name"`
-	EDRPOU       string         `gorm:"uniqueIndex;not null" json:"edrpou"`
-	Details      datatypes.JSON `gorm:"type:jsonb" json:"details"`
-	LastSyncedAt *time.Time     `json:"last_synced_at"`
+	Name               string         `json:"name"`
+	EDRPOU             string         `gorm:"uniqueIndex;not null" json:"edrpou"`
+	DiscountPercentage float64        `gorm:"default:0" json:"discount_percentage"`
+	DiscountFixed      float64        `gorm:"default:0" json:"discount_fixed"`
+	Details            datatypes.JSON `gorm:"type:jsonb" json:"details"`
+	LastSyncedAt       *time.Time     `json:"last_synced_at"`
 }
 
 type CameraConfig struct {
@@ -134,10 +136,12 @@ type Permit struct {
 	TotalWeight   float64      `json:"total_weight"`
 
 	// Financials
-	PaymentTypeID *uint        `json:"payment_type_id"`
-	PaymentType   *PaymentType `gorm:"foreignKey:PaymentTypeID" json:"payment_type,omitempty"`
-	EntryFee      float64      `json:"entry_fee"`
-	ExitFee       float64      `json:"exit_fee"`
+	PaymentTypeID  *uint        `json:"payment_type_id"`
+	PaymentType    *PaymentType `gorm:"foreignKey:PaymentTypeID" json:"payment_type,omitempty"`
+	EntryFee       float64      `json:"entry_fee"`
+	ExitFee        float64      `json:"exit_fee"`
+	TotalSum       float64      `json:"total_sum"`
+	DiscountAmount float64      `json:"discount_amount"`
 
 	// Payers
 	Payers []PermitPayer `gorm:"foreignKey:PermitID" json:"payers,omitempty"`
@@ -145,6 +149,7 @@ type Permit struct {
 	// Time Tracking
 	EntryTime      time.Time  `json:"entry_time"`
 	ExitTime       *time.Time `json:"exit_time"`
+	DaysInZone     *int       `json:"days_in_zone"`
 	LastActivityAt time.Time  `json:"last_activity_at"`
 
 	// Verification
@@ -157,9 +162,10 @@ type Permit struct {
 	ResponsibleUser   *User      `gorm:"foreignKey:ResponsibleUserID" json:"responsible_user,omitempty"`
 
 	// Relations
-	AuditEvents  []PermitAudit `gorm:"foreignKey:PermitID" json:"audit_events"`
-	PlateEvents  []PlateEvent  `gorm:"foreignKey:PermitID" json:"plate_events"`
-	WeightEvents []WeightEvent `gorm:"foreignKey:PermitID" json:"weight_events"`
+	CustomsData  *PermitCustomsData `gorm:"foreignKey:PermitID" json:"customs_data,omitempty"`
+	AuditEvents  []PermitAudit      `gorm:"foreignKey:PermitID" json:"audit_events"`
+	PlateEvents  []PlateEvent       `gorm:"foreignKey:PermitID" json:"plate_events"`
+	WeightEvents []WeightEvent      `gorm:"foreignKey:PermitID" json:"weight_events"`
 }
 
 type SystemEvent struct {

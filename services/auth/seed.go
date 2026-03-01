@@ -58,6 +58,9 @@ func seedData() {
 		{ID: "manage:data", Name: "Довідники: Повний доступ", Module: "core"},
 
 		{ID: "read:audit", Name: "Аудит: Перегляд", Module: "auth"},
+
+		// Customs Parser
+		{ID: "read:customs", Name: "Митниця: Отримання даних", Module: "customs-parser"},
 	}
 
 	for _, p := range perms {
@@ -74,7 +77,7 @@ func seedData() {
 	repository.DB.FirstOrCreate(&managerRole, models.Role{Name: "manager", Description: "Керівник (редагування без видалення)"})
 	managerPermIDs := []string{
 		"update:users", "update:permits", "validate:permits", "update:events", "update:settings",
-		"update:cameras", "update:scales", "read:roles", "read:keys",
+		"update:cameras", "update:scales", "read:roles", "read:keys", "read:customs",
 	}
 	managerPerms := []models.Permission{}
 	repository.DB.Where("id IN ?", managerPermIDs).Find(&managerPerms)
@@ -84,7 +87,7 @@ func seedData() {
 	var operatorRole models.Role
 	repository.DB.FirstOrCreate(&operatorRole, models.Role{Name: "operator", Description: "Оператор (перегляд та створення)"})
 	operatorPermIDs := []string{
-		"read:permits", "create:permits", "read:events", "create:events", "read:cameras",
+		"read:permits", "create:permits", "read:events", "create:events", "read:cameras", "read:customs",
 	}
 	operatorPerms := []models.Permission{}
 	repository.DB.Where("id IN ?", operatorPermIDs).Find(&operatorPerms)
@@ -194,6 +197,9 @@ func seedData() {
 		// Images
 		{Method: "GET", PathPattern: `^/api/images/.*`, RequiredPermission: "read:events", Description: "Перегляд зображень"},
 		{Method: "GET", PathPattern: `^/api/images/.*`, RequiredPermission: "read:events:all", Description: "Перегляд зображень"},
+
+		// Customs
+		{Method: "GET", PathPattern: `^/api/data-parser/customs/.*`, RequiredPermission: "read:customs", Description: "Доступ до даних з митниці"},
 	}
 
 	for _, r := range rules {

@@ -1621,6 +1621,37 @@ paths:
         204:
           description: Deleted
 
+  # --- Customs Parser Service ---
+  /api/data-parser/customs/declaration/{number}:
+    get:
+      tags: ["Customs Parser"]
+      summary: Get declaration data (Mock)
+      description: |
+        Retrieves mock customs declaration data by its number.
+        Permissions: `read:customs`
+      parameters:
+        - name: number
+          in: path
+          required: true
+          schema: { type: string }
+          description: "The declaration number"
+      responses:
+        200:
+          description: Declaration Data
+          content:
+            application/json:
+              example:
+                declaration_number: "123456"
+                declarant: "ТОВ 'ЛОГІСТИКА Україна'"
+                goods: "Продукти харчування (макаронні вироби)"
+                sender: "ТОВ 'ЛОГІСТИКА Україна'"
+                receiver: "ФОП Шевченко О.В."
+                vmd_number: "UA100000/2026/628350"
+        401:
+          $ref: "#/components/responses/Unauthorized"
+        403:
+          $ref: "#/components/responses/Forbidden"
+
 components:
   securitySchemes:
     bearerAuth:

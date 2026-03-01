@@ -106,6 +106,16 @@ services:
     ports:
       - "8081:8080"
 
+  customs-parser:
+    build:
+      context: ./services/customs-parser
+      dockerfile: Dockerfile
+    restart: on-failure
+    environment:
+      - PORT=8085
+    ports:
+      - "8085:8085"
+
   adapter-worker:
     build:
       context: ./services/adapter-worker
