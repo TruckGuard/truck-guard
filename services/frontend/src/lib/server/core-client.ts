@@ -13,13 +13,13 @@ export interface CoreUser {
 
 export class CoreClient {
     private baseUrl: string;
-    private token?: string;
+    private sessionId?: string;
     private permissions?: string;
     private userId?: string;
 
-    constructor(token?: string | null, permissions?: string | string[], userId?: string, baseUrl: string = 'http://gateway/api') {
+    constructor(sessionId?: string | null, permissions?: string | string[], userId?: string, baseUrl: string = 'http://gateway/api') {
         this.baseUrl = baseUrl;
-        this.token = token || undefined;
+        this.sessionId = sessionId || undefined;
         this.userId = userId;
 
         if (permissions) {
@@ -185,13 +185,13 @@ export class CoreClient {
     }
 
     private async fetchWithAuth<T>(endpoint: string, method: string = 'GET', body?: any): Promise<T> {
-        if (!this.token) {
-            throw new Error('CoreClient: No token provided');
+        if (!this.sessionId) {
+            throw new Error('CoreClient: No sessionId provided');
         }
 
         try {
             const headers: Record<string, string> = {
-                'Authorization': `Bearer ${this.token}`,
+                'Authorization': `Bearer ${this.sessionId}`,
                 'Content-Type': 'application/json'
             };
 

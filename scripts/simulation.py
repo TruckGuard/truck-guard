@@ -20,7 +20,7 @@ def get_admin_token():
             "password": ADMIN_PASS
         })
         if resp.status_code == 200:
-            token = resp.json().get("token")
+            token = resp.json().get("session_id")
             print("Login successful")
             return token
         else:

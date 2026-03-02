@@ -2,15 +2,15 @@ package repository
 
 import (
 	"context"
+	"crypto/rand"
 	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"os"
 	"time"
 
 	"log/slog"
 
-	"github.com/golang-jwt/jwt/v5"
 	"github.com/redis/go-redis/v9"
 	"github.com/truckguard/auth/src/models"
 	"github.com/uptrace/opentelemetry-go-extra/otelgorm"
@@ -19,10 +19,9 @@ import (
 )
 
 var (
-	DB        *gorm.DB
-	RDB       *redis.Client
-	ctx       = context.Background()
-	JWTSecret = []byte(os.Getenv("JWT_SECRET"))
+	DB  *gorm.DB
+	RDB *redis.Client
+	ctx = context.Background()
 )
 
 func InitDB(dsn string) {
@@ -47,16 +46,91 @@ func HashKey(key string) string {
 	return fmt.Sprintf("%x", sha256.Sum256([]byte(key)))
 }
 
-func GenerateToken(user models.User) (string, error) {
-	claims := jwt.MapClaims{
-		"user_id":  user.ID,
-		"username": user.Username,
-		"role":     user.Role.Name,
-		"exp":      time.Now().Add(time.Hour * 24).Unix(),
+func CreateSession(userID uint, username, role, ip, userAgent string) (string, error) {
+	b := make([]byte, 32)
+	if _, err := rand.Read(b); err != nil {
+		return "", err
+	}
+	sessionID := hex.EncodeToString(b)
+
+	data := map[string]interface{}{
+		"user_id":    userID,
+		"username":   username,
+		"role":       role,
+		"ip":         ip,
+		"user_agent": userAgent,
+		"created_at": time.Now().Format(time.RFC3339),
 	}
 
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	return token.SignedString(JWTSecret)
+	val, _ := json.Marshal(data)
+
+	pipeline := RDB.Pipeline()
+	pipeline.Set(ctx, "session:"+sessionID, val, 24*time.Hour)
+	pipeline.SAdd(ctx, fmt.Sprintf("user_sessions:%d", userID), sessionID)
+	_, err := pipeline.Exec(ctx)
+
+	return sessionID, err
+}
+
+func GetSession(sessionID string) (map[string]interface{}, error) {
+	val, err := RDB.Get(ctx, "session:"+sessionID).Result()
+	if err != nil {
+		return nil, err
+	}
+
+	var data map[string]interface{}
+	json.Unmarshal([]byte(val), &data)
+	return data, nil
+}
+
+func ListSessions(userID uint) ([]map[string]interface{}, error) {
+	key := fmt.Sprintf("user_sessions:%d", userID)
+	sessionIDs, err := RDB.SMembers(ctx, key).Result()
+	if err != nil {
+		return nil, err
+	}
+
+	var activeSessions []map[string]interface{}
+	for _, sid := range sessionIDs {
+		data, err := GetSession(sid)
+		if err != nil {
+			// Session expired or doesn't exist, remove from set
+			RDB.SRem(ctx, key, sid)
+			continue
+		}
+		data["session_id"] = sid
+		activeSessions = append(activeSessions, data)
+	}
+
+	return activeSessions, nil
+}
+
+func DeleteSession(sessionID string) error {
+	data, err := GetSession(sessionID)
+	if err == nil {
+		userIDFloat, ok := data["user_id"].(float64)
+		if ok {
+			RDB.SRem(ctx, fmt.Sprintf("user_sessions:%d", uint(userIDFloat)), sessionID)
+		}
+	}
+	return RDB.Del(ctx, "session:"+sessionID).Err()
+}
+
+func RevokeSession(userID uint, sessionID string) error {
+	RDB.SRem(ctx, fmt.Sprintf("user_sessions:%d", userID), sessionID)
+	return RDB.Del(ctx, "session:"+sessionID).Err()
+}
+func RevokeAllSessions(userID uint) error {
+	key := fmt.Sprintf("user_sessions:%d", userID)
+	sessionIDs, _ := RDB.SMembers(ctx, key).Result()
+
+	pipeline := RDB.Pipeline()
+	for _, sid := range sessionIDs {
+		pipeline.Del(ctx, "session:"+sid)
+	}
+	pipeline.Del(ctx, key)
+	_, err := pipeline.Exec(ctx)
+	return err
 }
 
 func ValidateKeyAndGetMetadata(key string) (models.SourceMetadata, bool) {

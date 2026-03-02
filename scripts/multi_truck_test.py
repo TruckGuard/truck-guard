@@ -128,7 +128,7 @@ def main():
     print(f"🚀 Simulation: {TRUCK_COUNT} trucks | Reliability: {RELIABILITY*100:.0f}%")
     
     login_resp = requests.post(f"{AUTH_URL}/login", json={"username":ADMIN_USER, "password":ADMIN_PASS})
-    token = login_resp.json().get("token")
+    token = login_resp.json().get("session_id")
     if not token: return print("❌ Auth failed")
 
     env = setup_env(token)

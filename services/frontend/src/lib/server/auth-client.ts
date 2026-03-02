@@ -1,13 +1,12 @@
-import { jwtDecode } from "jwt-decode";
 
 export interface UserProfile {
     id: string;
     username: string;
     role: string;
     permissions: string[];
+    session_id?: string;
     last_login?: string;
 }
-
 
 export interface Permission {
     id: string; // The slug, e.g. "read:users"
@@ -33,19 +32,24 @@ export interface APIKey {
 
 export class AuthClient {
     private baseUrl: string;
-    private token?: string;
+    private sessionId?: string;
 
-    constructor(token?: string | null, baseUrl: string = 'http://gateway/auth') {
+    constructor(sessionId?: string | null, baseUrl: string = 'http://gateway/auth') {
         this.baseUrl = baseUrl;
-        this.token = token || undefined;
+        this.sessionId = sessionId || undefined;
     }
 
-    async login(username: string, password: string): Promise<{ token: string } | null> {
+    async login(username: string, password: string, ip?: string, userAgent?: string): Promise<{ session_id: string } | null> {
         try {
             const response = await fetch(`${this.baseUrl}/login`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ username, password })
+                body: JSON.stringify({
+                    username,
+                    password,
+                    ip,
+                    user_agent: userAgent
+                })
             });
 
             if (!response.ok) {
@@ -59,15 +63,32 @@ export class AuthClient {
         }
     }
 
+    async logout(): Promise<boolean> {
+        if (!this.sessionId) return true;
+        try {
+            const response = await fetch(`${this.baseUrl}/logout`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${this.sessionId}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+            return response.ok;
+        } catch (error) {
+            console.error('AuthClient.logout error:', error);
+            return false;
+        }
+    }
+
     async validate(): Promise<UserProfile | null> {
-        if (!this.token) {
+        if (!this.sessionId) {
             return null;
         }
         try {
             const response = await fetch(`${this.baseUrl}/validate`, {
                 method: 'GET',
                 headers: {
-                    'Authorization': `Bearer ${this.token}`,
+                    'Authorization': `Bearer ${this.sessionId}`,
                     'Content-Type': 'application/json'
                 }
             });
@@ -75,23 +96,25 @@ export class AuthClient {
                 return null;
             }
 
-            const permissionsHeader = response.headers.get('X-Permissions');
-            const permissions = permissionsHeader ? permissionsHeader.split(',') : [];
-
-            const decoded: any = jwtDecode(this.token);
-            
-            const user = {
-                id: decoded.sub || decoded.user_id || '0',
-                username: decoded.username || decoded.sub || 'unknown',
-                role: decoded.role || 'user',
-                permissions: permissions
-            };
-
-            return user;
+            return await response.json();
         } catch (error) {
             console.error('AuthClient.validate error:', error);
             return null;
         }
+    }
+
+    // --- Session Management ---
+
+    async listSessions(): Promise<any[]> {
+        return this.fetchWithAuth<any[]>('/sessions');
+    }
+
+    async revokeSession(sessionId: string): Promise<boolean> {
+        return this.fetchWithAuth<boolean>('/sessions/revoke', 'POST', { session_id: sessionId });
+    }
+
+    async revokeAllSessions(): Promise<boolean> {
+        return this.fetchWithAuth<boolean>('/sessions/revoke-all', 'POST');
     }
 
 
@@ -157,14 +180,14 @@ export class AuthClient {
 
     // Helper for authenticated requests
     private async fetchWithAuth<T>(endpoint: string, method: string = 'GET', body?: any): Promise<T> {
-        if (!this.token) {
-            throw new Error('AuthClient: No token provided');
+        if (!this.sessionId) {
+            throw new Error('AuthClient: No sessionId provided');
         }
         try {
             const options: RequestInit = {
                 method,
                 headers: {
-                    'Authorization': `Bearer ${this.token}`,
+                    'Authorization': `Bearer ${this.sessionId}`,
                     'Content-Type': 'application/json'
                 }
             };
@@ -180,13 +203,13 @@ export class AuthClient {
 
             // For 204 No Content
             if (response.status === 204) {
-               return true as T;
+                return true as T;
             }
 
             // Check if response has body
             const text = await response.text();
-            if (!text) return true as T; 
-            
+            if (!text) return true as T;
+
             return JSON.parse(text);
         } catch (error) {
             console.error(`AuthClient request to ${endpoint} failed:`, error);

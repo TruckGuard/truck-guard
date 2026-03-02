@@ -19,7 +19,7 @@ ADMIN_PASS = os.getenv("ADMIN_DEFAULT_PASSWORD", "admin123")
 def get_admin_token():
     resp = requests.post(f"{AUTH_URL}/login", json={"username": ADMIN_USER, "password": ADMIN_PASS})
     print(resp)
-    return resp.json().get("token")
+    return resp.json().get("session_id")
 
 def setup_gate(token):
     headers = {"Authorization": f"Bearer {token}"}

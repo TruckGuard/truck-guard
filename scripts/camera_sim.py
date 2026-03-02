@@ -59,7 +59,7 @@ def get_admin_token():
             "password": ADMIN_PASS
         }, timeout=5)
         if resp.status_code == 200:
-            return resp.json().get("token")
+            return resp.json().get("session_id")
         else:
             print(f"❌ Login failed: {resp.status_code} {resp.text}")
             return None

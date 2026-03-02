@@ -39,6 +39,10 @@ func main() {
 
 	r.POST("/login", handlers.HandleLogin)
 	r.GET("/validate", handlers.HandleValidate)
+	r.POST("/logout", handlers.HandleLogout)
+	r.GET("/sessions", handlers.HandleListSessions)
+	r.POST("/sessions/revoke", handlers.HandleRevokeSession)
+	r.POST("/sessions/revoke-all", handlers.HandleRevokeAllSessions)
 	r.GET("/health", func(c *gin.Context) { c.JSON(200, gin.H{"status": "ok"}) })
 	r.POST("/register", handlers.HandleRegister)
 

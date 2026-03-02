@@ -11,7 +11,6 @@ import (
 	"log/slog"
 
 	"github.com/gin-gonic/gin"
-	"github.com/golang-jwt/jwt/v5"
 	"github.com/truckguard/auth/src/models"
 	"github.com/truckguard/auth/src/repository"
 	"golang.org/x/crypto/bcrypt"
@@ -57,6 +56,8 @@ func HandleLogin(c *gin.Context) {
 	var b struct {
 		User string `json:"username"`
 		Pass string `json:"password"`
+		IP   string `json:"ip"`
+		UA   string `json:"user_agent"`
 	}
 	if err := c.BindJSON(&b); err != nil {
 		c.Status(400)
@@ -80,9 +81,25 @@ func HandleLogin(c *gin.Context) {
 	u.LastLogin = &now
 	repository.DB.WithContext(c.Request.Context()).Save(&u)
 
-	t, _ := repository.GenerateToken(u)
+	// Use forwarded IP/UA if provided, otherwise fallback to request headers
+	ip := b.IP
+	if ip == "" {
+		ip = c.ClientIP()
+	}
+	ua := b.UA
+	if ua == "" {
+		ua = c.GetHeader("User-Agent")
+	}
+
+	sessionID, err := repository.CreateSession(u.ID, u.Username, u.Role.Name, ip, ua)
+	if err != nil {
+		slog.Error("Session creation failed", "error", err)
+		c.Status(500)
+		return
+	}
+
 	slog.Info("User logged in", "username", u.Username, "user_id", u.ID)
-	c.JSON(200, gin.H{"token": t})
+	c.JSON(200, gin.H{"session_id": sessionID})
 }
 
 func HandleValidate(c *gin.Context) {
@@ -91,8 +108,11 @@ func HandleValidate(c *gin.Context) {
 
 	var perms []string
 	var userID string
+	var sessionID string
 	var sourceID string
 	var sourceName string
+	var username string
+	var role string
 
 	// 1. Check API Key
 	k := c.GetHeader("X-API-Key")
@@ -107,31 +127,27 @@ func HandleValidate(c *gin.Context) {
 			return
 		}
 	} else {
-		// 2. Check JWT Token
-		var tokenString string
+		// 2. Check Session ID
 		authHeader := c.GetHeader("Authorization")
 		if strings.HasPrefix(authHeader, "Bearer ") {
-			tokenString = strings.TrimPrefix(authHeader, "Bearer ")
+			sessionID = strings.TrimPrefix(authHeader, "Bearer ")
 		}
-		if tokenString == "" {
+		if sessionID == "" {
 			if cookie, err := c.Cookie("session"); err == nil {
-				tokenString = cookie
+				sessionID = cookie
 			}
 		}
 
-		if tokenString != "" {
-			token, err := jwt.Parse(tokenString, func(t *jwt.Token) (interface{}, error) {
-				return repository.JWTSecret, nil
-			})
-
-			if err == nil && token.Valid {
-				if claims, ok := token.Claims.(jwt.MapClaims); ok {
-					userIDFloat, ok := claims["user_id"].(float64)
-					if ok {
-						uID := uint(userIDFloat)
-						perms = repository.GetUserPermissions(uID)
-						userID = fmt.Sprintf("%d", uID)
-					}
+		if sessionID != "" {
+			sessionData, err := repository.GetSession(sessionID)
+			if err == nil && sessionData != nil {
+				userIDFloat, ok := sessionData["user_id"].(float64)
+				if ok {
+					uID := uint(userIDFloat)
+					perms = repository.GetUserPermissions(uID)
+					userID = fmt.Sprintf("%d", uID)
+					username, _ = sessionData["username"].(string)
+					role, _ = sessionData["role"].(string)
 				}
 			}
 		}
@@ -159,7 +175,7 @@ func HandleValidate(c *gin.Context) {
 		}
 	}
 
-	// 5. Success - Set Headers
+	// 5. Success - Set Headers and Body
 	c.Header("X-Permissions", strings.Join(perms, ","))
 	if userID != "" {
 		c.Header("X-User-ID", userID)
@@ -169,7 +185,117 @@ func HandleValidate(c *gin.Context) {
 		c.Header("X-Source-Name", sourceName)
 	}
 
-	c.Status(200)
+	// Return full user data for frontend
+	if userID != "" {
+		c.JSON(200, gin.H{
+			"id":          userID,
+			"username":    username,
+			"role":        role,
+			"permissions": perms,
+			"session_id":  sessionID,
+		})
+	} else {
+		c.Status(200)
+	}
+}
+
+func HandleListSessions(c *gin.Context) {
+	userIDStr := c.GetHeader("X-User-ID")
+	if userIDStr == "" {
+		c.Status(401)
+		return
+	}
+
+	var userID uint
+	fmt.Sscanf(userIDStr, "%d", &userID)
+
+	sessions, err := repository.ListSessions(userID)
+	if err != nil {
+		slog.Error("Failed to list sessions", "user_id", userID, "error", err)
+		c.Status(500)
+		return
+	}
+
+	c.JSON(200, sessions)
+}
+
+func HandleRevokeSession(c *gin.Context) {
+	userIDStr := c.GetHeader("X-User-ID")
+	if userIDStr == "" {
+		c.Status(401)
+		return
+	}
+
+	var userID uint
+	fmt.Sscanf(userIDStr, "%d", &userID)
+
+	var b struct {
+		SessionID string `json:"session_id"`
+	}
+	if err := c.BindJSON(&b); err != nil {
+		c.Status(400)
+		return
+	}
+
+	// Verify session belongs to user
+	sessionData, err := repository.GetSession(b.SessionID)
+	if err != nil {
+		c.Status(404)
+		return
+	}
+
+	sessionUserIDFloat, ok := sessionData["user_id"].(float64)
+	if !ok || uint(sessionUserIDFloat) != userID {
+		slog.Warn("Attempted to revoke session of another user", "actor_id", userID, "target_session", b.SessionID)
+		c.Status(403)
+		return
+	}
+
+	if err := repository.RevokeSession(userID, b.SessionID); err != nil {
+		c.Status(500)
+		return
+	}
+
+	c.Status(204)
+}
+
+func HandleRevokeAllSessions(c *gin.Context) {
+	userIDStr := c.GetHeader("X-User-ID")
+	if userIDStr == "" {
+		c.Status(401)
+		return
+	}
+
+	var userID uint
+	fmt.Sscanf(userIDStr, "%d", &userID)
+
+	if err := repository.RevokeAllSessions(userID); err != nil {
+		slog.Error("Failed to revoke all sessions", "user_id", userID, "error", err)
+		c.Status(500)
+		return
+	}
+
+	c.Status(204)
+}
+
+func HandleLogout(c *gin.Context) {
+	var sessionID string
+	authHeader := c.GetHeader("Authorization")
+	if strings.HasPrefix(authHeader, "Bearer ") {
+		sessionID = strings.TrimPrefix(authHeader, "Bearer ")
+	}
+	if sessionID == "" {
+		if cookie, err := c.Cookie("session"); err == nil {
+			sessionID = cookie
+		}
+	}
+
+	if sessionID != "" {
+		repository.DeleteSession(sessionID)
+	}
+
+	c.SetCookie("session", "", -1, "/", "", false, true)
+	c.Status(204)
 }
 
 func HandleListPermissions(c *gin.Context) {

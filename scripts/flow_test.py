@@ -129,7 +129,7 @@ def main():
     if login_resp.status_code != 200:
         print(f"❌ Помилка входу: {login_resp.status_code} {login_resp.text}")
         return
-    token = login_resp.json().get("token")
+    token = login_resp.json().get("session_id")
 
     # 1. Підготовка
     cleanup(token)

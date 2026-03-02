@@ -1,27 +1,36 @@
 import type { Actions, PageServerLoad } from './$types';
-import { fail } from '@sveltejs/kit';
+import { fail, redirect } from '@sveltejs/kit';
 
 export const load: PageServerLoad = async ({ locals }) => {
-    let profile = {};
+    let profile: any = null;
     try {
-        profile = (await locals.coreClient.getMyProfile()) || {};
+        profile = (await locals.coreClient.getMyProfile());
     } catch (e) {
         console.error("Failed to fetch profile", e);
     }
 
     const postsResponse = await locals.coreClient.listData<any>('posts', 1, 100);
-    
+
+    // Fetch active sessions
+    let sessions: any[] = [];
+    try {
+        sessions = await locals.authClient.listSessions();
+    } catch (e) {
+        console.error("Failed to fetch sessions", e);
+    }
+
     return {
         user: locals.user,
         profile,
-        posts: postsResponse.data
+        posts: postsResponse.data,
+        sessions
     };
 };
 
 export const actions: Actions = {
-    default: async ({ request, locals }) => {
+    updateProfile: async ({ request, locals }) => {
         const data = await request.formData();
-        
+
         const firstName = data.get('first_name') as string;
         const lastName = data.get('last_name') as string;
         const thirdName = data.get('third_name') as string;
@@ -30,7 +39,7 @@ export const actions: Actions = {
         const notes = data.get('notes') as string;
 
         const customsPostId = data.get('customs_post_id');
-        
+
         const updatedProfile = await locals.coreClient.updateMyProfile({
             first_name: firstName,
             last_name: lastName,
@@ -46,5 +55,16 @@ export const actions: Actions = {
         }
 
         return { success: true };
+    },
+    revokeAllSessions: async ({ locals, cookies }) => {
+        try {
+            await locals.authClient.revokeAllSessions();
+        } catch (e) {
+            console.error("Failed to revoke all sessions", e);
+            return fail(500, { error: 'Failed to revoke all sessions' });
+        }
+
+        cookies.delete('session', { path: '/' });
+        throw redirect(303, '/login');
     }
 };
