@@ -1,6 +1,5 @@
-import type { Actions, PageServerLoad } from './$types';
-import { error, fail } from '@sveltejs/kit';
-import { can } from '$lib/auth';
+import type { PageServerLoad } from './$types';
+import { error } from '@sveltejs/kit';
 
 export const load: PageServerLoad = async ({ params, locals }) => {
     if (!locals.coreClient) {
@@ -9,14 +8,13 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 
     const { id } = params;
     try {
-        const event = await locals.coreClient.getPlateEvent(id);
+        const event = await locals.coreClient.getWeightEvent(id);
         if (!event) {
             throw error(404, 'Event not found');
         }
         return { event };
     } catch (e) {
-        console.error('Failed to load plate event:', e);
+        console.error('Failed to load weight event:', e);
         throw error(500, 'Failed to load event details');
     }
 };
-

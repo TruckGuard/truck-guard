@@ -124,8 +124,6 @@ func main() {
 				handlers.HandleWeightEvent,
 			)
 
-			events.PATCH("/plate/:id", handlers.HandlePatchPlateEvent)
-
 			events.GET("/system", handlers.HandleGetSystemEvents)
 			events.GET("/system/:id", handlers.HandleGetSystemEventByID)
 		}

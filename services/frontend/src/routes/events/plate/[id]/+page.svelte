@@ -1,41 +1,20 @@
 <script lang="ts">
-  import { enhance } from "$app/forms";
-  import { page } from "$app/state";
   import * as Card from "$lib/components/ui/card";
   import { Button } from "$lib/components/ui/button";
-  import { Input } from "$lib/components/ui/input";
   import { Label } from "$lib/components/ui/label";
   import { Separator } from "$lib/components/ui/separator";
-  import {
-    ChevronLeft,
-    Clock,
-    Camera,
-    CreditCard,
-    Check,
-    X,
-    Eye,
-    Pencil,
-  } from "@lucide/svelte";
+  import { ChevronLeft, Clock, Camera, CreditCard, Eye } from "@lucide/svelte";
   import { can } from "$lib/auth";
   import { toast } from "svelte-sonner";
 
   let { data } = $props();
   // Initialize as state for optimistic updates
-  let event = $state(data.event);
+  let event = data.event;
   const user = $derived(data.user);
-
-  const canEdit = $derived(can(user, "update:events"));
-
-  let isEditing = $state(false);
-  let loading = $state(false);
 
   function formatDate(dateStr: string) {
     if (!dateStr) return "-";
     return new Date(dateStr).toLocaleString("uk-UA");
-  }
-
-  function toggleEdit() {
-    isEditing = !isEditing;
   }
 </script>
 
@@ -51,19 +30,11 @@
       </h1>
       <p class="text-muted-foreground text-sm">Детальна інформація про подію</p>
     </div>
-    {#if event.is_manual}
-      <div
-        class="ml-auto bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400 px-3 py-1 rounded-full text-xs font-bold border border-amber-200 dark:border-amber-800"
-      >
-        ВРУЧНУ
-      </div>
-    {:else}
-      <div
-        class="ml-auto bg-blue-50 dark:bg-blue-950/30 text-blue-700 dark:text-blue-400 px-3 py-1 rounded-full text-xs font-bold border border-blue-200 dark:border-blue-800"
-      >
-        ANPR
-      </div>
-    {/if}
+    <div
+      class="ml-auto bg-blue-50 dark:bg-blue-950/30 text-blue-700 dark:text-blue-400 px-3 py-1 rounded-full text-xs font-bold border border-blue-200 dark:border-blue-800"
+    >
+      ANPR
+    </div>
   </div>
 
   <div class="grid gap-6 md:grid-cols-2">
@@ -112,118 +83,13 @@
           <div class="space-y-4">
             <!-- Plate Number Block -->
             <div class="bg-muted/30 p-4 rounded-xl border border-border/50">
-              <div class="flex items-center justify-between mb-2">
-                <Label
-                  class="text-muted-foreground flex items-center gap-2 text-xs uppercase tracking-wider font-semibold"
+              <div class="flex items-baseline gap-3">
+                <span
+                  class="text-3xl font-black font-mono tracking-wider text-foreground"
                 >
-                  <CreditCard class="h-3 w-3" /> Номерний знак
-                </Label>
-                {#if !isEditing && canEdit}
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    class="h-6 w-6 p-0 hover:bg-background"
-                    onclick={toggleEdit}
-                  >
-                    <Pencil class="h-3.5 w-3.5 text-muted-foreground" />
-                  </Button>
-                {/if}
+                  {event.plate}
+                </span>
               </div>
-
-              {#if isEditing}
-                <form
-                  method="POST"
-                  action="?/correct"
-                  use:enhance={({ formData }) => {
-                    loading = true;
-                    const newPlate = formData.get("plate") as string;
-                    const originalPlate = event.plate_corrected || event.plate;
-
-                    // Optimistic update
-                    event.plate_corrected = newPlate;
-                    event.is_manual = true;
-                    // Construct display name
-                    const userName =
-                      [user?.first_name, user?.last_name]
-                        .filter(Boolean)
-                        .join(" ") ||
-                      user?.username ||
-                      "You";
-                    event.corrected_by_name = userName;
-
-                    isEditing = false; // Close edit mode immediately
-
-                    return async ({ result, update }) => {
-                      loading = false;
-                      if (result.type === "success") {
-                        toast.success("Номер успішно змінено");
-                        // Optionally apply server state if needed, but optimistic is usually enough
-                        // await update();
-                      } else {
-                        // Revert on error
-                        event.plate_corrected = originalPlate;
-                        toast.error("Помилка при зміні номеру");
-                      }
-                    };
-                  }}
-                  class="flex gap-2 items-center"
-                >
-                  <Input
-                    name="plate"
-                    value={event.plate_corrected || event.plate}
-                    class="font-mono text-lg font-bold uppercase h-10 bg-background"
-                    autofocus
-                  />
-                  <Button
-                    type="submit"
-                    size="sm"
-                    disabled={loading}
-                    class="h-10 w-10 p-0"
-                  >
-                    {#if loading}
-                      <span class="loading loading-spinner loading-xs"></span>
-                    {:else}
-                      <Check class="h-4 w-4" />
-                    {/if}
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    class="h-10 w-10 p-0"
-                    onclick={toggleEdit}
-                    disabled={loading}
-                  >
-                    <X class="h-4 w-4" />
-                  </Button>
-                </form>
-              {:else}
-                <div class="flex items-baseline gap-3">
-                  <span
-                    class="text-3xl font-black font-mono tracking-wider text-foreground"
-                  >
-                    {event.plate_corrected || event.plate}
-                  </span>
-                  {#if event.plate_corrected}
-                    <span
-                      class="text-xs text-muted-foreground line-through decoration-red-500/50"
-                    >
-                      {event.plate}
-                    </span>
-                  {/if}
-                </div>
-                {#if event.corrected_by_name || event.corrected_by}
-                  <div
-                    class="mt-2 text-xs text-muted-foreground flex gap-1 items-center"
-                  >
-                    <Clock class="h-3 w-3" />
-                    Відкориговано користувачем:
-                    <span class="font-medium text-foreground"
-                      >{event.corrected_by_name || event.corrected_by}</span
-                    >
-                  </div>
-                {/if}
-              {/if}
             </div>
 
             <div class="grid grid-cols-2 gap-4">
@@ -242,10 +108,13 @@
                   class="text-xs text-muted-foreground uppercase tracking-wider"
                   >Камера</Label
                 >
-                <div class="flex items-center gap-2 font-medium">
+                <Button
+                  href={`/cameras/${event.camera_id}`}
+                  variant="link"
+                >
                   <Camera class="h-4 w-4 text-muted-foreground" />
-                  {event.camera_name || event.camera_id}
-                </div>
+                  {event.camera_source_name || event.camera_id}
+                </Button>
               </div>
             </div>
           </div>

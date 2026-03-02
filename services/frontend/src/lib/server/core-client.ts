@@ -93,9 +93,10 @@ export class CoreClient {
         return this.fetchWithAuth<T>(`/events/plate/${id}`);
     }
 
-    async correctPlate(id: string | number, newPlate: string): Promise<boolean> {
-        return this.fetchWithAuth<boolean>(`/events/plate/${id}`, 'PATCH', { plate_corrected: newPlate });
+    async getWeightEvent<T>(id: string | number): Promise<T> {
+        return this.fetchWithAuth<T>(`/events/weight/${id}`);
     }
+
 
     // --- Master Data Management ---
 

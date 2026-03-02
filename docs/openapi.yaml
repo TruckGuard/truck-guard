@@ -749,31 +749,6 @@ paths:
               schema: { $ref: "#/components/schemas/RawPlateEvent" }
         404:
           $ref: "#/components/responses/NotFound"
-    patch:
-      tags: ["Events: Raw"]
-      summary: Correct plate recognition result
-      description: |
-        Correct the plate number and tracks the user who performed the correction.
-        Permissions: `update:events`
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema: { type: integer }
-      requestBody:
-        content:
-          application/json:
-            schema:
-              type: object
-              required: [plate_corrected]
-              properties:
-                plate_corrected: { type: string }
-      responses:
-        200:
-          description: Event corrected
-          content:
-            application/json:
-              schema: { $ref: "#/components/schemas/RawPlateEvent" }
 
   /api/events/weight:
     get:
@@ -1845,9 +1820,6 @@ components:
         camera_source_id: { type: string, description: "Raw device SourceID" }
         camera_source_name: { type: string }
         plate: { type: string }
-        plate_corrected: { type: string }
-        corrected_by: { type: string }
-        is_manual: { type: boolean }
         image_key: { type: string }
         timestamp: { type: string, format: date-time }
         suggestions:

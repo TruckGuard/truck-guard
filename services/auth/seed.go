@@ -23,7 +23,7 @@ func seedData() {
 		{ID: "manage:keys", Name: "API Ключі: Повний доступ", Module: "auth"},
 
 		// Ingest
-		{ID: "manage:ingest", Name: "Імпорт: Повний доступ", Module: "ingestor"},
+		{ID: "ingest:events", Name: "Імпорт: Створення", Module: "ingestor"},
 
 		// Core
 		{ID: "read:cameras", Name: "Камери: Перегляд", Module: "core"},
@@ -149,7 +149,7 @@ func seedData() {
 		{Method: "GET", PathPattern: `^/auth/admin/permissions$`, RequiredPermission: "read:roles", Description: "Список всіх дозволів"},
 
 		// Ingestor Service
-		{Method: "POST", PathPattern: `^/ingest/.*`, RequiredPermission: "manage:ingest", Description: "Імпорт даних"},
+		{Method: "POST", PathPattern: `^/ingest/.*`, RequiredPermission: "ingest:events", Description: "Імпорт даних"},
 
 		// Core Service: CONFIGS
 		{Method: "GET", PathPattern: `^/api/configs/cameras.*`, RequiredPermission: "read:cameras", Description: "Перегляд камер"},

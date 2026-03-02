@@ -53,20 +53,15 @@
                             >{formatDate(item.timestamp)}</Table.Cell
                         >
                         <Table.Cell>
-                            <div
-                                class="flex items-center gap-2 font-medium text-sm"
+                            <Button
+                                href={`/scales/${item.scale_id}`}
+                                variant="link"
                             >
-                                <div
-                                    class="p-1.5 bg-blue-50 dark:bg-blue-950/30 rounded"
-                                >
-                                    <Scale
-                                        class="h-3.5 w-3.5 text-blue-600 dark:text-blue-400"
-                                    />
-                                </div>
-                                <span class="text-foreground"
-                                    >{item.scale_id}</span
-                                >
-                            </div>
+                                <Scale
+                                    class="h-3.5 w-3.5 text-blue-600 dark:text-blue-400"
+                                />
+                                {item.scale_source_name || item.scale_id}
+                            </Button>
                         </Table.Cell>
                         <Table.Cell class="text-right">
                             <span

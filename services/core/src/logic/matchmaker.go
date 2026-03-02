@@ -134,11 +134,13 @@ func MatchPlateEvent(ctx context.Context, event *models.PlateEvent) {
 	defer span.End()
 
 	db := repository.DB
+	slog.Info("MatchPlateEvent: started", "event_id", event.ID, "plate", event.Plate)
 	if err := db.WithContext(ctx).Preload("Camera").First(event).Error; err != nil {
-		slog.Error("Failed to load plate event", "error", err)
+		slog.Error("MatchPlateEvent: failed to load event", "error", err, "event_id", event.ID)
 		span.RecordError(err)
 		return
 	}
+	slog.Info("MatchPlateEvent: event loaded", "camera_id", event.CameraID, "match_permit", event.Camera.MatchPermit)
 
 	if !event.Camera.MatchPermit {
 		slog.Debug("Camera not configured to match permits", "camera_id", event.CameraID)
@@ -153,9 +155,6 @@ func MatchPlateEvent(ctx context.Context, event *models.PlateEvent) {
 
 	processEvent(ctx, customsPostID, event.CameraID, event, func(permit *models.Permit) {
 		plate := event.Plate
-		if event.PlateCorrected != "" {
-			plate = event.PlateCorrected
-		}
 
 		switch event.Camera.Type {
 		case "front":
@@ -213,11 +212,14 @@ func MatchWeightEvent(ctx context.Context, event *models.WeightEvent) {
 
 // processEvent handles the common logic: find active permit or create new, then apply updates
 func processEvent(ctx context.Context, customsPostID uint, sourceID string, event interface{}, updateFn func(*models.Permit)) {
+	slog.Info("processEvent: started", "source_id", sourceID)
 	db := repository.DB.WithContext(ctx)
 	permit, isNew := GetOrCreatePermit(ctx, customsPostID, sourceID)
 	if permit == nil {
+		slog.Warn("processEvent: GetOrCreatePermit returned nil")
 		return
 	}
+	slog.Info("processEvent: permit obtained", "permit_id", permit.ID, "is_new", isNew)
 
 	oldFront := permit.PlateFront
 	oldBack := permit.PlateBack

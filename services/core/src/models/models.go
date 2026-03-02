@@ -185,9 +185,6 @@ type PlateEvent struct {
 	CameraSourceName string         `gorm:"column:camera_source_name" json:"camera_source_name"`
 	CameraID         string         `gorm:"column:camera_id" json:"camera_id"`
 	Plate            string         `json:"plate"`
-	PlateCorrected   string         `json:"plate_corrected"`
-	CorrectedBy      string         `json:"corrected_by"`
-	IsManual         bool           `gorm:"default:false" json:"is_manual"`
 	ImageKey         string         `json:"image_key"`
 	Timestamp        time.Time      `json:"timestamp"`
 	Suggestions      datatypes.JSON `gorm:"type:jsonb" json:"suggestions"`
@@ -203,10 +200,11 @@ type PlateEvent struct {
 
 type WeightEvent struct {
 	gorm.Model
-	ScaleSourceID string    `json:"scale_source_id"`
-	ScaleID       string    `gorm:"column:scale_id" json:"scale_id"`
-	Weight        float64   `json:"weight"`
-	Timestamp     time.Time `json:"timestamp"`
+	ScaleSourceID   string    `json:"scale_source_id"`
+	ScaleSourceName string    `gorm:"column:scale_source_name" json:"scale_source_name"`
+	ScaleID         string    `gorm:"column:scale_id" json:"scale_id"`
+	Weight          float64   `json:"weight"`
+	Timestamp       time.Time `json:"timestamp"`
 
 	Scale ScaleConfig `gorm:"foreignKey:ScaleID;references:SourceID" json:"-"`
 

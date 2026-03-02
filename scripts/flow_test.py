@@ -87,17 +87,15 @@ def setup_infra(token, post_id):
     # Камера на в'їзд (Front) - вона тригерить створення перепустки
     cam_in_f = requests.post(f"{CORE_API_URL}/configs/cameras", headers=h, 
                              json={"name": "ENTRY_Front", "type": "front", "customs_post_id": post_id, 
-                                   "trigger_permit_creation": True, "format": "json", "field_mapping": '{"plate":"plate"}'}).json()
+                                   "match_permit": True, "format": "json", "field_mapping": '{"plate":"plate"}'}).json()
     
     # Камера на в'їзд (Back)
-    cam_in_b = requests.post(f"{CORE_API_URL}/configs/cameras", headers=h, 
-                             json={"name": "ENTRY_Back", "type": "back", "customs_post_id": post_id, 
-                                   "format": "json", "field_mapping": '{"plate":"plate"}'}).json()
+                                   "match_permit": True, "format": "json", "field_mapping": '{"plate":"plate"}'}).json()
     
     # Ваги
     scale = requests.post(f"{CORE_API_URL}/configs/scales", headers=h, 
                           json={"name": "Main_Scale", "customs_post_id": post_id, 
-                                "format": "json", "field_mapping": '{"weight":"weight"}'}).json()
+                                "match_permit": True, "format": "json", "field_mapping": '{"weight":"weight"}'}).json()
     
     return {
         "cam_in_f": cam_in_f['api_key'],

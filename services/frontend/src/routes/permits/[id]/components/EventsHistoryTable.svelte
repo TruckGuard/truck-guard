@@ -75,10 +75,21 @@
                             {/if}
                         </td>
                         <td class="px-6 py-4 font-mono text-xs font-semibold">
-                            {#if "camera_source_id" in event}
-                                {event.camera_source_id || "Camera"}
-                            {:else}
-                                {event.scale_source_id || "Scale"}
+                            {#if "camera_id" in event}
+                                <Button
+                                    href={`/cameras/${event.camera_id}`}
+                                    variant="link"
+                                >
+                                    {event.camera_source_name ||
+                                        event.camera_id}
+                                </Button>
+                            {:else if "scale_id" in event}
+                                <Button
+                                    href={`/scales/${event.scale_id}`}
+                                    variant="link"
+                                >
+                                    {event.scale_source_name || event.scale_id}
+                                </Button>
                             {/if}
                         </td>
                         <td

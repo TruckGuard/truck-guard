@@ -2,10 +2,8 @@ package handlers
 
 import (
 	"context"
-	"fmt"
 	"log/slog"
 	"net/http"
-	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
@@ -30,6 +28,13 @@ func HandlePlateEvent(c *gin.Context) {
 		event.SystemEventID = sysEventID.(uint)
 	}
 
+	// Populate camera name if missing
+	if event.CameraSourceName == "" && event.CameraID != "" {
+		if cam, err := repository.GetCameraBySourceID(c.Request.Context(), event.CameraID); err == nil {
+			event.CameraSourceName = cam.Name
+		}
+	}
+
 	if err := repository.DB.WithContext(c.Request.Context()).Create(&event).Error; err != nil {
 		slog.Error("Failed to save plate event", "error", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save event"})
@@ -41,60 +46,6 @@ func HandlePlateEvent(c *gin.Context) {
 	go logic.MatchPlateEvent(detachCtx, &event)
 
 	c.JSON(http.StatusAccepted, gin.H{"status": "processing", "id": event.ID})
-}
-
-func HandlePatchPlateEvent(c *gin.Context) {
-	id := c.Param("id")
-	var input struct {
-		PlateCorrected string `json:"plate_corrected"`
-	}
-	if err := c.BindJSON(&input); err != nil {
-		c.Status(400)
-		return
-	}
-	var event models.PlateEvent
-	if err := repository.DB.WithContext(c.Request.Context()).First(&event, id).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Event not found"})
-		return
-	}
-
-	oldEffectivePlate := event.Plate
-	if event.PlateCorrected != "" {
-		oldEffectivePlate = event.PlateCorrected
-	}
-
-	userID := c.GetHeader("X-User-ID")
-	if err := repository.DB.WithContext(c.Request.Context()).Model(&models.PlateEvent{}).Where("id = ?", id).Updates(map[string]interface{}{
-		"plate_corrected": input.PlateCorrected,
-		"corrected_by":    userID,
-		"is_manual":       true,
-	}).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update event"})
-		return
-	}
-
-	var permits []models.Permit
-	err := repository.DB.WithContext(c.Request.Context()).Joins("JOIN permit_plate_events ON permit_plate_events.permit_id = permits.id").
-		Where("permit_plate_events.raw_plate_event_id = ?", id).
-		Find(&permits).Error
-
-	if err == nil {
-		for _, permit := range permits {
-			updated := false
-			if permit.PlateFront == oldEffectivePlate {
-				permit.PlateFront = input.PlateCorrected
-				updated = true
-			}
-			if permit.PlateBack == oldEffectivePlate {
-				permit.PlateBack = input.PlateCorrected
-				updated = true
-			}
-			if updated {
-				repository.DB.WithContext(c.Request.Context()).Save(&permit)
-			}
-		}
-	}
-	c.Status(200)
 }
 
 func HandleGetPlateEvents(c *gin.Context) {
@@ -119,24 +70,7 @@ func HandleGetPlateEventByID(c *gin.Context) {
 		return
 	}
 
-	var response struct {
-		models.PlateEvent
-		CorrectedByName string `json:"corrected_by_name,omitempty"`
-	}
-	response.PlateEvent = event
-
-	if event.CorrectedBy != "" {
-		var user models.User
-		if err := repository.DB.WithContext(c.Request.Context()).Where("auth_id = ?", event.CorrectedBy).First(&user).Error; err == nil {
-			name := strings.TrimSpace(fmt.Sprintf("%s %s", user.FirstName, user.LastName))
-			if name == "" {
-				name = fmt.Sprintf("User #%d", user.AuthID)
-			}
-			response.CorrectedByName = name
-		}
-	}
-
-	c.JSON(http.StatusOK, response)
+	c.JSON(http.StatusOK, event)
 }
 
 func HandleWeightEvent(c *gin.Context) {
@@ -150,6 +84,13 @@ func HandleWeightEvent(c *gin.Context) {
 
 	if sysEventID, exists := c.Get("system_event_id"); exists {
 		event.SystemEventID = sysEventID.(uint)
+	}
+
+	// Populate scale name if missing
+	if event.ScaleSourceName == "" && event.ScaleID != "" {
+		if scale, err := repository.GetScaleBySourceID(c.Request.Context(), event.ScaleID); err == nil {
+			event.ScaleSourceName = scale.Name
+		}
 	}
 
 	if err := repository.DB.WithContext(c.Request.Context()).Create(&event).Error; err != nil {

@@ -23,7 +23,7 @@ func HandleCreateCamera(c *gin.Context) {
 	authResp, err := authClient.CreateApiKey(
 		c.Request.Context(),
 		config.Name,
-		[]string{"create:ingest"},
+		[]string{"ingest:events"},
 	)
 
 	if err != nil {
@@ -139,7 +139,7 @@ func HandleCreateScale(c *gin.Context) {
 	authResp, err := authClient.CreateApiKey(
 		c.Request.Context(),
 		config.Name+"_key",
-		[]string{"create:ingest"},
+		[]string{"ingest:events"},
 	)
 
 	if err != nil {
@@ -233,3 +233,4 @@ func HandleDeleteScale(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"status": "deleted"})
 }
+ 

@@ -14,7 +14,7 @@ INGEST_CAMERA_URL = f"{BASE_URL}/ingest/camera"
 INGEST_WEIGHT_URL = f"{BASE_URL}/ingest/weight"
 
 ADMIN_USER = os.getenv("ADMIN_USER", "admin")
-ADMIN_PASS = os.getenv("ADMIN_DEFAULT_PASSWORD", "admin123")
+ADMIN_PASS = os.getenv("ADMIN_DEFAULT_PASSWORD", "secret123")
 
 def get_admin_token():
     resp = requests.post(f"{AUTH_URL}/login", json={"username": ADMIN_USER, "password": ADMIN_PASS})
@@ -33,6 +33,7 @@ def setup_device(token, type, name, gate_id):
     payload = {
         "name": name,
         "format": "json",
+        "match_permit": True,
         "gate_id": gate_id,
         "camera_id": "CAM_TEST" if type == "camera" else None,
         "scale_id": "SCALE_TEST" if type == "scale" else None,
