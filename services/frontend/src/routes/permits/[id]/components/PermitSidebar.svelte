@@ -3,7 +3,7 @@
         Activity,
         Clock,
         Coins,
-        CheckCircle,
+        CircleCheck,
         Save,
         Send,
     } from "@lucide/svelte";
@@ -150,7 +150,7 @@
                 <div
                     class="p-5 bg-amber-50/50 border-b border-amber-100 flex items-center gap-2"
                 >
-                    <CheckCircle class="h-4 w-4 text-amber-600" />
+                    <CircleCheck class="h-4 w-4 text-amber-600" />
                     <h3
                         class="font-black text-[10px] uppercase tracking-widest text-amber-700"
                     >
@@ -216,7 +216,7 @@
                     disabled={loading}
                     class="w-full gap-2.5 h-12 text-base font-bold shadow-sm text-indigo-700 border-indigo-200 hover:bg-indigo-100 bg-white"
                 >
-                    <CheckCircle class="h-5 w-5" /> Валідувати
+                    <CircleCheck class="h-5 w-5" /> Валідувати
                 </Button>
             {/if}
 
@@ -257,7 +257,7 @@
             <div
                 class="h-5 w-5 rounded-full bg-emerald-500 flex items-center justify-center shadow-sm shrink-0"
             >
-                <CheckCircle class="h-3.5 w-3.5 text-white" />
+                <CircleCheck class="h-3.5 w-3.5 text-white" />
             </div>
         {:else}
             <div

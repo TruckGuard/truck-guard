@@ -4,7 +4,7 @@
   import { Label } from "$lib/components/ui/label";
   import { Textarea } from "$lib/components/ui/textarea";
   import * as Alert from "$lib/components/ui/alert";
-  import { ChevronLeft, Save, AlertCircle } from "@lucide/svelte";
+  import { ChevronLeft, Save, CircleAlert } from "@lucide/svelte";
   import { enhance } from "$app/forms";
   import { toast } from "svelte-sonner";
   import * as Card from "$lib/components/ui/card";
@@ -21,7 +21,7 @@
 <div class="space-y-6">
   {#if data.error}
     <Alert.Root variant="destructive">
-      <AlertCircle class="h-4 w-4" />
+      <CircleAlert class="h-4 w-4" />
       <Alert.Title>Помилка</Alert.Title>
       <Alert.Description>{data.error}</Alert.Description>
     </Alert.Root>
@@ -146,7 +146,7 @@
     </div>
   {:else if !data.error}
     <div class="flex flex-col items-center justify-center py-12 text-center">
-      <AlertCircle class="h-12 w-12 text-muted-foreground mb-4" />
+      <CircleAlert class="h-12 w-12 text-muted-foreground mb-4" />
       <h2 class="text-xl font-semibold italic">Компанію не знайдено</h2>
       <Button variant="outline" href="/config/data/companies" class="mt-4">
         До списку компаній

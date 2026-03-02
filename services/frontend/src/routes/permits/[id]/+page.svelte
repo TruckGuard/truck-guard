@@ -1,17 +1,7 @@
 <script lang="ts">
   import { goto } from "$app/navigation";
-  import { page } from "$app/state";
   import {
-    ChevronLeft,
-    Save,
-    FileSearch,
-    CheckCircle,
-    XOctagon,
-    Truck,
     Clock,
-    Coins,
-    UserCog,
-    Send,
     Activity,
   } from "@lucide/svelte";
   import * as Tabs from "$lib/components/ui/tabs";

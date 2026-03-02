@@ -1,7 +1,7 @@
 <script lang="ts">
   import { goto } from "$app/navigation";
   import { page } from "$app/state";
-  import { RefreshCcw, Plus, Camera, Scale, Activity, ArrowRight, Truck, CheckCircle2 } from "@lucide/svelte";
+  import { RefreshCcw, Plus, Camera, Scale, Activity, ArrowRight, Truck, CircleCheck } from "@lucide/svelte";
   import { Button } from "$lib/components/ui/button";
   import * as Table from "$lib/components/ui/table";
   import type { Permit } from "$lib/types/permits";
@@ -210,7 +210,7 @@
                   </Table.Cell>
                   <Table.Cell class="text-right">
                      <div class="inline-flex items-center gap-1.5 text-emerald-600 bg-emerald-50 dark:bg-emerald-950/30 px-2 py-1 rounded-full text-xs font-semibold">
-                       <CheckCircle2 class="h-3.5 w-3.5" /> В зоні
+                       <CircleCheck class="h-3.5 w-3.5" /> В зоні
                      </div>
                   </Table.Cell>
                 </Table.Row>

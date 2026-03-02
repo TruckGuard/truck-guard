@@ -8,7 +8,7 @@
   import * as Alert from "$lib/components/ui/alert";
   import type { PageData } from "./$types";
   import { mapErrorToFriendlyMessage } from "$lib/utils/error-handler";
-  import { AlertCircle, Info, Save } from "@lucide/svelte";
+  import { CircleAlert, Info, Save } from "@lucide/svelte";
 
   let { data }: { data: PageData & { error?: string | null } } = $props();
 
@@ -18,7 +18,7 @@
 <div class="space-y-6">
   {#if data.error}
     <Alert.Root variant="destructive">
-      <AlertCircle class="h-4 w-4" />
+      <CircleAlert class="h-4 w-4" />
       <Alert.Title>Помилка</Alert.Title>
       <Alert.Description>{data.error}</Alert.Description>
     </Alert.Root>
