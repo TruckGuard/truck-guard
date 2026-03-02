@@ -10,6 +10,8 @@
         Company,
         PaymentType,
     } from "$lib/types/data";
+    import { Badge } from "$lib/components/ui/badge";
+    import { darkenColor } from "$lib/utils/colors";
 
     let {
         permit = $bindable(),
@@ -78,17 +80,38 @@
                         : ''}"
                 >
                     {#if permit.vehicle_type_id}
-                        {data.vehicleTypes.find(
+                        {@const vehicleType = data.vehicleTypes.find(
                             (v: VehicleType) => v.ID == permit.vehicle_type_id,
-                        )?.name || "Вибрати..."}
+                        )}
+                        <div class="flex items-center gap-2">
+                            <Badge
+                                variant="outline"
+                                style="background-color: {vehicleType?.color}22; color: {vehicleType?.color}; border-color: {darkenColor(
+                                    vehicleType?.color,
+                                    20,
+                                )}"
+                            >
+                                {vehicleType?.code}
+                            </Badge>
+                            {vehicleType?.name}
+                        </div>
                     {:else}
                         Виберіть категорію авто...
                     {/if}
                 </Select.Trigger>
                 <Select.Content>
                     {#each data.vehicleTypes as vt}
-                        <Select.Item value={vt.ID.toString()}
-                            >{vt.name}
+                        <Select.Item value={vt.ID.toString()}>
+                            <Badge
+                                variant="outline"
+                                style="background-color: {vt.color}22; color: {vt.color}; border-color: {darkenColor(
+                                    vt.color,
+                                    20,
+                                )}"
+                            >
+                                {vt.code}
+                            </Badge>
+                            {vt.name}
                             <span class="text-xs text-muted-foreground ml-2"
                                 >({vt.entry_price} ₴ / {vt.daily_price} ₴/день)</span
                             ></Select.Item

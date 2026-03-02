@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"log/slog"
 	"math/rand"
 	"net/http"
 	"time"
@@ -21,9 +22,12 @@ func GetDeclarationMock(c *gin.Context) {
 	number := c.Param("number")
 
 	if number == "" {
+		slog.Warn("Attempted to get declaration without number")
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Declaration number is required"})
 		return
 	}
+
+	slog.Info("Fetching declaration mock data", "number", number)
 
 	// Мокані компанії та товари для правдоподібної емуляції
 	companies := []string{"ТОВ 'ЛОГІСТИКА Україна'", "Корпорація 'ТРАНС-ЕКСПОРТ'", "ПП 'Агро-торг Плюс'", "ФОП Шевченко О.В.", "ДП 'Укрпромпостач'"}
@@ -49,6 +53,7 @@ func GetDeclarationMock(c *gin.Context) {
 	// Штучна затримка для симуляції відповіді митниці (300-800ms)
 	time.Sleep(time.Duration(300+rng.Intn(500)) * time.Millisecond)
 
+	slog.Debug("Generated mock declaration", "number", number, "vmd", mockData.VMDNumber)
 	c.JSON(http.StatusOK, mockData)
 }
 

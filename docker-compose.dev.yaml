@@ -124,6 +124,7 @@ services:
     restart: on-failure
     environment:
       - PORT=8085
+      - OTEL_EXPORTER_OTLP_ENDPOINT=otel-collector:4317
     ports:
       - "8085:8085"
     volumes:
