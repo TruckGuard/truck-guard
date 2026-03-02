@@ -48,12 +48,12 @@
                     }
                 };
             }}
-            class="space-y-6 pt-6"
+            class="space-y-6 p-6"
         >
             <input type="hidden" name="id" value={type?.ID} />
             <PaymentTypeForm bind:values />
 
-            <Sheet.Footer class="pt-6">
+            <Sheet.Footer class="pt-6 px-0">
                 <Button
                     variant="outline"
                     type="button"
