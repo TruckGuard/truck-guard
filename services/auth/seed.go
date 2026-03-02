@@ -12,10 +12,9 @@ func seedData() {
 	perms := []models.Permission{
 		// Auth
 		{ID: "read:users", Name: "Користувачі: Перегляд", Module: "auth"},
-		{ID: "create:users", Name: "Користувачі: Створення", Module: "auth"},
-		{ID: "update:users", Name: "Користувачі: Редагування", Module: "auth"},
-		{ID: "delete:users", Name: "Користувачі: Видалення", Module: "auth"},
+		{ID: "read:users:all", Name: "Користувачі: Перегляд всіх", Module: "auth"},
 		{ID: "manage:users", Name: "Користувачі: Повний доступ", Module: "auth"},
+		{ID: "manage:users:all", Name: "Користувачі: Повний доступ (всі)", Module: "auth"},
 
 		{ID: "read:roles", Name: "Ролі: Перегляд", Module: "auth"},
 		{ID: "manage:roles", Name: "Ролі: Повний доступ", Module: "auth"},
@@ -24,7 +23,7 @@ func seedData() {
 		{ID: "manage:keys", Name: "API Ключі: Повний доступ", Module: "auth"},
 
 		// Ingest
-		{ID: "create:ingest", Name: "Імпорт: Створення", Module: "ingestor"},
+		{ID: "manage:ingest", Name: "Імпорт: Повний доступ", Module: "ingestor"},
 
 		// Core
 		{ID: "read:cameras", Name: "Камери: Перегляд", Module: "core"},
@@ -39,17 +38,15 @@ func seedData() {
 
 		{ID: "read:events", Name: "Події: Перегляд", Module: "core"},
 		{ID: "read:events:all", Name: "Події: Перегляд всіх", Module: "core"},
-		{ID: "create:events", Name: "Події: Створення", Module: "core"},
-		{ID: "update:events", Name: "Події: Корекція", Module: "core"},
-		{ID: "update:events:all", Name: "Події: Корекція всіх", Module: "core"},
+		{ID: "manage:events", Name: "Події: Повний доступ", Module: "core"},
+		{ID: "manage:events:all", Name: "Події: Повний доступ (всі)", Module: "core"},
 
 		{ID: "read:permits", Name: "Перепустки: Перегляд", Module: "core"},
 		{ID: "read:permits:all", Name: "Перепустки: Перегляд всіх", Module: "core"},
 		{ID: "validate:permits", Name: "Перепустки: Валідація", Module: "core"},
 		{ID: "validate:permits:all", Name: "Перепустки: Валідація всіх", Module: "core"},
-		{ID: "create:permits", Name: "Перепустки: Створення", Module: "core"},
-		{ID: "update:permits", Name: "Перепустки: Редагування", Module: "core"},
-		{ID: "update:permits:all", Name: "Перепустки: Редагування всіх", Module: "core"},
+		{ID: "manage:permits", Name: "Перепустки: Повний доступ", Module: "core"},
+		{ID: "manage:permits:all", Name: "Перепустки: Повний доступ (всі)", Module: "core"},
 
 		{ID: "read:settings", Name: "Налаштування: Перегляд", Module: "core"},
 		{ID: "manage:settings", Name: "Налаштування: Повний доступ", Module: "core"},
@@ -72,12 +69,12 @@ func seedData() {
 	repository.DB.FirstOrCreate(&adminRole, models.Role{Name: "admin", Description: "Повний доступ до системи"})
 	repository.DB.Model(&adminRole).Association("Permissions").Replace(perms)
 
-	// 2. Менеджер - може редагувати, але не видаляти (ієрархія 'update' включає 'read')
+	// 2. Менеджер - може редагувати, але не видаляти
 	var managerRole models.Role
-	repository.DB.FirstOrCreate(&managerRole, models.Role{Name: "manager", Description: "Керівник (редагування без видалення)"})
+	repository.DB.FirstOrCreate(&managerRole, models.Role{Name: "manager", Description: "Керівник (редагування даних)"})
 	managerPermIDs := []string{
-		"update:users", "update:permits", "validate:permits", "update:events", "update:settings",
-		"update:cameras", "update:scales", "read:roles", "read:keys", "read:customs",
+		"manage:users", "manage:permits", "validate:permits", "manage:events", "manage:settings",
+		"manage:cameras", "manage:scales", "read:roles", "read:keys", "read:customs", "read:audit",
 	}
 	managerPerms := []models.Permission{}
 	repository.DB.Where("id IN ?", managerPermIDs).Find(&managerPerms)
@@ -85,10 +82,12 @@ func seedData() {
 
 	// 3. Оператор - тільки перегляд та створення подій/перепусток
 	var operatorRole models.Role
-	repository.DB.FirstOrCreate(&operatorRole, models.Role{Name: "operator", Description: "Оператор (перегляд та створення)"})
+	repository.DB.FirstOrCreate(&operatorRole, models.Role{Name: "operator", Description: "Оператор (перегляд та реєстрація)"})
 	operatorPermIDs := []string{
-		"read:permits", "create:permits", "read:events", "create:events", "read:cameras", "read:customs",
+		"read:permits", "manage:permits", "read:events", "manage:events", "read:cameras", "read:customs",
 	}
+	// Примітка: для оператора manage може бути обмежений core-сервісом,
+	// але тут ми даємо базовий дозвіл на ці ресурси.
 	operatorPerms := []models.Permission{}
 	repository.DB.Where("id IN ?", operatorPermIDs).Find(&operatorPerms)
 	repository.DB.Model(&operatorRole).Association("Permissions").Replace(operatorPerms)
@@ -122,7 +121,7 @@ func seedData() {
 		err := repository.DB.Where("key_hash = ?", h).First(&existingKey).Error
 		if err != nil {
 			workerPerms := []models.Permission{}
-			repository.DB.Where("id IN ?", []string{"create:events", "read:cameras:all", "read:scales:all"}).Find(&workerPerms)
+			repository.DB.Where("id IN ?", []string{"manage:events", "read:cameras:all", "read:scales:all"}).Find(&workerPerms)
 
 			newKey := models.APIKey{
 				KeyHash:     h,
@@ -137,10 +136,10 @@ func seedData() {
 
 	rules := []models.PolicyRule{
 		// Auth Service
-		{Method: "POST", PathPattern: `^/auth/register$`, RequiredPermission: "create:users", Description: "Реєстрація користувачів"},
+		{Method: "POST", PathPattern: `^/auth/register$`, RequiredPermission: "manage:users", Description: "Реєстрація користувачів"},
 		{Method: "GET", PathPattern: `^/auth/admin/users.*`, RequiredPermission: "read:users", Description: "Перегляд користувачів"},
-		{Method: "PUT", PathPattern: `^/auth/admin/users/.*/role$`, RequiredPermission: "update:users", Description: "Зміна ролі користувача"},
-		{Method: "DELETE", PathPattern: `^/auth/admin/users/.*`, RequiredPermission: "delete:users", Description: "Видалення користувача"},
+		{Method: "PUT", PathPattern: `^/auth/admin/users/.*/role$`, RequiredPermission: "manage:users", Description: "Зміна ролі користувача"},
+		{Method: "DELETE", PathPattern: `^/auth/admin/users/.*`, RequiredPermission: "manage:users", Description: "Видалення користувача"},
 		{Method: "GET", PathPattern: `^/auth/admin/roles.*`, RequiredPermission: "read:roles", Description: "Перегляд ролей"},
 		{Method: "POST", PathPattern: `^/auth/admin/roles.*`, RequiredPermission: "manage:roles", Description: "Створення ролей"},
 		{Method: "*", PathPattern: `^/auth/admin/roles/.*`, RequiredPermission: "manage:roles", Description: "Керування ролями"},
@@ -150,7 +149,7 @@ func seedData() {
 		{Method: "GET", PathPattern: `^/auth/admin/permissions$`, RequiredPermission: "read:roles", Description: "Список всіх дозволів"},
 
 		// Ingestor Service
-		{Method: "POST", PathPattern: `^/ingest/.*`, RequiredPermission: "create:ingest", Description: "Імпорт даних"},
+		{Method: "POST", PathPattern: `^/ingest/.*`, RequiredPermission: "manage:ingest", Description: "Імпорт даних"},
 
 		// Core Service: CONFIGS
 		{Method: "GET", PathPattern: `^/api/configs/cameras.*`, RequiredPermission: "read:cameras", Description: "Перегляд камер"},
@@ -164,10 +163,10 @@ func seedData() {
 		{Method: "*", PathPattern: `^/api/configs/scales.*`, RequiredPermission: "manage:scales:all", Description: "Керування всіма вагами"},
 
 		{Method: "GET", PathPattern: `^/api/configs/settings.*`, RequiredPermission: "read:settings", Description: "Перегляд налаштувань"},
-		{Method: "*", PathPattern: `^/api/configs/settings.*`, RequiredPermission: "update:settings", Description: "Керування налаштуваннями"},
+		{Method: "*", PathPattern: `^/api/configs/settings.*`, RequiredPermission: "manage:settings", Description: "Керування налаштуваннями"},
 
 		{Method: "GET", PathPattern: `^/api/configs/excluded-plates.*`, RequiredPermission: "read:settings", Description: "Перегляд чорного списку"},
-		{Method: "*", PathPattern: `^/api/configs/excluded-plates.*`, RequiredPermission: "update:settings", Description: "Керування чорним списком"},
+		{Method: "*", PathPattern: `^/api/configs/excluded-plates.*`, RequiredPermission: "manage:settings", Description: "Керування чорним списком"},
 
 		// Core Service: DATA
 		{Method: "GET", PathPattern: `^/api/data/.*`, RequiredPermission: "read:data", Description: "Перегляд довідників"},
@@ -176,23 +175,23 @@ func seedData() {
 		// Core Service: EVENTS
 		{Method: "GET", PathPattern: `^/api/events/.*`, RequiredPermission: "read:events", Description: "Перегляд подій"},
 		{Method: "GET", PathPattern: `^/api/events/.*`, RequiredPermission: "read:events:all", Description: "Перегляд всіх подій"},
-		{Method: "POST", PathPattern: `^/api/events/.*`, RequiredPermission: "create:events", Description: "Реєстрація подій"},
-		{Method: "PATCH", PathPattern: `^/api/events/plate/.*`, RequiredPermission: "update:events", Description: "Корекція номерів"},
-		{Method: "PATCH", PathPattern: `^/api/events/plate/.*`, RequiredPermission: "update:events:all", Description: "Корекція всіх номерів"},
+		{Method: "POST", PathPattern: `^/api/events/.*`, RequiredPermission: "manage:events", Description: "Реєстрація подій"},
+		{Method: "PATCH", PathPattern: `^/api/events/plate/.*`, RequiredPermission: "manage:events", Description: "Корекція номерів"},
+		{Method: "PATCH", PathPattern: `^/api/events/plate/.*`, RequiredPermission: "manage:events:all", Description: "Корекція всіх номерів"},
 
 		// Core Service: PERMITS
 		{Method: "GET", PathPattern: `^/api/permits.*`, RequiredPermission: "read:permits", Description: "Перегляд перепусток"},
 		{Method: "POST", PathPattern: `^/api/permits/.*/validate$`, RequiredPermission: "validate:permits", Description: "Валідація перепусток"},
 		{Method: "POST", PathPattern: `^/api/permits/.*/validate$`, RequiredPermission: "validate:permits:all", Description: "Валідація всіх перепусток"},
-		{Method: "*", PathPattern: `^/api/permits.*`, RequiredPermission: "update:permits", Description: "Керування перепустками"},
-		{Method: "*", PathPattern: `^/api/permits.*`, RequiredPermission: "update:permits:all", Description: "Керування всіма перепустками"},
+		{Method: "*", PathPattern: `^/api/permits.*`, RequiredPermission: "manage:permits", Description: "Керування перепустками"},
+		{Method: "*", PathPattern: `^/api/permits.*`, RequiredPermission: "manage:permits:all", Description: "Керування всіма перепустками"},
 
 		// Core Service: USERS
 		{Method: "GET", PathPattern: `^/api/users/?$`, RequiredPermission: "read:users", Description: "Список профілів"},
 		{Method: "GET", PathPattern: `^/api/users/me`, RequiredPermission: "", Description: "Мій профіль"},
 		{Method: "PUT", PathPattern: `^/api/users/me`, RequiredPermission: "", Description: "Оновлення мого профілю"},
-		{Method: "POST", PathPattern: `^/api/users/?$`, RequiredPermission: "create:users", Description: "Створення профілю"},
-		{Method: "*", PathPattern: `^/api/users/.*`, RequiredPermission: "update:users", Description: "Керування профілями"},
+		{Method: "POST", PathPattern: `^/api/users/?$`, RequiredPermission: "manage:users", Description: "Створення профілю"},
+		{Method: "*", PathPattern: `^/api/users/.*`, RequiredPermission: "manage:users", Description: "Керування профілями"},
 
 		// Images
 		{Method: "GET", PathPattern: `^/api/images/.*`, RequiredPermission: "read:events", Description: "Перегляд зображень"},

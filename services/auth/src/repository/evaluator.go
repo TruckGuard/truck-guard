@@ -105,40 +105,71 @@ func HasPermission(userPerms []string, required string) bool {
 			return true
 		}
 
-		// Підтримка формату action:resource (наприклад, update:permits)
-		partsRequired := strings.Split(required, ":")
+		// Формат: action:resource[:scope] (наприклад, read:cameras:all або update:events)
 		partsUser := strings.Split(p, ":")
+		partsReq := strings.Split(required, ":")
 
-		if len(partsRequired) == 2 && len(partsUser) == 2 {
-			actionUser := partsUser[0]
-			resourceUser := partsUser[1]
-			actionReq := partsRequired[0]
-			resourceReq := partsRequired[1]
+		// Мінімально має бути action:resource
+		if len(partsUser) < 2 || len(partsReq) < 2 {
+			continue
+		}
 
-			// Ресурс має збігатися (або бути *)
-			if resourceUser == "*" || resourceUser == resourceReq {
-				// Ієрархія дій:
-				// manage > delete > update > create > read
-				switch actionUser {
-				case "manage", "admin":
-					return true
-				case "delete":
-					if actionReq == "delete" || actionReq == "update" || actionReq == "create" || actionReq == "read" {
-						return true
-					}
-				case "update":
-					if actionReq == "update" || actionReq == "create" || actionReq == "read" {
-						return true
-					}
-				case "create":
-					if actionReq == "create" || actionReq == "read" {
-						return true
-					}
-				case "read":
-					if actionReq == "read" {
-						return true
-					}
-				}
+		actionUser := partsUser[0]
+		resourceUser := partsUser[1]
+		scopeUser := ""
+		if len(partsUser) > 2 {
+			scopeUser = partsUser[2]
+		}
+
+		actionReq := partsReq[0]
+		resourceReq := partsReq[1]
+		scopeReq := ""
+		if len(partsReq) > 2 {
+			scopeReq = partsReq[2]
+		}
+
+		// 1. Перевірка ресурсу (підтримка wildcard)
+		if resourceUser != "*" && resourceUser != resourceReq {
+			continue
+		}
+
+		// 2. Перевірка скоупу
+		// Якщо у користувача 'all', він може все в межах ресурсу.
+		// Якщо скоупи збігаються - ок.
+		// Якщо у користувача немає 'all', а запитується конкретний скоуп - відмова (тільки якщо вони не однакові).
+		scopeMatch := false
+		if scopeUser == "all" {
+			scopeMatch = true
+		} else if scopeUser == scopeReq {
+			scopeMatch = true
+		}
+
+		if !scopeMatch {
+			continue
+		}
+
+		// 3. Ієрархія дій:
+		// manage > delete > update/validate > create > read
+		if actionUser == "manage" || actionUser == "admin" {
+			return true
+		}
+
+		switch actionReq {
+		case "read":
+			// Будь-яка дія (create/update/delete/validate) дозволяє read
+			return true
+		case "create":
+			if actionUser == "create" || actionUser == "update" || actionUser == "delete" || actionUser == "manage" {
+				return true
+			}
+		case "update", "validate":
+			// update та validate ми вважаємо на одному рівні або update сильніший
+			if actionUser == "update" || actionUser == "validate" || actionUser == "delete" || actionUser == "manage" {
+				return true
+			}
+		case "delete":
+			if actionUser == "delete" || actionUser == "manage" {
+				return true
 			}
 		}
 	}
