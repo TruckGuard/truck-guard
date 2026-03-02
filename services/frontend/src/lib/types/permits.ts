@@ -3,7 +3,7 @@ import type { RawPlateEvent, RawWeightEvent } from "./events";
 
 export interface PermitCustomsData {
     ID: number;
-    permit_id: number;
+    permit_id?: number;
     declarant: string;
     goods: string;
     sender: string;
