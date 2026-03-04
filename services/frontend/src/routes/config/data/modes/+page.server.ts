@@ -30,13 +30,16 @@ export const actions: Actions = {
 		const name = formData.get('name') as string;
 		const code = formData.get('code') as string;
 		const description = formData.get('description') as string;
+		const requiredFieldsRaw = formData.get('required_fields') as string;
+		let required_fields: string[] = [];
+		try { required_fields = JSON.parse(requiredFieldsRaw || '[]'); } catch { }
 
 		if (!name || !code) {
 			return fail(400, { message: 'Назва та Код обов\'язкові' });
 		}
 
 		try {
-			let test = await locals.coreClient.createData('modes', { name, code, description });
+			let test = await locals.coreClient.createData('modes', { name, code, description, required_fields });
 			console.log('Create mode success:', test);
 			return { success: true };
 		} catch (e: any) {
@@ -50,13 +53,16 @@ export const actions: Actions = {
 		const name = formData.get('name') as string;
 		const code = formData.get('code') as string;
 		const description = formData.get('description') as string;
-
+		const requiredFieldsRaw = formData.get('required_fields') as string;
+		let required_fields: string[] = [];
+		try { required_fields = JSON.parse(requiredFieldsRaw || '[]'); } catch { }
+		console.log('Update mode:', { id, name, code, description, required_fields });
 		if (!id || !name || !code) {
 			return fail(400, { message: 'ID, Назва та Код обов\'язкові' });
 		}
 
 		try {
-			await locals.coreClient.updateData('modes', id, { name, code, description });
+			await locals.coreClient.updateData('modes', id, { name, code, description, required_fields });
 			return { success: true };
 		} catch (e: any) {
 			return fail(500, { message: e.message || 'Помилка оновлення' });

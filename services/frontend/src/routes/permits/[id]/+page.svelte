@@ -1,9 +1,6 @@
 <script lang="ts">
   import { goto } from "$app/navigation";
-  import {
-    Clock,
-    Activity,
-  } from "@lucide/svelte";
+  import { Clock, Activity } from "@lucide/svelte";
   import * as Tabs from "$lib/components/ui/tabs";
   import type { Permit } from "$lib/types/permits";
   import * as AlertDialog from "$lib/components/ui/alert-dialog";
@@ -19,7 +16,8 @@
   import PermitSidebar from "./components/PermitSidebar.svelte";
   import AuditLogsTable from "./components/AuditLogsTable.svelte";
   import EventsHistoryTable from "./components/EventsHistoryTable.svelte";
-    import { onMount } from "svelte";
+  import CustomsModeBanner from "./components/CustomsModeBanner.svelte";
+  import { onMount } from "svelte";
 
   let { data } = $props<{
     data: {
@@ -51,37 +49,103 @@
 
   // Validation state
   let showValidationErrors = $state(false);
+
+  // Field label map shared between ModeForm & permit checklist
+  const FIELD_LABELS: Record<string, string> = {
+    plate_front: "Номер (перед)",
+    plate_back: "Номер (зад)",
+    total_weight: "Вага",
+    declaration_number: "Номер ПД",
+    "customs_data.goods": "Вантаж",
+    "customs_data.vmd_number": "Номер ВМД",
+    "customs_data.declarant": "Декларант",
+    "customs_data.sender": "Відправник",
+    "customs_data.receiver": "Отримувач",
+    vehicle_type_id: "Категорія авто",
+    customs_mode_code: "Митний режим",
+  };
+
+  // Target scroll IDs per field
+  const FIELD_TARGETS: Record<string, string> = {
+    plate_front: "plate-input",
+    plate_back: "plate-input",
+    total_weight: "weight-input",
+    declaration_number: "decl-input",
+    "customs_data.goods": "customs-data-section",
+    "customs_data.vmd_number": "customs-data-section",
+    "customs_data.declarant": "customs-data-section",
+    "customs_data.sender": "customs-data-section",
+    "customs_data.receiver": "customs-data-section",
+    vehicle_type_id: "category-input",
+    customs_mode_code: "mode-input",
+  };
+
+  // Derive required fields from the selected customs mode
+  const requiredFields = $derived(
+    (data.customsModes.find((m: any) => m.code === permit.customs_mode_code)
+      ?.required_fields as string[]) ?? [],
+  );
+
+  function isFieldValid(key: string): boolean {
+    switch (key) {
+      case "plate_front":
+        return !!permit.plate_front;
+      case "plate_back":
+        return !!permit.plate_back;
+      case "total_weight":
+        return !!(Number(permit.total_weight) || 0);
+      case "declaration_number":
+        return !!permit.declaration_number;
+      case "customs_data.goods":
+        return !!permit.customs_data?.goods;
+      case "customs_data.vmd_number":
+        return !!permit.customs_data?.vmd_number;
+      case "customs_data.declarant":
+        return !!permit.customs_data?.declarant;
+      case "customs_data.sender":
+        return !!permit.customs_data?.sender;
+      case "customs_data.receiver":
+        return !!permit.customs_data?.receiver;
+      case "vehicle_type_id":
+        return !!permit.vehicle_type_id;
+      case "customs_mode_code":
+        return !!permit.customs_mode_code;
+      default:
+        return true;
+    }
+  }
+
+  const validationItems = $derived(
+    requiredFields.map((key: string) => ({
+      key,
+      label: FIELD_LABELS[key] ?? key,
+      targetId: FIELD_TARGETS[key] ?? undefined,
+      isValid: isFieldValid(key),
+    })),
+  );
+
+  const isAllValid = $derived(
+    validationItems.every((item: any) => item.isValid) && permit.customs_mode_code,
+  );
+
   const isValidPlate = $derived(!!permit.plate_front && !!permit.plate_back);
-  const isValidWeight = $derived(!!(permit.total_weight || 0));
+  const isValidWeight = $derived(!!(Number(permit.total_weight) || 0));
   const isValidPD = $derived(!!permit.declaration_number);
   const isValidVehicleType = $derived(!!permit.vehicle_type_id);
   const isValidCustomsMode = $derived(!!permit.customs_mode_code);
-  const isValidCustomsData = $derived(
-    !!permit.customs_data &&
-      !!permit.customs_data.goods &&
-      !!permit.customs_data.vmd_number,
-  );
-  const isAllValid = $derived(
-    isValidPlate &&
-      isValidWeight &&
-      isValidPD &&
-      isValidVehicleType &&
-      isValidCustomsMode &&
-      isValidCustomsData,
-  );
 
   onMount(() => {
     permit = { ...data.permit };
     if (!permit.customs_data) {
-    permit.customs_data = {
-      ID: 0,
-      goods: "",
-      declarant: "",
-      vmd_number: "",
-      sender: "",
-      receiver: "",
-    };
-  }
+      permit.customs_data = {
+        ID: 0,
+        goods: "",
+        declarant: "",
+        vmd_number: "",
+        sender: "",
+        receiver: "",
+      };
+    }
   });
 
   async function handleSave(silent = false) {
@@ -330,32 +394,42 @@
 </script>
 
 <div class="container mx-auto py-8 max-w-7xl">
-  <!-- Header -->
-  <PermitHeader isNew={data.isNew} permitCode={permit.code} permitId={permit.ID} />
+  <PermitHeader
+    isNew={data.isNew}
+    permitCode={permit.code}
+    permitId={permit.ID}
+  />
+
+  <CustomsModeBanner
+    bind:permit
+    customsModes={data.customsModes}
+    verified={!!permit.verified_at}
+  />
 
   <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-    <!-- Main Content Column -->
     <div class="lg:col-span-8 space-y-8">
       <VehicleDataSection bind:permit {showValidationErrors} {isValidPlate} />
       <WeightSection bind:permit {showValidationErrors} {isValidWeight} />
       <CustomsDataSection bind:permit {showValidationErrors} {isValidPD} />
-      <FinancialSection bind:permit {data} bind:primaryCompanyId {showValidationErrors} {isValidVehicleType} {isValidCustomsMode} />
+      <FinancialSection
+        bind:permit
+        {data}
+        bind:primaryCompanyId
+        {showValidationErrors}
+        {isValidVehicleType}
+        {isValidCustomsMode}
+      />
     </div>
 
     <!-- Sidebar Column -->
-    <PermitSidebar 
-      {permit} 
-      {data} 
-      {loading} 
-      {handleSave} 
-      {handleValidatePermit} 
+    <PermitSidebar
+      {permit}
+      {data}
+      {loading}
+      {handleSave}
+      {handleValidatePermit}
       {handleClosePermit}
-      {isValidPlate}
-      {isValidWeight}
-      {isValidPD}
-      {isValidCustomsData}
-      {isValidVehicleType}
-      {isValidCustomsMode}
+      {validationItems}
     />
   </div>
 
@@ -364,11 +438,17 @@
     <div class="mt-12 pt-12 border-t">
       <Tabs.Root bind:value={activeTab} class="w-full">
         <Tabs.List class="grid w-full grid-cols-2 mb-8 h-12">
-          <Tabs.Trigger value="events" class="flex items-center gap-3 text-base font-bold">
+          <Tabs.Trigger
+            value="events"
+            class="flex items-center gap-3 text-base font-bold"
+          >
             <Activity class="h-5 w-5" />
             Події
           </Tabs.Trigger>
-          <Tabs.Trigger value="audit" class="flex items-center gap-3 text-base font-bold">
+          <Tabs.Trigger
+            value="audit"
+            class="flex items-center gap-3 text-base font-bold"
+          >
             <Clock class="h-5 w-5" />
             Історія змін
           </Tabs.Trigger>

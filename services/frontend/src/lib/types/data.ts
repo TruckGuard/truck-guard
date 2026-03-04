@@ -16,6 +16,7 @@ export interface CustomsMode extends GormModel {
     name: string;
     code: string;
     description: string;
+    required_fields: string[];
 }
 
 export interface Company extends GormModel {

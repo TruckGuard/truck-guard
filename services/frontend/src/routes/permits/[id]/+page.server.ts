@@ -75,6 +75,8 @@ export const load: PageServerLoad = async ({ params, url, locals }) => {
     const canValidate = typeof userRole === 'string' ? userRole === 'admin' || userRole === 'manager' : (userRole as any)?.name === 'admin' || (userRole as any)?.name === 'manager';
     const canManageCustoms = true; // Based on earlier seed, operator/manager/admin all have read:customs
 
+
+    console.log('permit', permit);
     return {
         permit,
         isNew,

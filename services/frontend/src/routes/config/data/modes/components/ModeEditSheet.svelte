@@ -11,7 +11,12 @@
         mode: any | null;
     }>();
 
-    let values = $state({ code: "", name: "", description: "" });
+    let values = $state({
+        code: "",
+        name: "",
+        description: "",
+        required_fields: [] as string[],
+    });
 
     $effect(() => {
         if (open && mode) {
@@ -45,6 +50,11 @@
         >
             <input type="hidden" name="id" value={mode?.ID} />
             <ModeForm bind:values />
+            <input
+                type="hidden"
+                name="required_fields"
+                value={JSON.stringify(values.required_fields)}
+            />
 
             <Sheet.Footer class="pt-6 px-0">
                 <Button

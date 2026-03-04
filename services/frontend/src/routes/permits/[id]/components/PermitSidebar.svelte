@@ -17,12 +17,7 @@
         handleSave,
         handleValidatePermit,
         handleClosePermit,
-        isValidPlate,
-        isValidWeight,
-        isValidPD,
-        isValidCustomsData,
-        isValidVehicleType,
-        isValidCustomsMode,
+        validationItems,
     } = $props<{
         permit: any;
         data: any;
@@ -30,12 +25,11 @@
         handleSave: (silent?: boolean) => Promise<boolean>;
         handleValidatePermit: () => Promise<void>;
         handleClosePermit: () => Promise<void>;
-        isValidPlate: boolean;
-        isValidWeight: boolean;
-        isValidPD: boolean;
-        isValidCustomsData: boolean;
-        isValidVehicleType: boolean;
-        isValidCustomsMode: boolean;
+        validationItems: {
+            label: string;
+            isValid: boolean;
+            targetId?: string;
+        }[];
     }>();
 
     function formatDate(dateStr?: string) {
@@ -158,36 +152,18 @@
                     </h3>
                 </div>
                 <div class="p-5 space-y-4">
-                    {@render validationItem(
-                        "Номери (перед/зад)",
-                        isValidPlate,
-                        "plate-input",
-                    )}
-                    {@render validationItem(
-                        "Вага",
-                        isValidWeight,
-                        "weight-input",
-                    )}
-                    {@render validationItem(
-                        "Номер ПД",
-                        isValidPD,
-                        "decl-input",
-                    )}
-                    {@render validationItem(
-                        "Дані митниці",
-                        isValidCustomsData,
-                        "customs-data-section",
-                    )}
-                    {@render validationItem(
-                        "Категорія авто",
-                        isValidVehicleType,
-                        "category-input",
-                    )}
-                    {@render validationItem(
-                        "Митний режим",
-                        isValidCustomsMode,
-                        "mode-input",
-                    )}
+                    {#each validationItems as item}
+                        {@render validationItem(
+                            item.label,
+                            item.isValid,
+                            item.targetId,
+                        )}
+                    {/each}
+                    {#if validationItems.length === 0}
+                        <p class="text-sm text-muted-foreground italic">
+                            Оберіть митний режим, щоб побачити чек-лист.
+                        </p>
+                    {/if}
                 </div>
             </div>
         {/if}
@@ -272,12 +248,10 @@
         {#if targetId && !isValid}
             <button
                 onclick={() =>
-                    document
-                        .getElementById(targetId)
-                        ?.scrollIntoView({
-                            behavior: "smooth",
-                            block: "center",
-                        })}
+                    document.getElementById(targetId)?.scrollIntoView({
+                        behavior: "smooth",
+                        block: "center",
+                    })}
                 class="text-sm font-bold text-slate-500 hover:text-amber-700 hover:underline transition-colors text-left"
             >
                 {label}

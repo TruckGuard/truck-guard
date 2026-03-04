@@ -8,11 +8,21 @@
 
     let { open = $bindable(false) } = $props<{ open: boolean }>();
 
-    let values = $state({ code: "", name: "", description: "" });
+    let values = $state({
+        code: "",
+        name: "",
+        description: "",
+        required_fields: [] as string[],
+    });
 
     $effect(() => {
         if (open) {
-            values = { code: "", name: "", description: "" };
+            values = {
+                code: "",
+                name: "",
+                description: "",
+                required_fields: [],
+            };
         }
     });
 </script>
@@ -40,6 +50,11 @@
     >
         <div class="py-4">
             <ModeForm bind:values />
+            <input
+                type="hidden"
+                name="required_fields"
+                value={JSON.stringify(values.required_fields)}
+            />
         </div>
         <div class="flex justify-end gap-2 pt-4">
             <Button
