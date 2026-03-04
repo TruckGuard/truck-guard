@@ -6,28 +6,21 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/truckguard/core/src/models"
-	"github.com/truckguard/core/src/repository"
+	datarepo "github.com/truckguard/core/src/repository/data"
 	"github.com/truckguard/core/src/utils"
 )
 
 func HandleListCompanies(c *gin.Context) {
-	var companies []models.Company
-	var total int64
 	limit, offset, page := utils.GetPagination(c)
-	name := c.Query("name")
-	edrpou := c.Query("edrpou")
-
-	query := repository.DB.WithContext(c.Request.Context()).Model(&models.Company{})
-	if name != "" {
-		query = query.Where("name ILIKE ?", "%"+name+"%")
+	filter := datarepo.CompanyFilter{
+		Name:   c.Query("name"),
+		EDRPOU: c.Query("edrpou"),
 	}
-	if edrpou != "" {
-		query = query.Where("edrpou ILIKE ?", "%"+edrpou+"%")
+	companies, total, err := datarepo.ListCompanies(c.Request.Context(), limit, offset, filter)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch companies"})
+		return
 	}
-
-	query.Count(&total)
-	query.Limit(limit).Offset(offset).Order("name asc").Find(&companies)
-
 	utils.SendPaginatedResponse(c, companies, total, page, limit)
 }
 
@@ -37,8 +30,8 @@ func HandleCreateCompany(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	if err := repository.DB.WithContext(c.Request.Context()).Create(&input).Error; err != nil {
-		slog.Error("Failed to create company", "error", err, "input", input)
+	if err := datarepo.CreateCompany(c.Request.Context(), &input); err != nil {
+		slog.Error("Failed to create company", "error", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create company: " + err.Error()})
 		return
 	}
@@ -47,23 +40,14 @@ func HandleCreateCompany(c *gin.Context) {
 
 func HandleUpdateCompany(c *gin.Context) {
 	id := c.Param("id")
-	var company models.Company
-	if err := repository.DB.WithContext(c.Request.Context()).First(&company, id).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Company not found"})
-		return
-	}
 	var input models.Company
 	if err := c.ShouldBindJSON(&input); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-
-	company.Name = input.Name
-	company.EDRPOU = input.EDRPOU
-	company.Details = input.Details
-
-	if err := repository.DB.WithContext(c.Request.Context()).Save(&company).Error; err != nil {
-		slog.Error("Failed to update company", "error", err, "id", id, "input", input)
+	company, err := datarepo.UpdateCompany(c.Request.Context(), id, &input)
+	if err != nil {
+		slog.Error("Failed to update company", "error", err, "id", id)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update company: " + err.Error()})
 		return
 	}
@@ -72,7 +56,7 @@ func HandleUpdateCompany(c *gin.Context) {
 
 func HandleDeleteCompany(c *gin.Context) {
 	id := c.Param("id")
-	if err := repository.DB.WithContext(c.Request.Context()).Delete(&models.Company{}, id).Error; err != nil {
+	if err := datarepo.DeleteCompany(c.Request.Context(), id); err != nil {
 		slog.Error("Failed to delete company", "error", err, "id", id)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete company: " + err.Error()})
 		return

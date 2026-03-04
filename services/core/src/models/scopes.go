@@ -3,6 +3,7 @@ package models
 import (
 	"context"
 	"fmt"
+	"log"
 	"strings"
 
 	"gorm.io/gorm"
@@ -19,6 +20,7 @@ func ScopeByPost(ctx context.Context, model PostScopedModel, action string) func
 		postIDStr, _ := ctx.Value("user_post_id").(string)
 
 		resourceName := model.GetResourceName()
+		log.Println("ScopeByPost", "perms", perms, "postIDStr", postIDStr, resourceName, action, strings.Contains(perms, fmt.Sprintf("%s:%s:all", action, resourceName)))
 
 		if strings.Contains(perms, fmt.Sprintf("%s:%s:all", action, resourceName)) {
 			return db

@@ -6,24 +6,20 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/truckguard/core/src/models"
-	"github.com/truckguard/core/src/repository"
+	datarepo "github.com/truckguard/core/src/repository/data"
 	"github.com/truckguard/core/src/utils"
 )
 
 func HandleListPosts(c *gin.Context) {
-	var posts []models.CustomsPost
-	var total int64
 	limit, offset, page := utils.GetPagination(c)
-	name := c.Query("name")
-
-	query := repository.DB.WithContext(c.Request.Context()).Model(&models.CustomsPost{})
-	if name != "" {
-		query = query.Where("name ILIKE ?", "%"+name+"%")
+	filter := datarepo.PostFilter{
+		Name: c.Query("name"),
 	}
-
-	query.Count(&total)
-	query.Limit(limit).Offset(offset).Order("id desc").Find(&posts)
-
+	posts, total, err := datarepo.ListPosts(c.Request.Context(), limit, offset, filter)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch posts"})
+		return
+	}
 	utils.SendPaginatedResponse(c, posts, total, page, limit)
 }
 
@@ -33,8 +29,8 @@ func HandleCreatePost(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	if err := repository.DB.WithContext(c.Request.Context()).Create(&input).Error; err != nil {
-		slog.Error("Failed to create post", "error", err, "input", input)
+	if err := datarepo.CreatePost(c.Request.Context(), &input); err != nil {
+		slog.Error("Failed to create post", "error", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create post: " + err.Error()})
 		return
 	}
@@ -43,22 +39,14 @@ func HandleCreatePost(c *gin.Context) {
 
 func HandleUpdatePost(c *gin.Context) {
 	id := c.Param("id")
-	var post models.CustomsPost
-	if err := repository.DB.WithContext(c.Request.Context()).First(&post, id).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Post not found"})
-		return
-	}
 	var input models.CustomsPost
 	if err := c.ShouldBindJSON(&input); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-
-	post.Name = input.Name
-	post.Description = input.Description
-
-	if err := repository.DB.WithContext(c.Request.Context()).Save(&post).Error; err != nil {
-		slog.Error("Failed to update post", "error", err, "id", id, "input", input)
+	post, err := datarepo.UpdatePost(c.Request.Context(), id, &input)
+	if err != nil {
+		slog.Error("Failed to update post", "error", err, "id", id)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update post: " + err.Error()})
 		return
 	}
@@ -67,7 +55,7 @@ func HandleUpdatePost(c *gin.Context) {
 
 func HandleDeletePost(c *gin.Context) {
 	id := c.Param("id")
-	if err := repository.DB.WithContext(c.Request.Context()).Unscoped().Delete(&models.CustomsPost{}, id).Error; err != nil {
+	if err := datarepo.DeletePost(c.Request.Context(), id); err != nil {
 		slog.Error("Failed to delete post", "error", err, "id", id)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete post: " + err.Error()})
 		return

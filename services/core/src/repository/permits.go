@@ -44,7 +44,6 @@ func GetPermitByID(ctx context.Context, id string) (models.Permit, error) {
 		Preload("PlateEvents").
 		Preload("WeightEvents").
 		Preload("Verifier").
-		Preload("CustomsData").
 		Preload("VehicleType").
 		Preload("CustomsMode").
 		Preload("PaymentType").
@@ -85,7 +84,7 @@ func CreatePermit(ctx context.Context, input *models.Permit, authID string) erro
 
 func UpdatePermit(ctx context.Context, id string, input map[string]interface{}, authID string) (models.Permit, error) {
 	var permit models.Permit
-	if err := DB.WithContext(ctx).Scopes(models.ScopeByPost(ctx, models.Permit{}, "update")).Preload("CustomsPost").First(&permit, id).Error; err != nil {
+	if err := DB.WithContext(ctx).Scopes(models.ScopeByPost(ctx, models.Permit{}, "manage")).Preload("CustomsPost").First(&permit, id).Error; err != nil {
 		return permit, err
 	}
 
@@ -119,20 +118,25 @@ func UpdatePermit(ctx context.Context, id string, input map[string]interface{}, 
 		}
 	}
 
-	// Extract and save CustomsData if present
-	if cdMap, ok := input["customs_data"]; ok && cdMap != nil {
-		cdBytes, _ := json.Marshal(cdMap)
-		var cd models.PermitCustomsData
-		json.Unmarshal(cdBytes, &cd)
-		cd.PermitID = permit.ID
-		// Upsert customs data. First try to find existing to keep ID.
-		var existingCD models.PermitCustomsData
-		if err := DB.WithContext(ctx).Where("permit_id = ?", permit.ID).First(&existingCD).Error; err == nil {
-			cd.ID = existingCD.ID
+	// Handle nested CustomsData in the input map by flattening it for GORM
+	if cdMap, ok := input["customs_data"].(map[string]interface{}); ok {
+		// Only flatten fields that exist in the PermitCustomsData struct
+		allowedFields := map[string]bool{
+			"declarant":  true,
+			"goods":      true,
+			"sender":     true,
+			"receiver":   true,
+			"vmd_number": true,
 		}
-		DB.WithContext(ctx).Save(&cd)
+		for k, v := range cdMap {
+			if allowedFields[k] {
+				input["customs_"+k] = v
+			}
+		}
 		delete(input, "customs_data")
 	}
+
+	// Financials are already calculated above if needed
 
 	if len(input) > 0 {
 		if err := DB.WithContext(ctx).Model(&permit).Updates(input).Error; err != nil {

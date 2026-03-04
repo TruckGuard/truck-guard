@@ -65,7 +65,7 @@ func HandleCreateUser(c *gin.Context) {
 		CustomsPostID: input.CustomsPostID,
 	}
 
-	if err := repository.DB.WithContext(c.Request.Context()).Create(&user).Error; err != nil {
+	if err := repository.UpdateUser(c.Request.Context(), &user); err != nil {
 		slog.Error("Failed to create profile in Core", "auth_id", user.AuthID, "error", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create profile in Core"})
 		return
@@ -95,9 +95,13 @@ func HandleGetUser(c *gin.Context) {
 }
 
 func HandleGetUserByAuthID(c *gin.Context) {
-	authID := c.Param("authId")
-	var user models.User
-	if err := repository.DB.WithContext(c.Request.Context()).Where("auth_id = ?", authID).First(&user).Error; err != nil {
+	authIDStr := c.Param("authId")
+	var rid uint64
+	fmt.Sscanf(authIDStr, "%d", &rid)
+	authID := uint(rid)
+
+	user, err := repository.GetUserByAuthID(c.Request.Context(), authID)
+	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "User profile not found for this Auth ID"})
 		return
 	}
@@ -125,7 +129,11 @@ func HandleDeleteUser(c *gin.Context) {
 		}
 	}
 
-	if err := repository.DB.WithContext(c.Request.Context()).Where("auth_id = ?", id).Delete(&models.User{}).Error; err != nil {
+	var rid uint64
+	fmt.Sscanf(id, "%d", &rid)
+	authID := uint(rid)
+
+	if err := repository.DeleteUser(c.Request.Context(), authID); err != nil {
 		slog.Error("Failed to delete profile from Core", "auth_id", id, "error", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete profile from Core"})
 		return
@@ -156,15 +164,11 @@ func HandleUpdateUser(c *gin.Context) {
 	fmt.Sscanf(idStr, "%d", &rid)
 	realAuthID := uint(rid)
 
-	var user models.User
-	result := repository.DB.WithContext(c.Request.Context()).Where("auth_id = ?", realAuthID).First(&user)
-
-	isNew := false
-	if result.Error != nil {
+	user, err := repository.GetUserByAuthID(c.Request.Context(), realAuthID)
+	if err != nil {
 		user = models.User{
 			AuthID: realAuthID,
 		}
-		isNew = true
 	}
 
 	user.FirstName = input.FirstName
@@ -175,21 +179,9 @@ func HandleUpdateUser(c *gin.Context) {
 	user.Notes = input.Notes
 	user.CustomsPostID = input.CustomsPostID
 
-	var err error
-	if isNew {
-		err = repository.DB.WithContext(c.Request.Context()).Create(&user).Error
-	} else {
-		err = repository.DB.WithContext(c.Request.Context()).Save(&user).Error
-	}
-
-	if err != nil {
+	if err := repository.UpdateUser(c.Request.Context(), &user); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save profile in Core"})
 		return
-	}
-	cacheKey := fmt.Sprintf("user:%s:post_id", idStr)
-	err = repository.RDB.Set(c.Request.Context(), cacheKey, user.CustomsPostID, 0).Err()
-	if err != nil {
-		slog.Error("Failed to save profile in Core", "auth_id", user.AuthID, "error", err)
 	}
 
 	c.JSON(http.StatusOK, user)
@@ -212,8 +204,8 @@ func HandleGetMyProfile(c *gin.Context) {
 	fmt.Sscanf(authID, "%d", &rid)
 	realAuthID := uint(rid)
 
-	var user models.User
-	if err := repository.DB.WithContext(c.Request.Context()).Where("auth_id = ?", realAuthID).First(&user).Error; err != nil {
+	user, err := repository.GetUserByAuthID(c.Request.Context(), realAuthID)
+	if err != nil {
 		user = models.User{
 			AuthID: realAuthID,
 		}
@@ -266,10 +258,8 @@ func HandleUpdateMyProfile(c *gin.Context) {
 		return
 	}
 
-	var user models.User
-	result := repository.DB.WithContext(c.Request.Context()).Where("auth_id = ?", realAuthID).First(&user)
-
-	if result.Error != nil {
+	user, err := repository.GetUserByAuthID(c.Request.Context(), realAuthID)
+	if err != nil {
 		user = models.User{
 			AuthID: realAuthID,
 		}
@@ -283,16 +273,9 @@ func HandleUpdateMyProfile(c *gin.Context) {
 	user.Notes = input.Notes
 	user.CustomsPostID = input.CustomsPostID
 
-	if result.Error != nil {
-		if err := repository.DB.WithContext(c.Request.Context()).Create(&user).Error; err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create profile"})
-			return
-		}
-	} else {
-		if err := repository.DB.WithContext(c.Request.Context()).Save(&user).Error; err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update profile"})
-			return
-		}
+	if err := repository.UpdateUser(c.Request.Context(), &user); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update profile"})
+		return
 	}
 
 	c.JSON(http.StatusOK, user)

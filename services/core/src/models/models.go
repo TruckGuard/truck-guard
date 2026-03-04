@@ -18,9 +18,10 @@ type CustomsPost struct {
 
 type CustomsMode struct {
 	gorm.Model
-	Name        string `json:"name"`
-	Code        string `gorm:"uniqueIndex;not null" json:"code"`
-	Description string `json:"description"`
+	Name           string         `json:"name"`
+	Code           string         `gorm:"uniqueIndex;not null" json:"code"`
+	Description    string         `json:"description"`
+	RequiredFields datatypes.JSON `gorm:"type:jsonb;default:'[]'" json:"required_fields"`
 }
 
 type Company struct {
@@ -104,14 +105,11 @@ type PermitAudit struct {
 }
 
 type PermitCustomsData struct {
-	gorm.Model
-	PermitID uint `gorm:"uniqueIndex" json:"permit_id"`
-
 	Declarant string `json:"declarant"`
 	Goods     string `json:"goods"`
 	Sender    string `json:"sender"`
 	Receiver  string `json:"receiver"`
-	VMDNumber string `json:"vmd_number"`
+	VMDNumber string `gorm:"column:vmd_number" json:"vmd_number"`
 }
 
 type Permit struct {
@@ -162,10 +160,10 @@ type Permit struct {
 	ResponsibleUser   *User      `gorm:"foreignKey:ResponsibleUserID" json:"responsible_user,omitempty"`
 
 	// Relations
-	CustomsData  *PermitCustomsData `gorm:"foreignKey:PermitID" json:"customs_data,omitempty"`
-	AuditEvents  []PermitAudit      `gorm:"foreignKey:PermitID" json:"audit_events"`
-	PlateEvents  []PlateEvent       `gorm:"foreignKey:PermitID" json:"plate_events"`
-	WeightEvents []WeightEvent      `gorm:"foreignKey:PermitID" json:"weight_events"`
+	CustomsData  PermitCustomsData `gorm:"embedded;embeddedPrefix:customs_" json:"customs_data"`
+	AuditEvents  []PermitAudit     `gorm:"foreignKey:PermitID" json:"audit_events"`
+	PlateEvents  []PlateEvent      `gorm:"foreignKey:PermitID" json:"plate_events"`
+	WeightEvents []WeightEvent     `gorm:"foreignKey:PermitID" json:"weight_events"`
 }
 
 type SystemEvent struct {
