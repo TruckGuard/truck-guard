@@ -10,6 +10,7 @@ import (
 	"github.com/truckguard/core/src/api/handlers/data"
 	"github.com/truckguard/core/src/api/middleware"
 	"github.com/truckguard/core/src/models"
+	"github.com/truckguard/core/src/pkg/notify"
 	"github.com/truckguard/core/src/pkg/telemetry"
 	"github.com/truckguard/core/src/repository"
 	"go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin"
@@ -32,6 +33,7 @@ func main() {
 		valkeyAddr = os.Getenv("REDIS_ADDR")
 	}
 	repository.InitRedis(valkeyAddr)
+	notify.Init(repository.RDB)
 
 	r := gin.New()
 	r.Use(gin.Recovery())
@@ -137,6 +139,9 @@ func main() {
 			permits.PUT("/:id", handlers.HandleUpdatePermit)
 			permits.POST("/:id/validate", handlers.HandleValidatePermit)
 		}
+
+		// Real-time SSE notifications for operators
+		api.GET("/notifications/stream", handlers.HandleSSENotifications)
 
 		users := api.Group("/users")
 		{

@@ -6,8 +6,46 @@
   import { Separator } from "$lib/components/ui/separator/index.js";
   import { ModeWatcher } from "mode-watcher";
   import { Toaster } from "$lib/components/ui/sonner";
+  import { toast } from "svelte-sonner";
+  import { goto } from "$app/navigation";
+  import { onMount, onDestroy } from "svelte";
 
   let { children, data } = $props();
+
+  let sse: EventSource | null = null;
+
+  function connectNotifications() {
+    sse = new EventSource("/api/notifications/stream");
+
+    sse.onmessage = (e) => {
+      try {
+        const ev = JSON.parse(e.data);
+        if (ev.type === "new_permit") {
+          toast("Нова перепустка", {
+            description: ev.plate
+              ? `${ev.plate}${ev.code ? ` · ${ev.code}` : ""}`
+              : ev.code || "Натисніть, щоб відкрити",
+            duration: 10000,
+            action: {
+              label: "Відкрити →",
+              onClick: () => goto(`/permits/${ev.id}`),
+            },
+            id: String(ev.id),
+          });
+        }
+      } catch {}
+    };
+  }
+
+  onMount(() => {
+    if (data.user?.customs_post_id) {
+      connectNotifications();
+    }
+  });
+
+  onDestroy(() => {
+    sse?.close();
+  });
 </script>
 
 <svelte:head>
@@ -26,7 +64,7 @@
         <Separator orientation="vertical" class="me-2 h-4" />
       </header>
       <div class="flex flex-1 flex-col gap-4 p-4 pt-0">
-      {@render children()}
+        {@render children()}
       </div>
     </Sidebar.Inset>
   </Sidebar.Provider>

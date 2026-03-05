@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/truckguard/core/src/models"
+	"github.com/truckguard/core/src/pkg/notify"
 	"github.com/truckguard/core/src/repository"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
@@ -247,6 +248,13 @@ func processEvent(ctx context.Context, customsPostID uint, sourceID string, even
 
 	if isNew {
 		repository.LogSystemPermitAudit(ctx, permit.ID, "create", changes, "Перепустка ініційована камерою/вагами")
+		// Notify operators at this post
+		plate := permit.PlateFront
+		if plate == "" {
+			plate = permit.PlateBack
+		}
+		slog.Info("Notifying operators about new auto-created permit", "permit_id", permit.ID, "post_id", customsPostID)
+		notify.Global.PublishPermit(customsPostID, permit.ID, permit.Code, plate)
 	} else if len(changes) > 0 {
 		repository.LogSystemPermitAudit(ctx, permit.ID, "update", changes, "Дані оновлено подією з камери/ваг")
 	}

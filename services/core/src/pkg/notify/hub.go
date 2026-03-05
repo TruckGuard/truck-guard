@@ -1,0 +1,124 @@
+package notify
+
+import (
+	"context"
+	"encoding/json"
+	"fmt"
+	"log/slog"
+	"sync"
+
+	"github.com/redis/go-redis/v9"
+)
+
+// Event is a notification payload sent to subscribers.
+type Event struct {
+	Type   string `json:"type"`
+	ID     uint   `json:"id"`
+	Code   string `json:"code"`
+	Plate  string `json:"plate"`
+	PostID uint   `json:"post_id"`
+}
+
+// channel name for a given post
+func channelName(postID uint) string {
+	return fmt.Sprintf("permit_notify:post:%d", postID)
+}
+
+// PublishPermit is a convenience wrapper for publishing a new_permit event.
+// postID 0 is a no-op.
+func (h *Hub) PublishPermit(postID uint, permitID uint, code, plate string) {
+	if postID == 0 {
+		return
+	}
+	h.Publish(postID, Event{
+		Type:   "new_permit",
+		ID:     permitID,
+		Code:   code,
+		Plate:  plate,
+		PostID: postID,
+	})
+}
+
+// Hub manages SSE subscribers, backed by Valkey pub/sub.
+type Hub struct {
+	rdb *redis.Client
+
+	mu   sync.RWMutex
+	subs map[string][]chan Event // key = postID string
+}
+
+var Global = &Hub{subs: make(map[string][]chan Event)}
+
+// Init wires the hub to the Valkey client and starts the global subscriber goroutine.
+func Init(rdb *redis.Client) {
+	Global.rdb = rdb
+	go Global.listenAll()
+}
+
+// listenAll subscribes to all permit_notify channels via Valkey psubscribe.
+func (h *Hub) listenAll() {
+	ctx := context.Background()
+	pubsub := h.rdb.PSubscribe(ctx, "permit_notify:post:*")
+	defer pubsub.Close()
+
+	slog.Info("Notification hub: listening on Valkey permit_notify:post:*")
+
+	for msg := range pubsub.Channel() {
+		var ev Event
+		if err := json.Unmarshal([]byte(msg.Payload), &ev); err != nil {
+			slog.Warn("Failed to decode notification event", "err", err, "payload", msg.Payload)
+			continue
+		}
+		postKey := fmt.Sprintf("%d", ev.PostID)
+		slog.Info("Notification hub: received event", "type", ev.Type, "permit_id", ev.ID, "post_id", ev.PostID)
+		h.mu.RLock()
+		for _, ch := range h.subs[postKey] {
+			select {
+			case ch <- ev:
+			default:
+			}
+		}
+		h.mu.RUnlock()
+	}
+}
+
+// Subscribe returns a buffered channel for the given postID string.
+func (h *Hub) Subscribe(postID string) chan Event {
+	ch := make(chan Event, 8)
+	h.mu.Lock()
+	h.subs[postID] = append(h.subs[postID], ch)
+	h.mu.Unlock()
+	return ch
+}
+
+// Unsubscribe removes the channel and closes it.
+func (h *Hub) Unsubscribe(postID string, ch chan Event) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	subs := h.subs[postID]
+	for i, s := range subs {
+		if s == ch {
+			h.subs[postID] = append(subs[:i], subs[i+1:]...)
+			close(ch)
+			return
+		}
+	}
+}
+
+// Publish sends ev to all in-process subscribers AND to Valkey so other
+// instances also receive it.
+func (h *Hub) Publish(postID uint, ev Event) {
+	b, err := json.Marshal(ev)
+	if err != nil {
+		slog.Error("Failed to marshal notification event", "err", err)
+		return
+	}
+	channel := channelName(postID)
+	if h.rdb != nil {
+		if err := h.rdb.Publish(context.Background(), channel, string(b)).Err(); err != nil {
+			slog.Error("Failed to publish to Valkey", "channel", channel, "err", err)
+		} else {
+			slog.Info("Published notification to Valkey", "channel", channel, "permit_id", ev.ID)
+		}
+	}
+}

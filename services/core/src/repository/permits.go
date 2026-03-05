@@ -298,3 +298,13 @@ func CalculateFinancials(ctx context.Context, permit *models.Permit, updates map
 
 	return nil
 }
+
+func GetPermitAuditEvents(ctx context.Context, permitID string) ([]models.PermitAudit, error) {
+	var audits []models.PermitAudit
+	err := DB.WithContext(ctx).
+		Preload("User").
+		Where("permit_id = ?", permitID).
+		Order("created_at desc").
+		Find(&audits).Error
+	return audits, err
+}
