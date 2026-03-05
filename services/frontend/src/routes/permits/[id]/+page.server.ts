@@ -137,5 +137,49 @@ export const actions: Actions = {
             console.error('Validate permit error:', e);
             return { type: 'error', error: { message: e.message || 'Error validating permit' } };
         }
+    },
+
+    createCompany: async ({ request, locals }) => {
+        if (!locals.coreClient) return { type: 'error', error: { message: 'Unauthorized' } };
+
+        const data = await request.formData();
+        const name = data.get('name') as string;
+        const edrpou = data.get('edrpou') as string;
+
+        if (!name || !edrpou) {
+            return { type: 'error', error: { message: 'Назва та ЄДРПОУ обов’язкові' } };
+        }
+
+        try {
+            const result = await locals.coreClient.createData<Company>('companies', {
+                name,
+                edrpou
+            });
+            return { type: 'success', data: result };
+        } catch (e: any) {
+            console.error('Create company error:', e);
+            return { type: 'error', error: { message: e.message || 'Error creating company' } };
+        }
+    },
+
+    searchCompanies: async ({ request, locals }) => {
+        if (!locals.coreClient) return { type: 'error', error: { message: 'Unauthorized' } };
+
+        const data = await request.formData();
+        const q = data.get('q') as string || '';
+
+        try {
+            let filters: Record<string, string> = {};
+            if (q.trim()) {
+                filters.q = q;
+            }
+            
+
+            const res = await locals.coreClient.listData<Company>('companies', 1, 15, filters);
+            return { type: 'success', data: res.data };
+        } catch (e: any) {
+            console.error('Search companies error:', e);
+            return { type: 'error', error: { message: e.message || 'Error searching companies' } };
+        }
     }
 };

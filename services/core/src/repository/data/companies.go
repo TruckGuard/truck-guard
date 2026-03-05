@@ -10,6 +10,7 @@ import (
 type CompanyFilter struct {
 	Name   string
 	EDRPOU string
+	Search string
 }
 
 func ListCompanies(ctx context.Context, limit, offset int, filter CompanyFilter) ([]models.Company, int64, error) {
@@ -22,6 +23,10 @@ func ListCompanies(ctx context.Context, limit, offset int, filter CompanyFilter)
 	}
 	if filter.EDRPOU != "" {
 		query = query.Where("edrpou ILIKE ?", "%"+filter.EDRPOU+"%")
+	}
+	if filter.Search != "" {
+		searchTerm := "%" + filter.Search + "%"
+		query = query.Where("name ILIKE ? OR edrpou ILIKE ?", searchTerm, searchTerm)
 	}
 
 	if err := query.Count(&total).Error; err != nil {

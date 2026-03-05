@@ -12,6 +12,7 @@
   import PaymentTypeCreateDialog from "./components/PaymentTypeCreateDialog.svelte";
   import PaymentTypeEditSheet from "./components/PaymentTypeEditSheet.svelte";
   import DeleteConfirmationDialog from "$lib/components/common/DeleteConfirmationDialog.svelte";
+  import SimplePagination from "$lib/components/common/SimplePagination.svelte";
 
   let { data }: { data: PageData & { error?: string | null } } = $props();
 
@@ -39,6 +40,12 @@
   function openDelete(type: any) {
     selectedType = type;
     isDeleteOpen = true;
+  }
+
+  function handlePageChange(newPage: number) {
+    const url = new URL(page.url);
+    url.searchParams.set("page", newPage.toString());
+    goto(url);
   }
 </script>
 
@@ -73,6 +80,14 @@
     onEdit={openEdit}
     onDelete={openDelete}
   />
+
+  {#if data.pagination && data.pagination.total_pages > 1}
+    <SimplePagination
+      currentPage={data.pagination.current_page}
+      totalPages={data.pagination.total_pages}
+      onPageChange={handlePageChange}
+    />
+  {/if}
 
   <PaymentTypeCreateDialog bind:open={isCreateOpen} />
 

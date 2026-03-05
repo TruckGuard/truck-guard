@@ -12,6 +12,7 @@
   import PostCreateDialog from "./components/PostCreateDialog.svelte";
   import PostEditSheet from "./components/PostEditSheet.svelte";
   import DeleteConfirmationDialog from "$lib/components/common/DeleteConfirmationDialog.svelte";
+  import SimplePagination from "$lib/components/common/SimplePagination.svelte";
 
   let { data }: { data: PageData & { error?: string | null } } = $props();
 
@@ -39,6 +40,12 @@
   function openDelete(post: any) {
     selectedPost = post;
     isDeleteOpen = true;
+  }
+
+  function handlePageChange(newPage: number) {
+    const url = new URL(page.url);
+    url.searchParams.set("page", newPage.toString());
+    goto(url);
   }
 </script>
 
@@ -69,6 +76,14 @@
   </div>
 
   <PostsTable posts={data.posts} onEdit={openEdit} onDelete={openDelete} />
+
+  {#if data.pagination && data.pagination.total_pages > 1}
+    <SimplePagination
+      currentPage={data.pagination.current_page}
+      totalPages={data.pagination.total_pages}
+      onPageChange={handlePageChange}
+    />
+  {/if}
 
   <PostCreateDialog bind:open={isCreateOpen} />
 

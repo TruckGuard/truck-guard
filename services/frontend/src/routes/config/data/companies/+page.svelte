@@ -11,6 +11,7 @@
   import CompaniesTable from "./components/CompaniesTable.svelte";
   import CompanyCreateDialog from "./components/CompanyCreateDialog.svelte";
   import DeleteConfirmationDialog from "$lib/components/common/DeleteConfirmationDialog.svelte";
+  import SimplePagination from "$lib/components/common/SimplePagination.svelte";
 
   let { data }: { data: PageData & { error?: string | null } } = $props();
 
@@ -36,6 +37,12 @@
   function openDelete(company: any) {
     selectedCompany = company;
     isDeleteOpen = true;
+  }
+
+  function handlePageChange(newPage: number) {
+    const url = new URL(page.url);
+    url.searchParams.set("page", newPage.toString());
+    goto(url);
   }
 </script>
 
@@ -72,6 +79,14 @@
   </div>
 
   <CompaniesTable companies={data.companies} onDelete={openDelete} />
+
+  {#if data.pagination && data.pagination.total_pages > 1}
+    <SimplePagination
+      currentPage={data.pagination.current_page}
+      totalPages={data.pagination.total_pages}
+      onPageChange={handlePageChange}
+    />
+  {/if}
 
   <CompanyCreateDialog bind:open={isCreateOpen} />
 

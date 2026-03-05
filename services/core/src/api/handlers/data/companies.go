@@ -15,6 +15,7 @@ func HandleListCompanies(c *gin.Context) {
 	filter := datarepo.CompanyFilter{
 		Name:   c.Query("name"),
 		EDRPOU: c.Query("edrpou"),
+		Search: c.Query("q"),
 	}
 	companies, total, err := datarepo.ListCompanies(c.Request.Context(), limit, offset, filter)
 	if err != nil {

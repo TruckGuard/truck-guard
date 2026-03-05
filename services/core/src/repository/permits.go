@@ -137,6 +137,38 @@ func UpdatePermit(ctx context.Context, id string, input map[string]interface{}, 
 	}
 
 	// Financials are already calculated above if needed
+	// Handle Payers association explicitly before Updates()
+	if payersVal, ok := input["payers"]; ok {
+		var inputPayers []models.PermitPayer
+		// Convert from interface to specific slice
+		payerBytes, _ := json.Marshal(payersVal)
+		if err := json.Unmarshal(payerBytes, &inputPayers); err == nil {
+			// Start transaction for atomic replacement
+			tx := DB.WithContext(ctx).Begin()
+
+			// We MUST use Unscoped() here because PermitPayer has a uniqueIndex on (permit_id, slot_index).
+			// Regular Delete() only soft-deletes (sets deleted_at), which causes the uniqueIndex to collide
+			// when we try to Create() new records with the same slot indices.
+			if err := tx.Unscoped().Where("permit_id = ?", permit.ID).Delete(&models.PermitPayer{}).Error; err != nil {
+				tx.Rollback()
+				return permit, err
+			}
+
+			for i := range inputPayers {
+				inputPayers[i].ID = 0 // Ensure it's treated as a new record
+				inputPayers[i].PermitID = permit.ID
+				if err := tx.Create(&inputPayers[i]).Error; err != nil {
+					tx.Rollback()
+					return permit, err
+				}
+			}
+
+			if err := tx.Commit().Error; err != nil {
+				return permit, err
+			}
+		}
+		delete(input, "payers")
+	}
 
 	if len(input) > 0 {
 		if err := DB.WithContext(ctx).Model(&permit).Updates(input).Error; err != nil {

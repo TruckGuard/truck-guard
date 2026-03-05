@@ -12,11 +12,14 @@
     } from "$lib/types/data";
     import { Badge } from "$lib/components/ui/badge";
     import { darkenColor } from "$lib/utils/colors";
+    import CompanyAutocomplete from "./CompanyAutocomplete.svelte";
+    import { Plus, X, Building2, Trash2, Hash } from "@lucide/svelte";
+    import { Button } from "$lib/components/ui/button";
 
     let {
         permit = $bindable(),
         data,
-        primaryCompanyId = $bindable(),
+        payers = $bindable([]),
         showValidationErrors,
         isValidVehicleType,
         isValidCustomsMode,
@@ -29,7 +32,13 @@
             companies: Company[];
             paymentTypes: PaymentType[];
         };
-        primaryCompanyId: string;
+        payers: {
+            company_id: number;
+            company_name?: string;
+            company_edrpou?: string;
+            slot_index: number;
+            company: Company | null;
+        }[];
         showValidationErrors: boolean;
         isValidVehicleType: boolean;
         isValidCustomsMode: boolean;
@@ -160,35 +169,174 @@
     </div>
 
     <div class="p-5 space-y-5">
-        <div class="space-y-2">
-            <Label>Компанія - Платник</Label>
-            <Select.Root
-                type="single"
-                bind:value={primaryCompanyId}
-                name="company"
-            >
-                <Select.Trigger class="w-full">
-                    {#if primaryCompanyId}
-                        {data.companies.find(
-                            (c: Company) => c.ID == primaryCompanyId,
-                        )?.name || "Вибрати..."}
-                    {:else}
-                        Виберіть компанію...
-                    {/if}
-                </Select.Trigger>
-                <Select.Content>
-                    {#each data.companies as c}
-                        <Select.Item value={c.ID.toString()}
-                            >{c.name}
-                            <span class="text-xs ml-2 text-muted-foreground"
-                                >{c.edrpou}</span
-                            ></Select.Item
+        <div class="space-y-4">
+            <div class="flex items-center justify-between">
+                <Label>Компанії - Платники (до 4-х)</Label>
+            </div>
+
+            {#if payers.length === 0}
+                <div class="p-4 border border-dashed rounded-md text-center">
+                    <p class="text-sm text-muted-foreground mb-2">
+                        Не додано жодного платника
+                    </p>
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onclick={() =>
+                            (payers = [
+                                ...payers,
+                                { company_id: 0, slot_index: 1, company: null },
+                            ])}
+                    >
+                        <Plus class="h-4 w-4 mr-2" /> Додати платника 1
+                    </Button>
+                </div>
+            {:else}
+                <div class="grid grid-cols-1 gap-3">
+                    {#each payers as payer, idx}
+                        <div
+                            class="bg-white dark:bg-slate-950 rounded-lg border border-slate-200 dark:border-slate-800 shadow-sm transition-all hover:border-indigo-200 dark:hover:border-indigo-800/50 group"
                         >
+                            <div class="p-3">
+                                {#if payer.company}
+                                    <div
+                                        class="flex items-center justify-between gap-4"
+                                    >
+                                        <div
+                                            class="flex items-center gap-3 min-w-0"
+                                        >
+                                            <!-- Compact Slot Indicator -->
+                                            <div
+                                                class="flex items-center justify-center w-6 h-6 rounded bg-slate-100 dark:bg-slate-900 text-[10px] font-black text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-800 shrink-0"
+                                            >
+                                                {payer.slot_index}
+                                            </div>
+
+                                            <div
+                                                class="p-2 rounded-lg bg-indigo-50 dark:bg-indigo-950/30 text-indigo-500 shrink-0 border border-indigo-100/50 dark:border-indigo-900/50"
+                                            >
+                                                <Building2 class="h-4 w-4" />
+                                            </div>
+                                            <div class="min-w-0">
+                                                <h4
+                                                    class="font-bold text-slate-800 dark:text-slate-200 text-sm truncate uppercase tracking-tight"
+                                                >
+                                                    {payer.company.name}
+                                                </h4>
+                                                <div
+                                                    class="flex items-center gap-2 mt-0.5"
+                                                >
+                                                    <span
+                                                        class="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest flex items-center gap-1"
+                                                    >
+                                                        <Hash
+                                                            class="h-3 w-3 opacity-70"
+                                                        />
+                                                        {payer.company.edrpou}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            class="h-8 w-8 text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/30 shrink-0 rounded-full transition-all"
+                                            onclick={() => {
+                                                payers = (payers as any[])
+                                                    .filter(
+                                                        (_: any, i: number) =>
+                                                            i !== idx,
+                                                    )
+                                                    .map(
+                                                        (
+                                                            p: any,
+                                                            i: number,
+                                                        ) => ({
+                                                            ...p,
+                                                            slot_index: i + 1,
+                                                        }),
+                                                    );
+                                            }}
+                                            title="Видалити платника"
+                                        >
+                                            <Trash2 class="h-4 w-4" />
+                                        </Button>
+                                    </div>
+                                {:else}
+                                    <div class="flex items-center gap-3">
+                                        <div
+                                            class="flex items-center justify-center w-6 h-6 rounded bg-slate-100 dark:bg-slate-900 text-[10px] font-black text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-800 shrink-0"
+                                        >
+                                            {payer.slot_index}
+                                        </div>
+                                        <div class="flex-1">
+                                            <CompanyAutocomplete
+                                                bind:selectedCompany={
+                                                    payer.company
+                                                }
+                                                placeholder={`Платник №${payer.slot_index}: пошук за назвою або ЄДРПОУ...`}
+                                            />
+                                        </div>
+                                        {#if payers.length > 1}
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                class="h-8 w-8 text-slate-400 hover:text-rose-500 shrink-0 rounded-md"
+                                                onclick={() => {
+                                                    payers = (payers as any[])
+                                                        .filter(
+                                                            (
+                                                                _: any,
+                                                                i: number,
+                                                            ) => i !== idx,
+                                                        )
+                                                        .map(
+                                                            (
+                                                                p: any,
+                                                                i: number,
+                                                            ) => ({
+                                                                ...p,
+                                                                slot_index:
+                                                                    i + 1,
+                                                            }),
+                                                        );
+                                                }}
+                                            >
+                                                <X class="h-4 w-4" />
+                                            </Button>
+                                        {/if}
+                                    </div>
+                                {/if}
+                            </div>
+                        </div>
                     {/each}
-                </Select.Content>
-            </Select.Root>
+
+                    {#if payers.length < 4}
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            class="w-full border border-dashed"
+                            onclick={() => {
+                                payers = [
+                                    ...payers,
+                                    {
+                                        company_id: 0,
+                                        slot_index: payers.length + 1,
+                                        company: null,
+                                    },
+                                ];
+                            }}
+                        >
+                            <Plus class="h-4 w-4 mr-2" /> Додати платника {payers.length +
+                                1}
+                        </Button>
+                    {/if}
+                </div>
+            {/if}
+
             <p class="text-xs text-muted-foreground">
-                Від компанії залежить розрахунок знижок.
+                Від платника №1 залежить розрахунок знижок.
             </p>
         </div>
 

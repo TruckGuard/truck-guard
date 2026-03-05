@@ -12,6 +12,7 @@
   import VehicleTypeCreateDialog from "./components/VehicleTypeCreateDialog.svelte";
   import VehicleTypeEditSheet from "./components/VehicleTypeEditSheet.svelte";
   import DeleteConfirmationDialog from "$lib/components/common/DeleteConfirmationDialog.svelte";
+  import SimplePagination from "$lib/components/common/SimplePagination.svelte";
 
   let { data }: { data: PageData & { error?: string | null } } = $props();
 
@@ -52,6 +53,12 @@
     selectedType = type;
     isDeleteOpen = true;
   }
+
+  function handlePageChange(newPage: number) {
+    const url = new URL(page.url);
+    url.searchParams.set("page", newPage.toString());
+    goto(url);
+  }
 </script>
 
 <div class="space-y-4 p-6">
@@ -85,6 +92,14 @@
     onEdit={openEdit}
     onDelete={openDelete}
   />
+
+  {#if data.pagination && data.pagination.total_pages > 1}
+    <SimplePagination
+      currentPage={data.pagination.current_page}
+      totalPages={data.pagination.total_pages}
+      onPageChange={handlePageChange}
+    />
+  {/if}
 
   <VehicleTypeCreateDialog bind:open={isCreateOpen} {presetColors} />
 

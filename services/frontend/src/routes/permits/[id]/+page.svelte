@@ -3,6 +3,7 @@
   import { Clock, Activity } from "@lucide/svelte";
   import * as Tabs from "$lib/components/ui/tabs";
   import type { Permit } from "$lib/types/permits";
+  import type { Company } from "$lib/types/data";
   import * as AlertDialog from "$lib/components/ui/alert-dialog";
   import { toast } from "svelte-sonner";
   import { invalidateAll } from "$app/navigation";
@@ -16,9 +17,15 @@
   import PermitSidebar from "./components/PermitSidebar.svelte";
   import AuditLogsTable from "./components/AuditLogsTable.svelte";
   import EventsHistoryTable from "./components/EventsHistoryTable.svelte";
-  import CustomsModeBanner from "./components/CustomsModeBanner.svelte";
-  import { onMount } from "svelte";
   import { formatDate } from "$lib/utils/date";
+  import { onMount } from "svelte";
+    import CustomsModeBanner from "./components/CustomsModeBanner.svelte";
+
+  interface PayerState {
+    company_id: number;
+    slot_index: number;
+    company: Company | null;
+  }
 
   let { data } = $props<{
     data: {
@@ -39,9 +46,18 @@
   // Create a mutable copy of the permit to bind to the form
   let permit = $state<Partial<Permit>>({});
 
-  // Payer state (for simplicity, handled via array)
-  let primaryCompanyId = $state(
-    permit.payers?.[0]?.company_id?.toString() || "",
+  // Payer state array
+  let payers = $state<PayerState[]>(
+    data.permit.payers?.length
+      ? data.permit.payers.map((p: any) => ({
+          company_id: p.company_id,
+          slot_index: p.slot_index,
+          company:
+            p.company ||
+            data.companies.find((c: any) => c.ID === p.company_id) ||
+            null,
+        }))
+      : [{ company_id: 0, slot_index: 1, company: null }],
   );
 
   let activeTab = $state("events");
@@ -138,6 +154,21 @@
 
   onMount(() => {
     permit = { ...data.permit };
+
+    // Sync payers from permit data
+    if (permit.payers?.length) {
+      payers = permit.payers.map((p) => ({
+        company_id: p.company_id,
+        slot_index: p.slot_index,
+        company:
+          p.company ||
+          data.companies.find((c: any) => c.ID === p.company_id) ||
+          null,
+      }));
+    } else {
+      payers = [{ company_id: 0, slot_index: 1, company: null }];
+    }
+
     if (!permit.customs_data) {
       permit.customs_data = {
         ID: 0,
@@ -208,18 +239,16 @@
         payload.customs_data = permit.customs_data;
       }
 
-      // In real scenario we'd properly manage payers
-      const newCompanyId = primaryCompanyId
-        ? Number(primaryCompanyId)
-        : undefined;
-      const oldCompanyId = data.permit.payers?.[0]?.company_id;
-      if (newCompanyId !== oldCompanyId) {
-        if (newCompanyId) {
-          payload.payers = [{ company_id: newCompanyId, slot_index: 0 }];
-        } else {
-          payload.payers = []; // Handle clearing payer if valid
-        }
-      }
+      // Map valid payers to payload
+      const payloadPayers = payers
+        .filter((p) => p.company) // Only slots with a selected company
+        .map((p, i) => ({
+          company_id: p.company?.ID,
+          slot_index: p.slot_index || i + 1,
+        }));
+
+      // Submit updated payers
+      payload.payers = payloadPayers;
 
       if (Object.keys(payload).length === 0 && !data.isNew) {
         if (!silent) toast.info("Немає змін для збереження.");
@@ -411,7 +440,7 @@
       <FinancialSection
         bind:permit
         {data}
-        bind:primaryCompanyId
+        bind:payers
         {showValidationErrors}
         {isValidVehicleType}
         {isValidCustomsMode}
