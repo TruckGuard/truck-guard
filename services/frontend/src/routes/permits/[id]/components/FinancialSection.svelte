@@ -49,12 +49,12 @@
             <div class="flex items-center gap-3">
                 {#if permit.discount_amount && permit.discount_amount > 0}
                     <span
-                        class="text-xs text-rose-500 bg-rose-50 px-2 py-1 rounded font-bold"
+                        class="text-xs text-rose-500 bg-rose-50 dark:bg-rose-950/30 px-2 py-1 rounded font-bold"
                         >Знижка: -{permit.discount_amount} ₴</span
                     >
                 {/if}
                 <div
-                    class="text-2xl font-black font-mono text-emerald-600 bg-emerald-50 dark:bg-emerald-950/30 px-5 py-2.5 rounded-xl border border-emerald-100 shadow-sm"
+                    class="text-2xl font-black font-mono text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/30 px-5 py-2.5 rounded-xl border border-emerald-100 dark:border-emerald-800/50 shadow-sm"
                 >
                     ДО СПЛАТИ: <span class="text-3xl tracking-tighter"
                         >{permit.total_sum} ₴</span

@@ -2,10 +2,10 @@
     import * as Table from "$lib/components/ui/table";
     import { Button } from "$lib/components/ui/button";
     import { Activity, Database } from "@lucide/svelte";
+    import { formatDate } from "$lib/utils/date";
 
-    let { items, formatDate } = $props<{
+    let { items } = $props<{
         items: any[];
-        formatDate: (d: string) => string;
     }>();
 </script>
 

@@ -1,13 +1,9 @@
 <script lang="ts">
     import { Activity, Truck, Coins } from "@lucide/svelte";
     import { Button } from "$lib/components/ui/button";
+    import { formatDate } from "$lib/utils/date";
 
     let { permit } = $props<{ permit: any }>();
-
-    function formatDate(dateStr?: string) {
-        if (!dateStr) return "-";
-        return new Date(dateStr).toLocaleString("uk-UA");
-    }
 
     const events = $derived(
         [...(permit.plate_events || []), ...(permit.weight_events || [])].sort(
@@ -62,13 +58,13 @@
                         <td class="px-6 py-4">
                             {#if "plate" in event}
                                 <span
-                                    class="inline-flex items-center gap-2 bg-blue-50 text-blue-700 px-3 py-1 rounded-full text-[10px] font-black uppercase border border-blue-100"
+                                    class="inline-flex items-center gap-2 bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 px-3 py-1 rounded-full text-[10px] font-black uppercase border border-blue-100 dark:border-blue-800"
                                 >
                                     <Truck class="h-3 w-3" /> Номер
                                 </span>
                             {:else}
                                 <span
-                                    class="inline-flex items-center gap-2 bg-amber-50 text-amber-700 px-3 py-1 rounded-full text-[10px] font-black uppercase border border-amber-100"
+                                    class="inline-flex items-center gap-2 bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 px-3 py-1 rounded-full text-[10px] font-black uppercase border border-amber-100 dark:border-amber-800"
                                 >
                                     <Coins class="h-3 w-3" /> Ваги
                                 </span>

@@ -6,20 +6,16 @@
     Clock,
     Activity,
     Database,
-    FileQuestionMark
+    FileQuestionMark,
   } from "@lucide/svelte";
   import type { SystemEvent } from "$lib/types/events";
+  import { formatDate } from "$lib/utils/date";
 
   // Svelte 5: Отримання пропсів
   let { data } = $props<{ data: { event: SystemEvent | null } }>();
 
   // Svelte 5: Похідний стан
   const event = $derived(data.event);
-
-  function formatDate(dateStr: string) {
-    if (!dateStr) return "-";
-    return new Date(dateStr).toLocaleString("uk-UA");
-  }
 
   // Функція для красивого форматування JSON
   const formattedJson = $derived.by(() => {
@@ -77,7 +73,8 @@
                 <Database class="h-4 w-4" />
                 <span>ID події</span>
               </div>
-              <span class="font-mono font-bold text-foreground">{event.ID}</span>
+              <span class="font-mono font-bold text-foreground">{event.ID}</span
+              >
             </div>
 
             <div
@@ -103,19 +100,22 @@
                 {event.type}
               </span>
             </div>
-
           </Card.Content>
         </Card.Root>
       </div>
 
       <!-- Main Content (JSON) -->
       <div class="lg:col-span-2">
-        <Card.Root class="h-full shadow-sm border-border overflow-hidden py-0 gap-0">
+        <Card.Root
+          class="h-full shadow-sm border-border overflow-hidden py-0 gap-0"
+        >
           <Card.Header
             class="bg-muted/50 border-b pb-4 pt-4 flex flex-row items-center justify-between space-y-0"
           >
             <div class="flex items-center gap-2">
-              <FileQuestionMark class="h-5 w-5 text-blue-600 dark:text-blue-400" />
+              <FileQuestionMark
+                class="h-5 w-5 text-blue-600 dark:text-blue-400"
+              />
               <Card.Title>Корисне навантаження</Card.Title>
             </div>
             <div
@@ -142,7 +142,9 @@
       <Card.Content
         class="flex flex-col items-center space-y-4 pt-6 text-center"
       >
-        <div class="p-4 bg-background rounded-full shadow-sm ring-1 ring-border">
+        <div
+          class="p-4 bg-background rounded-full shadow-sm ring-1 ring-border"
+        >
           <Database class="h-10 w-10 text-muted-foreground/30" />
         </div>
         <div class="space-y-1">

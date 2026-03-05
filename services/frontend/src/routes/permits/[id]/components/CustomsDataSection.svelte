@@ -89,7 +89,7 @@
             >
                 <div class="col-span-2 space-y-1">
                     <Label
-                        class="text-xs font-semibold text-slate-500 uppercase"
+                        class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase"
                         >Опис Товару</Label
                     >
                     <Textarea
@@ -99,7 +99,8 @@
                     />
                 </div>
                 <div class="space-y-1">
-                    <Label class="text-xs font-medium text-slate-500"
+                    <Label
+                        class="text-xs font-medium text-slate-500 dark:text-slate-400"
                         >Декларант</Label
                     >
                     <Input
@@ -109,7 +110,9 @@
                     />
                 </div>
                 <div class="space-y-1">
-                    <Label class="text-xs font-medium text-slate-500">ВМД</Label
+                    <Label
+                        class="text-xs font-medium text-slate-500 dark:text-slate-400"
+                        >ВМД</Label
                     >
                     <Input
                         bind:value={permit.customs_data.vmd_number}
@@ -118,7 +121,8 @@
                     />
                 </div>
                 <div class="space-y-1">
-                    <Label class="text-xs font-medium text-slate-500"
+                    <Label
+                        class="text-xs font-medium text-slate-500 dark:text-slate-400"
                         >Відправник</Label
                     >
                     <Input
@@ -128,7 +132,8 @@
                     />
                 </div>
                 <div class="space-y-1">
-                    <Label class="text-xs font-medium text-slate-500"
+                    <Label
+                        class="text-xs font-medium text-slate-500 dark:text-slate-400"
                         >Одержувач</Label
                     >
                     <Input

@@ -6,6 +6,7 @@
   import { RefreshCcw, Camera, Scale, Settings } from "@lucide/svelte";
   import type { ApiResponse } from "$lib/types/events";
   import { getLocalTimeZone, CalendarDate } from "@internationalized/date";
+  import { formatDate } from "$lib/utils/date";
 
   // Component Imports
   import EventsFilters from "./components/EventsFilters.svelte";
@@ -78,11 +79,6 @@
   function refresh() {
     loading = true;
     goto(page.url, { invalidateAll: true }).then(() => (loading = false));
-  }
-
-  function formatDate(dateStr: string) {
-    if (!dateStr) return "-";
-    return new Date(dateStr).toLocaleString("uk-UA");
   }
 
   function applyFilters() {
@@ -163,11 +159,11 @@
     />
 
     {#if activeTab === "plate"}
-      <PlateEventsTable {items} {formatDate} />
+      <PlateEventsTable {items} />
     {:else if activeTab === "weight"}
-      <WeightEventsTable {items} {formatDate} />
+      <WeightEventsTable {items} />
     {:else if activeTab === "system"}
-      <SystemEventsTable {items} {formatDate} />
+      <SystemEventsTable {items} />
     {/if}
 
     <SimplePagination

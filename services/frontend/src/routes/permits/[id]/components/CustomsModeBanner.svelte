@@ -35,11 +35,11 @@
     "
 >
     <div
-        class="rounded-xl border-2 border-amber-200 bg-amber-50 shadow-md overflow-hidden"
+        class="rounded-xl border-2 border-amber-200 dark:border-amber-700/50 bg-amber-50 dark:bg-amber-950/30 shadow-md overflow-hidden"
     >
         <div class="flex items-center gap-4 p-4 sm:p-5">
             <div
-                class="shrink-0 h-12 w-12 rounded-xl flex items-center justify-center bg-amber-100 text-amber-600"
+                class="shrink-0 h-12 w-12 rounded-xl flex items-center justify-center bg-amber-100 dark:bg-amber-900/50 text-amber-600 dark:text-amber-400"
             >
                 <ShieldCheck class="h-6 w-6" />
             </div>
@@ -52,7 +52,7 @@
                         Спочатку вкажіть
                     </span>
                     <span
-                        class="text-[10px] bg-amber-200 text-amber-800 font-bold px-2 py-0.5 rounded-full"
+                        class="text-[10px] bg-amber-200 dark:bg-amber-800 text-amber-800 dark:text-amber-300 font-bold px-2 py-0.5 rounded-full"
                     >
                         Обов'язково
                     </span>
@@ -69,9 +69,10 @@
                     name="customs_mode_top"
                 >
                     <Select.Trigger
-                        class="w-full h-11 font-bold text-sm border-amber-400 ring-2 ring-amber-200 bg-white"
+                        class="w-full h-11 font-bold text-sm border-amber-400 dark:border-amber-600 ring-2 ring-amber-200 dark:ring-amber-800 bg-white dark:bg-transparent"
                     >
-                        <span class="text-amber-700 font-bold"
+                        <span
+                            class="text-amber-700 dark:text-amber-400 font-bold"
                             >Виберіть режим митниці...</span
                         >
                     </Select.Trigger>

@@ -10,6 +10,7 @@
   import * as Card from "$lib/components/ui/card";
   import type { PageData } from "./$types";
   import { mapErrorToFriendlyMessage } from "$lib/utils/error-handler";
+  import { formatDate } from "$lib/utils/date";
 
   let { data }: { data: PageData & { error?: string | null } } = $props();
 
@@ -125,19 +126,15 @@
             <span class="font-mono">{data.company.ID}</span>
 
             <span class="text-muted-foreground">Створено:</span>
-            <span
-              >{new Date(data.company.CreatedAt).toLocaleString("uk-UA")}</span
-            >
+            <span>{formatDate(data.company.CreatedAt)}</span>
 
             <span class="text-muted-foreground">Останнє оновлення:</span>
-            <span
-              >{new Date(data.company.UpdatedAt).toLocaleString("uk-UA")}</span
-            >
+            <span>{formatDate(data.company.UpdatedAt)}</span>
 
             <span class="text-muted-foreground">Остання синхронізація:</span>
             <span>
               {data.company.last_synced_at
-                ? new Date(data.company.last_synced_at).toLocaleString("uk-UA")
+                ? formatDate(data.company.last_synced_at)
                 : "Ніколи"}
             </span>
           </div>

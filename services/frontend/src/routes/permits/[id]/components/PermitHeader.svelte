@@ -23,7 +23,7 @@
         variant="outline"
         size="icon"
         onclick={() => goto("/permits")}
-        class="shrink-0 rounded-full h-10 w-10 border-slate-200 shadow-sm hover:bg-slate-50"
+        class="shrink-0 rounded-full h-10 w-10 border-slate-200 dark:border-slate-700 shadow-sm hover:bg-slate-50 dark:hover:bg-slate-800"
     >
         <ChevronLeft class="h-5 w-5" />
     </Button>

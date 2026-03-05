@@ -9,6 +9,7 @@
     } from "@lucide/svelte";
     import { Button } from "$lib/components/ui/button";
     import * as AlertDialog from "$lib/components/ui/alert-dialog";
+    import { formatDate } from "$lib/utils/date";
 
     let {
         permit,
@@ -31,11 +32,6 @@
             targetId?: string;
         }[];
     }>();
-
-    function formatDate(dateStr?: string) {
-        if (!dateStr) return "-";
-        return new Date(dateStr).toLocaleString("uk-UA");
-    }
 </script>
 
 <div class="lg:col-span-4 space-y-6 sticky top-8">
@@ -52,13 +48,13 @@
                 </h3>
                 {#if permit.is_closed}
                     <span
-                        class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-100 text-slate-600 text-[10px] font-black uppercase border border-slate-200"
+                        class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-[10px] font-black uppercase border border-slate-200 dark:border-slate-700"
                     >
                         <Clock class="h-3 w-3" /> Закрита
                     </span>
                 {:else}
                     <span
-                        class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 text-emerald-600 text-[10px] font-black uppercase border border-emerald-100"
+                        class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 text-[10px] font-black uppercase border border-emerald-100 dark:border-emerald-800"
                     >
                         <div
                             class="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse"
@@ -70,21 +66,23 @@
             <div class="p-5 space-y-4">
                 {#if permit.verified_at}
                     <div
-                        class="p-3 bg-blue-50/50 rounded-lg border border-blue-100/50"
+                        class="p-3 bg-blue-50/50 dark:bg-blue-950/30 rounded-lg border border-blue-100/50 dark:border-blue-800/50"
                     >
                         <div
-                            class="text-[10px] font-black uppercase tracking-widest text-blue-500 mb-1"
+                            class="text-[10px] font-black uppercase tracking-widest text-blue-500 dark:text-blue-400 mb-1"
                         >
                             Валідація
                         </div>
                         <div
-                            class="text-sm font-bold text-blue-900 flex items-center gap-2"
+                            class="text-sm font-bold text-blue-900 dark:text-blue-100 flex items-center gap-2"
                         >
                             {permit.verifier
                                 ? `${permit.verifier.first_name} ${permit.verifier.last_name}`
                                 : "Оператор"}
                         </div>
-                        <div class="text-[11px] text-blue-600/70 mt-0.5">
+                        <div
+                            class="text-[11px] text-blue-600/70 dark:text-blue-400/70 mt-0.5"
+                        >
                             {formatDate(permit.verified_at)}
                         </div>
                     </div>
@@ -139,14 +137,16 @@
         <!-- Validation Checklist Card (if not verified) -->
         {#if !permit.verified_at && !permit.is_closed}
             <div
-                class="bg-card border-2 border-amber-100 rounded-xl shadow-md overflow-hidden bg-amber-50/10 animate-in fade-in slide-in-from-right-4 duration-500"
+                class="bg-card border-2 border-amber-100 dark:border-amber-800/50 rounded-xl shadow-md overflow-hidden bg-amber-50/10 dark:bg-amber-950/10 animate-in fade-in slide-in-from-right-4 duration-500"
             >
                 <div
-                    class="p-5 bg-amber-50/50 border-b border-amber-100 flex items-center gap-2"
+                    class="p-5 bg-amber-50/50 dark:bg-amber-950/30 border-b border-amber-100 dark:border-amber-800/50 flex items-center gap-2"
                 >
-                    <CircleCheck class="h-4 w-4 text-amber-600" />
+                    <CircleCheck
+                        class="h-4 w-4 text-amber-600 dark:text-amber-400"
+                    />
                     <h3
-                        class="font-black text-[10px] uppercase tracking-widest text-amber-700"
+                        class="font-black text-[10px] uppercase tracking-widest text-amber-700 dark:text-amber-400"
                     >
                         Чек-лист валідації
                     </h3>
@@ -171,7 +171,7 @@
 
     <!-- Actions Card -->
     <div
-        class="bg-card border rounded-xl shadow-lg p-5 space-y-3 bg-slate-50/50"
+        class="bg-card border rounded-xl shadow-lg p-5 space-y-3 bg-slate-50/50 dark:bg-slate-900/30"
     >
         <Button
             onclick={() => handleSave()}
@@ -190,7 +190,7 @@
                     variant="outline"
                     onclick={handleValidatePermit}
                     disabled={loading}
-                    class="w-full gap-2.5 h-12 text-base font-bold shadow-sm text-indigo-700 border-indigo-200 hover:bg-indigo-100 bg-white"
+                    class="w-full gap-2.5 h-12 text-base font-bold shadow-sm text-indigo-700 dark:text-indigo-300 border-indigo-200 dark:border-indigo-700 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 bg-white dark:bg-transparent"
                 >
                     <CircleCheck class="h-5 w-5" /> Валідувати
                 </Button>
@@ -201,7 +201,7 @@
                     <Button
                         variant="secondary"
                         disabled={loading}
-                        class="w-full gap-2.5 h-12 text-base font-bold border shadow-sm bg-white hover:bg-rose-50 hover:text-rose-600 hover:border-rose-200 transition-all"
+                        class="w-full gap-2.5 h-12 text-base font-bold border shadow-sm bg-white dark:bg-transparent hover:bg-rose-50 dark:hover:bg-rose-950/30 hover:text-rose-600 dark:hover:text-rose-400 hover:border-rose-200 dark:hover:border-rose-800 transition-all"
                     >
                         <Send class="h-5 w-5" /> Завершити стоянку
                     </Button>
@@ -252,15 +252,15 @@
                         behavior: "smooth",
                         block: "center",
                     })}
-                class="text-sm font-bold text-slate-500 hover:text-amber-700 hover:underline transition-colors text-left"
+                class="text-sm font-bold text-slate-500 dark:text-slate-400 hover:text-amber-700 dark:hover:text-amber-400 hover:underline transition-colors text-left"
             >
                 {label}
             </button>
         {:else}
             <span
                 class="text-sm font-bold {isValid
-                    ? 'text-emerald-700'
-                    : 'text-slate-500'}"
+                    ? 'text-emerald-700 dark:text-emerald-400'
+                    : 'text-slate-500 dark:text-slate-400'}"
             >
                 {label}
             </span>

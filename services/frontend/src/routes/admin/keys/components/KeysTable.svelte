@@ -1,10 +1,11 @@
 <script lang="ts">
     import * as Table from "$lib/components/ui/table";
-    import { Button } from "$lib/components/ui/button";
     import type { APIKey } from "$lib/server/auth-client";
     import Pencil from "@lucide/svelte/icons/pencil";
     import Trash2 from "@lucide/svelte/icons/trash-2";
     import Shield from "@lucide/svelte/icons/shield";
+    import { CircleCheck, CircleX } from "@lucide/svelte";
+    import { formatDate } from "$lib/utils/date";
 
     let { keys, canUpdate, canDelete, onOpenPerms, onOpenEdit, onOpenDelete } =
         $props<{
@@ -34,20 +35,20 @@
                     >
                     <Table.Cell>
                         {#if key.is_active}
-                            <span
-                                class="inline-flex items-center rounded-full bg-green-50 px-2 py-1 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-600/20"
-                                >Активний</span
-                            >
+                            <div class="flex items-center gap-1 text-green-600">
+                                <CircleCheck class="h-4 w-4" />
+                                <span>Активний</span>
+                            </div>
                         {:else}
-                            <span
-                                class="inline-flex items-center rounded-full bg-red-50 px-2 py-1 text-xs font-medium text-red-700 ring-1 ring-inset ring-red-600/10"
-                                >Неактивний</span
+                            <div
+                                class="flex items-center gap-1 text-muted-foreground"
                             >
+                                <CircleX class="h-4 w-4" />
+                                <span>Неактивний</span>
+                            </div>
                         {/if}
                     </Table.Cell>
-                    <Table.Cell
-                        >{new Date(key.created_at).toLocaleString()}</Table.Cell
-                    >
+                    <Table.Cell>{formatDate(key.created_at)}</Table.Cell>
                     <Table.Cell class="text-right space-x-2">
                         {#if canUpdate}
                             <button

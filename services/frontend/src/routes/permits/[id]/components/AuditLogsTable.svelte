@@ -1,12 +1,8 @@
 <script lang="ts">
     import { Clock } from "@lucide/svelte";
+    import { formatDate } from "$lib/utils/date";
 
     let { auditLogs } = $props<{ auditLogs: any[] }>();
-
-    function formatDate(dateStr?: string) {
-        if (!dateStr) return "-";
-        return new Date(dateStr).toLocaleString("uk-UA");
-    }
 </script>
 
 <div class="space-y-4">
@@ -42,12 +38,12 @@
                                 <span
                                     class="capitalize px-3 py-1 rounded-md text-[10px] tracking-widest font-black uppercase
                   {audit.action === 'create'
-                                        ? 'bg-blue-100 text-blue-700'
+                                        ? 'bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300'
                                         : audit.action === 'validate'
-                                          ? 'bg-indigo-100 text-indigo-700'
+                                          ? 'bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300'
                                           : audit.action === 'close'
-                                            ? 'bg-slate-100 text-slate-700'
-                                            : 'bg-stone-100 text-stone-700'}"
+                                            ? 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300'
+                                            : 'bg-stone-100 dark:bg-stone-800 text-stone-700 dark:text-stone-300'}"
                                 >
                                     {audit.action}
                                 </span>
@@ -96,7 +92,7 @@
                                             {#each Object.entries(audit.changes) as [key, val]}
                                                 <tr>
                                                     <td
-                                                        class="px-4 py-3 font-mono text-muted-foreground border-r font-bold bg-slate-50/30"
+                                                        class="px-4 py-3 font-mono text-muted-foreground border-r font-bold bg-slate-50/30 dark:bg-slate-900/30"
                                                         >{key}</td
                                                     >
                                                     <td

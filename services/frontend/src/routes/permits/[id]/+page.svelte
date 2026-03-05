@@ -18,6 +18,7 @@
   import EventsHistoryTable from "./components/EventsHistoryTable.svelte";
   import CustomsModeBanner from "./components/CustomsModeBanner.svelte";
   import { onMount } from "svelte";
+  import { formatDate } from "$lib/utils/date";
 
   let { data } = $props<{
     data: {
@@ -125,7 +126,8 @@
   );
 
   const isAllValid = $derived(
-    validationItems.every((item: any) => item.isValid) && permit.customs_mode_code,
+    validationItems.every((item: any) => item.isValid) &&
+      permit.customs_mode_code,
   );
 
   const isValidPlate = $derived(!!permit.plate_front && !!permit.plate_back);
@@ -361,11 +363,6 @@
     } finally {
       loading = false;
     }
-  }
-
-  function formatDate(dateStr?: string) {
-    if (!dateStr) return "-";
-    return new Date(dateStr).toLocaleString("uk-UA");
   }
 
   async function fetchAuditLogs() {

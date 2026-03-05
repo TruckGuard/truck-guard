@@ -6,16 +6,12 @@
   import { ChevronLeft, Clock, Camera, CreditCard, Eye } from "@lucide/svelte";
   import { can } from "$lib/auth";
   import { toast } from "svelte-sonner";
+  import { formatDate } from "$lib/utils/date";
 
   let { data } = $props();
   // Initialize as state for optimistic updates
   let event = data.event;
   const user = $derived(data.user);
-
-  function formatDate(dateStr: string) {
-    if (!dateStr) return "-";
-    return new Date(dateStr).toLocaleString("uk-UA");
-  }
 </script>
 
 <div class="container mx-auto py-6 space-y-6 max-w-5xl">
@@ -108,10 +104,7 @@
                   class="text-xs text-muted-foreground uppercase tracking-wider"
                   >Камера</Label
                 >
-                <Button
-                  href={`/cameras/${event.camera_id}`}
-                  variant="link"
-                >
+                <Button href={`/cameras/${event.camera_id}`} variant="link">
                   <Camera class="h-4 w-4 text-muted-foreground" />
                   {event.camera_source_name || event.camera_id}
                 </Button>

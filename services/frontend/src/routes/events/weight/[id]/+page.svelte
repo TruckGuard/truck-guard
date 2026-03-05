@@ -3,14 +3,10 @@
     import { Button } from "$lib/components/ui/button";
     import { Label } from "$lib/components/ui/label";
     import { ChevronLeft, Clock, Scale } from "@lucide/svelte";
+    import { formatDate } from "$lib/utils/date";
 
     let { data } = $props();
     let event = data.event;
-
-    function formatDate(dateStr: string) {
-        if (!dateStr) return "-";
-        return new Date(dateStr).toLocaleString("uk-UA");
-    }
 </script>
 
 <div class="container mx-auto py-6 space-y-6 max-w-5xl">
@@ -80,7 +76,9 @@
                                     href={`/scales/${event.scale_id}`}
                                     variant="link"
                                 >
-                                <Scale class="h-4 w-4 text-muted-foreground" />
+                                    <Scale
+                                        class="h-4 w-4 text-muted-foreground"
+                                    />
                                     {event.scale_source_name || event.scale_id}
                                 </Button>
                             </div>

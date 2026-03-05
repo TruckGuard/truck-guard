@@ -8,10 +8,10 @@
         Cpu,
         Database,
     } from "@lucide/svelte";
+    import { formatDate } from "$lib/utils/date";
 
-    let { items, formatDate } = $props<{
+    let { items } = $props<{
         items: any[];
-        formatDate: (d: string) => string;
     }>();
 </script>
 

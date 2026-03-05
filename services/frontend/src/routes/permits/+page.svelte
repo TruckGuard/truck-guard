@@ -14,8 +14,7 @@
   import { Button } from "$lib/components/ui/button";
   import * as Table from "$lib/components/ui/table";
   import type { Permit } from "$lib/types/permits";
-  import { Input } from "$lib/components/ui/input";
-  import { Label } from "$lib/components/ui/label";
+  import { formatDate, formatTimeOnly } from "$lib/utils/date";
 
   let { data } = $props<{
     data: {
@@ -46,20 +45,6 @@
   });
 
   const sortedEvents = $derived(allEvents());
-
-  function formatDate(dateStr: string) {
-    if (!dateStr) return "-";
-    return new Date(dateStr).toLocaleString("uk-UA");
-  }
-
-  function formatTimeOnly(dateStr: string) {
-    if (!dateStr) return "-";
-    return new Date(dateStr).toLocaleTimeString("uk-UA", {
-      hour: "2-digit",
-      minute: "2-digit",
-      second: "2-digit",
-    });
-  }
 
   function refresh() {
     loading = true;
