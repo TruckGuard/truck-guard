@@ -2,13 +2,15 @@ import type { Company, CustomsMode, CustomsPost, PaymentType, VehicleType } from
 import type { RawPlateEvent, RawWeightEvent } from "./events";
 
 export interface PermitCustomsData {
-    ID: number;
-    permit_id?: number;
-    declarant: string;
-    goods: string;
-    sender: string;
-    receiver: string;
-    vmd_number: string;
+    declaration_number?: string;
+    clearance_status?: string;
+    form_number?: string;
+    declarant?: string;
+    commodity_code?: string;
+    goods?: string;
+    sender?: string;
+    receiver?: string;
+    vmd_number?: string;
 }
 
 export interface PermitPayer {

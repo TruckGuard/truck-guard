@@ -3,6 +3,9 @@ package repository
 import (
 	"context"
 	"encoding/json"
+	"fmt"
+	"log/slog"
+	"strconv"
 	"time"
 
 	"github.com/truckguard/core/src/models"
@@ -10,25 +13,227 @@ import (
 	"gorm.io/gorm"
 )
 
-func GetPermits(ctx context.Context, limit, offset int, plate string) ([]models.Permit, int64, error) {
+// CustomFilter represents a single dynamic filter condition
+type CustomFilter struct {
+	Field    string `json:"field"`
+	Operator string `json:"operator"` // eq, neq, gt, lt, gte, lte, contains
+	Value    string `json:"value"`
+}
+
+// PermitQueryParams holds all optional server-side query parameters for GetPermits.
+type PermitQueryParams struct {
+	Plate             string
+	IsClosed          *bool
+	SortField         string // validated against allowedSortFields allowlist
+	SortOrder         string // "asc" or "desc"
+	FilterFrom        string // RFC3339
+	FilterTo          string // RFC3339
+	FilterPostID      string
+	FilterVehicleType string
+	FilterPaymentType string
+	FilterPayer       string // search by company name or edrpou
+	Search            string // search across code, plate_front, plate_back
+	CustomFilters     string // JSON encoded array of CustomFilter
+}
+
+// allowedSortFields maps safe UI field name to actual SQL column — prevents injection.
+var allowedSortFields = map[string]string{
+	"id":                 "permits.id",
+	"entry_time":         "permits.entry_time",
+	"exit_time":          "permits.exit_time",
+	"plate_front":        "permits.plate_front",
+	"customs_post_id":    "permits.customs_post_id",
+	"total_weight":       "permits.total_weight",
+	"vehicle_type_id":    "permits.vehicle_type_id",
+	"payment_type_id":    "permits.payment_type_id",
+	"is_closed":          "permits.is_closed",
+	"customs_mode":       "permits.customs_mode_code",
+	"declaration_number": "permits.declaration_number",
+	"verified_at":        "permits.verified_at",
+	"entry_fee":          "permits.entry_fee",
+	"exit_fee":           "permits.exit_fee",
+	"total_sum":          "permits.total_sum",
+	"days_in_zone":       "EXTRACT(DAY FROM (NOW() - permits.entry_time))",
+}
+
+// allowedFilterFields prevents SQL injection by restricting what fields can be filtered dynamically
+var allowedFilterFields = map[string]string{
+	"id":                            "permits.id",
+	"entry_time":                    "permits.entry_time",
+	"exit_time":                     "permits.exit_time",
+	"plate_front":                   "permits.plate_front",
+	"plate_back":                    "permits.plate_back",
+	"customs_post_id":               "permits.customs_post_id",
+	"total_weight":                  "permits.total_weight",
+	"vehicle_type_id":               "permits.vehicle_type_id",
+	"payment_type_id":               "permits.payment_type_id",
+	"is_closed":                     "permits.is_closed",
+	"customs_mode_id":               "permits.customs_mode_id",
+	"customs_mode":                  "permits.customs_mode_code",
+	"declaration_number":            "permits.declaration_number",
+	"customs_declarant_name":        "permits.customs_declarant_name",
+	"customs_commodity_description": "permits.customs_commodity_description",
+	"customs_vmd_number":            "permits.customs_vmd_number",
+	"customs_sender":                "permits.customs_sender",
+	"customs_receiver":              "permits.customs_receiver",
+	"verified_at":                   "permits.verified_at",
+	"entry_fee":                     "permits.entry_fee",
+	"exit_fee":                      "permits.exit_fee",
+	"total_sum":                     "permits.total_sum",
+	"days_in_zone":                  "EXTRACT(DAY FROM (NOW() - permits.entry_time))",
+}
+
+func GetPermits(ctx context.Context, limit, offset int, params PermitQueryParams) ([]models.Permit, int64, error) {
 	var permits []models.Permit
 	var total int64
 
 	query := DB.WithContext(ctx).Model(&models.Permit{}).Scopes(models.ScopeByPost(ctx, models.Permit{}, "read"))
 
-	if plate != "" {
-		query = query.Where("plate_front = ? OR plate_back = ?", plate, plate)
+	// --- Filters ---
+
+	if params.Plate != "" {
+		query = query.Where("permits.plate_front = ? OR permits.plate_back = ?", params.Plate, params.Plate)
 	}
+
+	if params.IsClosed != nil {
+		query = query.Where("permits.is_closed = ?", *params.IsClosed)
+	}
+
+	if params.Search != "" {
+		search := "%" + params.Search + "%"
+		query = query.Where("permits.code ILIKE ? OR permits.plate_front ILIKE ? OR permits.plate_back ILIKE ?", search, search, search)
+	}
+
+	if params.FilterPostID != "" {
+		query = query.Where("permits.customs_post_id = ?", params.FilterPostID)
+	}
+
+	if params.FilterVehicleType != "" {
+		query = query.Where("permits.vehicle_type_id = ?", params.FilterVehicleType)
+	}
+
+	if params.FilterFrom != "" {
+		if t, err := time.Parse(time.RFC3339, params.FilterFrom); err == nil {
+			query = query.Where("permits.entry_time >= ?", t)
+		}
+	}
+
+	if params.FilterTo != "" {
+		if t, err := time.Parse(time.RFC3339, params.FilterTo); err == nil {
+			query = query.Where("permits.entry_time <= ?", t)
+		}
+	}
+
+	if params.FilterPaymentType != "" {
+		query = query.Where("permits.payment_type_id = ?", params.FilterPaymentType)
+	}
+
+	if params.FilterPayer != "" {
+		// JOIN against permit_payers and companies to filter by payer name/edrpou.
+		// The join is scoped to avoid duplicates via a subquery.
+		payerSearch := "%" + params.FilterPayer + "%"
+		query = query.Where(
+			"permits.id IN (SELECT pp.permit_id FROM permit_payers pp JOIN companies c ON c.id = pp.company_id WHERE pp.deleted_at IS NULL AND (c.name ILIKE ? OR c.edrpou ILIKE ?))",
+			payerSearch, payerSearch,
+		)
+	}
+
+	// --- Custom Filters (Advanced Array) ---
+	if params.CustomFilters != "" {
+		var customFilters []CustomFilter
+		slog.Debug("custom filters", "custom_filters", params.CustomFilters)
+		if err := json.Unmarshal([]byte(params.CustomFilters), &customFilters); err == nil {
+			for _, f := range customFilters {
+				// Prevent SQL injection by strictly matching allowed fields
+				if col, ok := allowedFilterFields[f.Field]; ok {
+					var val interface{} = f.Value
+
+					// Type casting based on the database column type to prevent Postgres operator errors
+					if col == "permits.is_closed" {
+						val = f.Value == "true"
+					} else if col == "permits.customs_post_id" || col == "permits.vehicle_type_id" || col == "permits.payment_type_id" || col == "permits.verified_by" || col == "EXTRACT(DAY FROM (NOW() - permits.entry_time))" {
+						if vInt, err := strconv.Atoi(f.Value); err == nil {
+							val = vInt
+						}
+					} else if col == "permits.total_weight" || col == "permits.entry_fee" || col == "permits.exit_fee" || col == "permits.total_sum" {
+						if vFloat, err := strconv.ParseFloat(f.Value, 64); err == nil {
+							val = vFloat
+						}
+					}
+
+					switch f.Operator {
+					case "eq":
+						if col == "permits.entry_time" || col == "permits.exit_time" {
+							strVal := fmt.Sprintf("%v", val)
+							if len(strVal) == 10 {
+								// Format YYYY-MM-DD -> match the entire day
+								query = query.Where(fmt.Sprintf("%s >= ? AND %s <= ?", col, col), strVal+" 00:00:00", strVal+" 23:59:59")
+							} else if len(strVal) == 16 {
+								// Format YYYY-MM-DDTHH:MM -> match the entire minute
+								// Postgres accepts 'T' or space
+								baseStr := strVal[:10] + " " + strVal[11:]
+								query = query.Where(fmt.Sprintf("%s >= ? AND %s <= ?", col, col), baseStr+":00", baseStr+":59")
+							} else {
+								query = query.Where(fmt.Sprintf("%s = ?", col), val)
+							}
+						} else {
+							query = query.Where(fmt.Sprintf("%s = ?", col), val)
+						}
+					case "neq":
+						query = query.Where(fmt.Sprintf("%s != ?", col), val)
+					case "gt":
+						query = query.Where(fmt.Sprintf("%s > ?", col), val)
+					case "lt":
+						query = query.Where(fmt.Sprintf("%s < ?", col), val)
+					case "gte":
+						query = query.Where(fmt.Sprintf("%s >= ?", col), val)
+					case "lte":
+						query = query.Where(fmt.Sprintf("%s <= ?", col), val)
+					case "contains":
+						query = query.Where(fmt.Sprintf("%s ILIKE ?", col), "%"+f.Value+"%")
+					case "isnull":
+						query = query.Where(fmt.Sprintf("%s IS NULL", col))
+					case "notnull":
+						query = query.Where(fmt.Sprintf("%s IS NOT NULL", col))
+					}
+				}
+			}
+		} else {
+			fmt.Printf("Error unmarshalling CustomFilters: %v\\n", err)
+		}
+	}
+
+	// --- Count (before ORDER / LIMIT) ---
 
 	var countQuery = query.Session(&gorm.Session{})
 	if err := countQuery.Count(&total).Error; err != nil {
 		return nil, 0, err
 	}
 
-	if err := query.Limit(limit).Offset(offset).Order("created_at desc").
+	// --- Sorting ---
+
+	orderClause := "permits.entry_time DESC" // default
+	if col, ok := allowedSortFields[params.SortField]; ok {
+		dir := "ASC"
+		if params.SortOrder == "desc" {
+			dir = "DESC"
+		}
+		orderClause = fmt.Sprintf("%s %s", col, dir)
+	}
+
+	if err := query.
+		Limit(limit).Offset(offset).
+		Order(orderClause).
 		Preload("CustomsPost").
-		Preload("PlateEvents").
-		Preload("WeightEvents").
+		Preload("VehicleType").
+		Preload("CustomsMode").
+		Preload("PaymentType").
+		Preload("ResponsibleUser").
+		Preload("Verifier").
+		Preload("Payers", func(db *gorm.DB) *gorm.DB {
+			return db.Order("slot_index asc")
+		}).
+		Preload("Payers.Company").
 		Find(&permits).Error; err != nil {
 		return nil, 0, err
 	}

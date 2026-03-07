@@ -3,6 +3,7 @@ package handlers
 import (
 	"log/slog"
 	"net/http"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/truckguard/core/src/models"
@@ -13,9 +14,36 @@ import (
 
 func HandleGetPermits(c *gin.Context) {
 	limit, offset, page := utils.GetPagination(c)
-	plate := c.Query("plate")
 
-	permits, total, err := repository.GetPermits(c.Request.Context(), limit, offset, plate)
+	// Parse is_closed filter
+	var isClosed *bool
+	if val := c.Query("is_closed"); val != "" {
+		b := val == "true"
+		isClosed = &b
+	}
+
+	// Sanitise sort_order
+	sortOrder := strings.ToLower(c.Query("sort_order"))
+	if sortOrder != "asc" && sortOrder != "desc" {
+		sortOrder = "desc"
+	}
+
+	params := repository.PermitQueryParams{
+		Plate:             c.Query("plate"),
+		IsClosed:          isClosed,
+		SortField:         c.Query("sort_field"),
+		SortOrder:         sortOrder,
+		FilterFrom:        c.Query("filter_from"),
+		FilterTo:          c.Query("filter_to"),
+		FilterPostID:      c.Query("filter_post_id"),
+		FilterVehicleType: c.Query("filter_vehicle_type"),
+		FilterPaymentType: c.Query("filter_payment_type"),
+		FilterPayer:       c.Query("filter_payer"),
+		Search:            c.Query("search"),
+		CustomFilters:     c.Query("custom_filters"),
+	}
+
+	permits, total, err := repository.GetPermits(c.Request.Context(), limit, offset, params)
 	if err != nil {
 		slog.Error("HandleGetPermits: error", "error", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch permits"})
