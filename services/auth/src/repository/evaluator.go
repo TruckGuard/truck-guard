@@ -46,7 +46,24 @@ func CheckAccess(method, path string) ([]string, bool, error) {
 	var requiredPerms []string
 	for _, rule := range allRulesForPath {
 		if rule.Method == "*" || strings.EqualFold(rule.Method, method) {
-			requiredPerms = append(requiredPerms, rule.RequiredPermission)
+			for _, p := range strings.Split(rule.RequiredPermission, ",") {
+				requiredPerms = append(requiredPerms, strings.TrimSpace(p))
+			}
+		} else if strings.ToUpper(rule.Method) == "CRUD" {
+			action := "read"
+			switch strings.ToUpper(method) {
+			case "POST":
+				action = "create"
+			case "PUT", "PATCH":
+				action = "update"
+			case "DELETE":
+				action = "delete"
+			case "GET":
+				action = "read"
+			}
+			for _, res := range strings.Split(rule.RequiredPermission, ",") {
+				requiredPerms = append(requiredPerms, action+":"+strings.TrimSpace(res))
+			}
 		}
 	}
 

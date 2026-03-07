@@ -14,19 +14,72 @@ type PostScopedModel interface {
 	GetResourceName() string
 }
 
+func HasScopePermission(userPermsStr, requiredAction, requiredResource, requiredScope string) bool {
+	if userPermsStr == "" {
+		return false
+	}
+	perms := strings.Split(userPermsStr, ",")
+	for _, p := range perms {
+		p = strings.TrimSpace(p)
+		if p == "admin" {
+			return true
+		}
+		parts := strings.Split(p, ":")
+		if len(parts) < 2 {
+			continue
+		}
+		actionUser := parts[0]
+		resourceUser := parts[1]
+		scopeUser := ""
+		if len(parts) > 2 {
+			scopeUser = parts[2]
+		}
+
+		if resourceUser != "*" && resourceUser != requiredResource {
+			continue
+		}
+
+		if scopeUser != "all" && scopeUser != requiredScope {
+			continue
+		}
+
+		if actionUser == "manage" || actionUser == "admin" {
+			return true
+		}
+
+		if requiredAction == actionUser {
+			return true
+		}
+
+		switch requiredAction {
+		case "read":
+			return true
+		case "create":
+			if actionUser == "update" || actionUser == "delete" {
+				return true
+			}
+		case "update", "validate":
+			if actionUser == "delete" {
+				return true
+			}
+		}
+	}
+	return false
+}
+
 func ScopeByPost(ctx context.Context, model PostScopedModel, action string) func(db *gorm.DB) *gorm.DB {
 	return func(db *gorm.DB) *gorm.DB {
 		perms, _ := ctx.Value("user_permissions").(string)
 		postIDStr, _ := ctx.Value("user_post_id").(string)
 
 		resourceName := model.GetResourceName()
-		log.Println("ScopeByPost", "perms", perms, "postIDStr", postIDStr, resourceName, action, strings.Contains(perms, fmt.Sprintf("%s:%s:all", action, resourceName)))
+		log.Println("ScopeByPost", "perms", perms, "postIDStr", postIDStr, "resource", resourceName, "action", action)
 
-		if strings.Contains(perms, fmt.Sprintf("%s:%s:all", action, resourceName)) {
+		if HasScopePermission(perms, action, resourceName, "all") {
 			return db
 		}
 
-		if strings.Contains(perms, fmt.Sprintf("%s:%s", action, resourceName)) {
+		if HasScopePermission(perms, action, resourceName, "") {
 			if postIDStr == "" || postIDStr == "nil" {
 				return db.Where("1 = 0")
 			}
