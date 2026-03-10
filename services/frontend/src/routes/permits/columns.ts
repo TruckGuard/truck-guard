@@ -22,6 +22,7 @@ export const columns: ColumnDef<Permit>[] = [
                     const p = row.original;
                     return p.code || `PF-${p.ID}`;
                 },
+                meta: { mono: true, className: "text-base font-bold text-blue-600 dark:text-blue-500/90" },
                 enableSorting: true,
             },
             {
@@ -29,6 +30,7 @@ export const columns: ColumnDef<Permit>[] = [
                 id: "entry_time",
                 header: "Час заїзду",
                 cell: ({ row }) => formatDate(row.getValue("entry_time")),
+                meta: { className: "text-sm text-slate-500 dark:text-zinc-500" },
                 enableSorting: true,
             },
             {
@@ -37,28 +39,25 @@ export const columns: ColumnDef<Permit>[] = [
                 header: "Час виїзду",
                 cell: ({ row }) => {
                     const v = row.getValue("exit_time") as string;
-                    return v ? formatDate(v) : "-";
+                    return v ? formatDate(v) : "—";
                 },
+                meta: { className: "text-sm text-slate-500 dark:text-zinc-500" },
                 enableSorting: true,
             },
             {
                 accessorKey: "plate_front",
                 id: "plate_front",
                 header: "Номер передній",
-                cell: ({ row }) => {
-                    const plate = row.getValue("plate_front") as string;
-                    return plate || "-";
-                },
+                cell: ({ row }) => (row.getValue("plate_front") as string) || "—",
+                meta: { mono: true, fontMedium: true, className: "text-slate-900 dark:text-zinc-100 text-base" },
                 enableSorting: false,
             },
             {
                 accessorKey: "plate_back",
                 id: "plate_back",
                 header: "Номер задній",
-                cell: ({ row }) => {
-                    const plate = row.getValue("plate_back") as string;
-                    return plate || "-";
-                },
+                cell: ({ row }) => (row.getValue("plate_back") as string) || "—",
+                meta: { mono: true, fontMedium: true, className: "text-slate-900 dark:text-zinc-100 text-base" },
                 enableSorting: false,
             },
             {
@@ -67,8 +66,9 @@ export const columns: ColumnDef<Permit>[] = [
                 header: "Вага",
                 cell: ({ row }) => {
                     const w = row.getValue("total_weight") as number;
-                    return w ? `${w.toLocaleString("uk-UA")} кг` : "-";
+                    return w ? `${w.toLocaleString("uk-UA")} кг` : "—";
                 },
+                meta: { align: "right", tabular: true, className: "font-medium text-slate-900 dark:text-zinc-100 text-base" },
                 enableSorting: true,
             },
             {
@@ -96,7 +96,7 @@ export const columns: ColumnDef<Permit>[] = [
                         days = Math.max(1, Math.ceil((now - entry) / (1000 * 60 * 60 * 24)));
                     }
 
-                    if (!days) return "-";
+                    if (!days) return "—";
 
                     const lastDigit = days % 10;
                     const lastTwo = days % 100;
@@ -109,6 +109,7 @@ export const columns: ColumnDef<Permit>[] = [
 
                     return `${!p.is_closed ? "~ " : ""}${days} ${word}`;
                 },
+                meta: { align: "right", tabular: true, fontMedium: true, className: "text-slate-900 dark:text-zinc-100 text-base" },
                 enableSorting: true,
             },
         ]
@@ -123,8 +124,9 @@ export const columns: ColumnDef<Permit>[] = [
                 header: "Митний пост",
                 cell: ({ row }) => {
                     const p = row.original.customs_post;
-                    return p ? p.name : "-";
+                    return p ? p.name : "—";
                 },
+                meta: { className: "text-slate-800 dark:text-zinc-300" },
                 enableSorting: true,
             },
             {
@@ -133,8 +135,9 @@ export const columns: ColumnDef<Permit>[] = [
                 header: "Режим",
                 cell: ({ row }) => {
                     const m = row.original.customs_mode;
-                    return m ? m.name : "-";
+                    return m ? m.name : "—";
                 },
+                meta: { className: "text-slate-800 dark:text-zinc-300" },
                 enableSorting: true,
             },
             {
@@ -142,8 +145,9 @@ export const columns: ColumnDef<Permit>[] = [
                 id: "declaration_number",
                 header: "Номер декларації",
                 cell: ({ row }) => {
-                    return row.original.declaration_number || "-";
+                    return row.original.declaration_number || "—";
                 },
+                meta: { className: "text-slate-800 dark:text-zinc-300" },
                 enableSorting: true,
             },
             {
@@ -151,8 +155,9 @@ export const columns: ColumnDef<Permit>[] = [
                 id: "customs_declarant_name",
                 header: "Декларант",
                 cell: ({ row }) => {
-                    return row.original.customs_data?.declarant || "-";
+                    return row.original.customs_data?.declarant || "—";
                 },
+                meta: { className: "text-slate-600 dark:text-zinc-400 text-sm" },
                 enableSorting: false,
             },
             {
@@ -160,8 +165,9 @@ export const columns: ColumnDef<Permit>[] = [
                 id: "customs_commodity_description",
                 header: "Опис товару",
                 cell: ({ row }) => {
-                    return row.original.customs_data?.goods || "-";
+                    return row.original.customs_data?.goods || "—";
                 },
+                meta: { className: "text-slate-600 dark:text-zinc-400 text-sm" },
                 enableSorting: false,
             },
             {
@@ -169,8 +175,9 @@ export const columns: ColumnDef<Permit>[] = [
                 id: "customs_vmd_number",
                 header: "ВМД",
                 cell: ({ row }) => {
-                    return row.original.customs_data?.vmd_number || "-";
+                    return row.original.customs_data?.vmd_number || "—";
                 },
+                meta: { className: "text-slate-600 dark:text-zinc-400 text-sm" },
                 enableSorting: false,
             },
             {
@@ -178,8 +185,9 @@ export const columns: ColumnDef<Permit>[] = [
                 id: "customs_sender",
                 header: "Відправник",
                 cell: ({ row }) => {
-                    return row.original.customs_data?.sender || "-";
+                    return row.original.customs_data?.sender || "—";
                 },
+                meta: { className: "text-slate-600 dark:text-zinc-400 text-sm" },
                 enableSorting: false,
             },
             {
@@ -187,8 +195,9 @@ export const columns: ColumnDef<Permit>[] = [
                 id: "customs_receiver",
                 header: "Одержувач",
                 cell: ({ row }) => {
-                    return row.original.customs_data?.receiver || "-";
+                    return row.original.customs_data?.receiver || "—";
                 },
+                meta: { className: "text-slate-600 dark:text-zinc-400 text-sm" },
                 enableSorting: false,
             },
         ]
@@ -214,8 +223,9 @@ export const columns: ColumnDef<Permit>[] = [
                 header: "Тип оплати",
                 cell: ({ row }) => {
                     const payment = row.original.payment_type;
-                    return payment ? payment.name : "-";
+                    return payment ? payment.name : "—";
                 },
+                meta: { className: "text-slate-800 dark:text-zinc-300" },
                 enableSorting: true,
             },
             {
@@ -224,8 +234,9 @@ export const columns: ColumnDef<Permit>[] = [
                 header: "Вхідна плата",
                 cell: ({ row }) => {
                     const fee = row.getValue("entry_fee") as number;
-                    return fee ? `${fee.toLocaleString("uk-UA")} грн` : "-";
+                    return fee ? `${fee.toLocaleString("uk-UA")} грн` : "—";
                 },
+                meta: { align: "right", tabular: true, className: "text-slate-500 dark:text-zinc-500 text-sm" },
                 enableSorting: true,
             },
             {
@@ -234,8 +245,9 @@ export const columns: ColumnDef<Permit>[] = [
                 header: "Денна плата",
                 cell: ({ row }) => {
                     const fee = row.getValue("daily_fee") as number;
-                    return fee ? `${fee.toLocaleString("uk-UA")} грн` : "-";
+                    return fee ? `${fee.toLocaleString("uk-UA")} грн` : "—";
                 },
+                meta: { align: "right", tabular: true, className: "text-slate-500 dark:text-zinc-500 text-sm" },
                 enableSorting: true,
             },
             {
@@ -262,8 +274,9 @@ export const columns: ColumnDef<Permit>[] = [
                         fee = entryFee + days * dailyPrice;
                     }
 
-                    return fee ? `${!p.is_closed ? "~ " : ""}${fee.toLocaleString("uk-UA")} грн` : "-";
+                    return fee ? `${!p.is_closed ? "~ " : ""}${fee.toLocaleString("uk-UA")} грн` : "—";
                 },
+                meta: { align: "right", tabular: true, fontSemiBold: true, className: "text-slate-950 dark:text-zinc-50 text-base" },
                 enableSorting: true,
             },
             {
@@ -293,6 +306,7 @@ export const columns: ColumnDef<Permit>[] = [
                         verifiedAt: row.original.verified_at || null,
                     });
                 },
+                meta: { className: "text-slate-600 dark:text-zinc-400" },
                 enableSorting: true,
             },
         ]

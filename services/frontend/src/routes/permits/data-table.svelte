@@ -202,21 +202,25 @@
     function handleDragLeave(e: DragEvent) {
         dragOverColumnId = null;
     }
+
+    function getMeta(column: any) {
+        return (column.columnDef.meta as any) || {};
+    }
 </script>
 
 {#snippet leafHeader(header: any, rowspan = 1, colspan = 1, isGroupEnd = false)}
+    {@const meta = getMeta(header.column)}
+    {@const align = meta.align === "right" ? "justify-end text-right" : "text-left leading-tight"}
     <Table.Head
         {rowspan}
         {colspan}
-        class="whitespace-nowrap transition-colors {isGroupEnd || rowspan === 2
-            ? 'border-r-2 border-primary/20'
-            : 'border-r border-border/60'} last:border-r-0 {header.column.getCanSort()
-            ? 'cursor-pointer hover:bg-primary/5'
+        class="whitespace-nowrap transition-colors {isGroupEnd && rowspan === 1
+            ? 'border-r border-slate-200 dark:border-zinc-800'
+            : ''} last:border-r-0 {header.column.getCanSort()
+            ? 'cursor-pointer hover:bg-slate-200/50 dark:hover:bg-zinc-800/50'
             : ''} {dragOverColumnId === header.column.id
-            ? 'bg-primary/10 border-l-2 border-primary'
-            : ''} align-middle {rowspan === 2
-            ? 'border-b-0 uppercase bg-muted/10 font-medium'
-            : ''}"
+            ? 'bg-primary/5 border-l-2 border-primary'
+            : ''} align-middle h-14 px-4 py-2 text-slate-700 dark:text-zinc-300 font-bold border-b border-slate-200 dark:border-zinc-800 text-sm"
         onclick={() =>
             handleSortClick(header.column.id, header.column.getCanSort())}
         draggable="true"
@@ -225,23 +229,28 @@
         ondragleave={handleDragLeave}
         ondrop={(e) => handleDrop(e, header.column.id)}
     >
-        {#if header.column.getCanSort()}
-            <SortHeader
-                title={typeof header.column.columnDef.header === "string"
-                    ? header.column.columnDef.header
-                    : header.column.id}
-                sortState={getSortState(header.column.id)}
-            />
-        {:else}
-            {typeof header.column.columnDef.header === "string"
-                ? header.column.columnDef.header
-                : header.column.id}
-        {/if}
+        <div class="flex items-center {align} w-full gap-1">
+            {#if header.column.getCanSort()}
+                <SortHeader
+                    title={typeof header.column.columnDef.header === "string"
+                        ? header.column.columnDef.header
+                        : header.column.id}
+                    sortState={getSortState(header.column.id)}
+                />
+            {:else}
+                <span class="font-bold">
+                    <FlexRender
+                        content={header.column.columnDef.header}
+                        context={header.getContext()}
+                    />
+                </span>
+            {/if}
+        </div>
     </Table.Head>
 {/snippet}
 
 <div
-    class="space-y-2 flex flex-col h-full bg-card rounded-xl shadow-sm p-2 w-full"
+    class="space-y-4 flex flex-col h-full bg-card rounded-2xl shadow-sm p-3 w-full"
 >
     <DataTableToolbar
         table={table as any}
@@ -253,17 +262,13 @@
         {hasAllPermitsAccess}
     />
 
-    <div class="rounded-md border overflow-auto flex-1 bg-background relative">
-        <Table.Root class="w-full text-sm">
+    <div class="rounded-xl overflow-auto flex-1 bg-background relative scrollbar-thin border-t border-slate-200 dark:border-zinc-800">
+        <Table.Root class="w-full text-base border-separate border-spacing-0">
             <Table.Header
-                class="bg-muted/30 sticky top-0 backdrop-blur-sm transition-colors"
+                class="sticky top-0 z-20 bg-slate-100/90 dark:bg-zinc-950/80 backdrop-blur-md shadow-sm border-y border-slate-200 dark:border-zinc-800"
             >
                 {#each table.getHeaderGroups() as headerGroup, i (headerGroup.id)}
-                    <Table.Row
-                        class={i === 0 && table.getHeaderGroups().length > 1
-                            ? "border-b"
-                            : ""}
-                    >
+                    <Table.Row class="border-none hover:bg-transparent">
                         {#each headerGroup.headers as header, j (header.id)}
                             {@const isGroupedTable =
                                 table.getHeaderGroups().length > 1}
@@ -279,7 +284,6 @@
                                 {@render leafHeader(header, 1, 1, false)}
                             {:else if isFirstRow}
                                 {#if header.isPlaceholder}
-                                    <!-- Flat column spanning 2 rows -->
                                     {@render leafHeader(
                                         header,
                                         2,
@@ -287,13 +291,13 @@
                                         isGroupEnd,
                                     )}
                                 {:else}
-                                    <!-- Group header spanning columns -->
+                                    <!-- Group header -->
                                     <Table.Head
                                         colspan={header.colSpan}
-                                        class="border-b-2 border-r-2 last:border-r-0 text-center border-primary/20 bg-primary/5 hover:bg-primary/10 transition-colors"
+                                        class="h-10 border-b border-slate-200 dark:border-zinc-800 border-r border-slate-200 dark:border-zinc-800 last:border-r-0 text-center bg-transparent"
                                     >
                                         <span
-                                            class="font-semibold text-xs tracking-widest uppercase text-primary/80 whitespace-nowrap"
+                                            class="font-extrabold text-[11px] tracking-[0.15em] uppercase text-slate-500 dark:text-zinc-500 whitespace-nowrap"
                                         >
                                             {typeof header.column.columnDef
                                                 .header === "string"
@@ -304,7 +308,6 @@
                                 {/if}
                             {:else if isSecondRow}
                                 {#if header.column.parent}
-                                    <!-- Leaf column of a group -->
                                     {@render leafHeader(
                                         header,
                                         1,
@@ -323,7 +326,7 @@
                     <Table.Row>
                         <Table.Cell
                             colspan={columns.length}
-                            class="h-40 text-center text-muted-foreground"
+                            class="h-60 text-center text-slate-400 dark:text-zinc-500 italic bg-slate-50/10 dark:bg-zinc-900/10"
                         >
                             Немає перепусток
                         </Table.Cell>
@@ -331,22 +334,30 @@
                 {:else}
                     {#each table.getRowModel().rows as row (row.id)}
                         <Table.Row
-                            class="hover:bg-muted/40 cursor-pointer transition-colors"
+                            class="group hover:bg-blue-50/30 dark:hover:bg-blue-900/20 even:bg-slate-50/40 dark:even:bg-zinc-900/40 cursor-pointer transition-all duration-150 border-b border-slate-100 dark:border-zinc-900 last:border-0"
                             onclick={() =>
                                 goto(`/permits/${(row.original as Permit).ID}`)}
                         >
-                            {#each row.getVisibleCells() as cell (cell.id)}
+                            {#each row.getVisibleCells() as cell, j (cell.id)}
+                                {@const meta = getMeta(cell.column)}
+                                {@const align = meta.align === "right" ? "text-right" : "text-left"}
+                                {@const isSeparatorCol = cell.column.id === "days_in_zone"}
+                                
                                 <Table.Cell
-                                    class="py-2 {cell.column.id ===
-                                        'plate_front' ||
-                                    cell.column.id === 'plate_back'
-                                        ? 'font-mono'
-                                        : ''}"
+                                    class="py-4 px-4 transition-colors {align} {isSeparatorCol ? 'border-r border-slate-200/80 dark:border-zinc-800/50' : ''}"
                                 >
-                                    <FlexRender
-                                        content={cell.column.columnDef.cell}
-                                        context={cell.getContext()}
-                                    />
+                                    <div class="
+                                        {meta.mono ? 'font-mono' : ''} 
+                                        {meta.fontMedium ? 'font-medium' : ''}
+                                        {meta.fontSemiBold ? 'font-semibold' : ''}
+                                        {meta.tabular ? 'tabular-nums' : ''}
+                                        {meta.className || ''}
+                                    ">
+                                        <FlexRender
+                                            content={cell.column.columnDef.cell}
+                                            context={cell.getContext()}
+                                        />
+                                    </div>
                                 </Table.Cell>
                             {/each}
                         </Table.Row>
@@ -357,7 +368,7 @@
     </div>
 
     {#if metadata && metadata.total_pages > 1}
-        <div class="pt-2">
+        <div class="pt-4 px-2 border-t border-slate-200 dark:border-zinc-800">
             <SimplePagination
                 currentPage={metadata.current_page}
                 totalPages={metadata.total_pages}
@@ -375,3 +386,20 @@
         </div>
     {/if}
 </div>
+
+<style>
+    .scrollbar-thin::-webkit-scrollbar {
+        width: 6px;
+        height: 6px;
+    }
+    .scrollbar-thin::-webkit-scrollbar-track {
+        background: transparent;
+    }
+    .scrollbar-thin::-webkit-scrollbar-thumb {
+        background: hsl(var(--muted-foreground) / 0.2);
+        border-radius: 10px;
+    }
+    .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+        background: hsl(var(--muted-foreground) / 0.3);
+    }
+</style>
