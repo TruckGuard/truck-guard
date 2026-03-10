@@ -13,7 +13,7 @@ func GetPagination(c *gin.Context) (int, int, int) {
 	if page < 1 {
 		page = 1
 	}
-	if limit < 1 || limit > 100 {
+	if limit < 1 || limit > 10000 {
 		limit = 10
 	}
 

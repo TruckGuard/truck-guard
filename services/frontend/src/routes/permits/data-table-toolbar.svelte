@@ -11,6 +11,8 @@
     import type { Permit } from "$lib/types/permits";
 
     import AdvancedFilter from "./components/advanced-filter.svelte";
+    import ExportDialog from "./components/ExportDialog.svelte";
+    import { Download } from "@lucide/svelte";
 
     let {
         table,
@@ -87,6 +89,8 @@
 
     // Fallback for is_closed which defaults to 'false' inside page.server.ts if not set
     const currentIsClosed = $derived(searchParams.get("is_closed") ?? "");
+
+    let exportOpen = $state(false);
 </script>
 
 <div class="flex flex-col gap-3 mb-4">
@@ -258,6 +262,16 @@
         {/if}
 
         <div class="ml-auto flex items-center gap-2">
+            <Button
+                variant="outline"
+                size="sm"
+                class="hidden h-9 lg:flex"
+                onclick={() => (exportOpen = true)}
+            >
+                <Download class="mr-2 h-4 w-4" />
+                Експорт
+            </Button>
+
             <!-- Columns Dropdown -->
             <DropdownMenu.Root>
                 <DropdownMenu.Trigger>
@@ -336,3 +350,5 @@
         </div>
     </div>
 </div>
+
+<ExportDialog bind:open={exportOpen} {table} />
