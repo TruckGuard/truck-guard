@@ -256,7 +256,7 @@
     <div class="rounded-md border overflow-auto flex-1 bg-background relative">
         <Table.Root class="w-full text-sm">
             <Table.Header
-                class="bg-muted/30 sticky top-0 backdrop-blur-sm z-10 transition-colors"
+                class="bg-muted/30 sticky top-0 backdrop-blur-sm transition-colors"
             >
                 {#each table.getHeaderGroups() as headerGroup, i (headerGroup.id)}
                     <Table.Row

@@ -15,6 +15,7 @@
         { key: "customs_data.receiver", label: "Отримувач" },
         { key: "vehicle_type_id", label: "Категорія авто" },
         { key: "customs_mode_code", label: "Митний режим" },
+        { key: "payer", label: "Платник" },
     ];
 
     let { values = $bindable() } = $props<{

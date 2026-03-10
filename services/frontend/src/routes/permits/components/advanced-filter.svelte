@@ -1,19 +1,12 @@
 <script lang="ts">
     import { page } from "$app/state";
     import { goto } from "$app/navigation";
-    import { Plus, X, Filter } from "@lucide/svelte";
-    import { Button, buttonVariants } from "$lib/components/ui/button";
+    import { Plus, Filter } from "@lucide/svelte";
+    import { Button } from "$lib/components/ui/button";
     import { Input } from "$lib/components/ui/input";
     import * as Popover from "$lib/components/ui/popover";
-    import * as Select from "$lib/components/ui/select";
-    import { Calendar } from "$lib/components/ui/calendar";
-    import { Calendar as CalendarIcon } from "@lucide/svelte";
-    import {
-        DateFormatter,
-        type DateValue,
-        getLocalTimeZone,
-    } from "@internationalized/date";
-    import { cn } from "$lib/utils";
+    import { type DateValue } from "@internationalized/date";
+    import { formatDate, formatDateOnly } from "$lib/utils/date";
     import type { Table, Column } from "@tanstack/table-core";
 
     import type {
@@ -21,6 +14,12 @@
         VehicleType,
         PaymentType,
     } from "$lib/types/data";
+
+    import FilterBadge from "./advanced-filter/FilterBadge.svelte";
+    import FieldSelect from "./advanced-filter/FieldSelect.svelte";
+    import OperatorSelect from "./advanced-filter/OperatorSelect.svelte";
+    import DateValueInput from "./advanced-filter/DateValueInput.svelte";
+    import SelectValueInput from "./advanced-filter/SelectValueInput.svelte";
 
     let {
         table,
@@ -68,11 +67,9 @@
     let inputValue = $state<string>("");
 
     // Date form state
-    const df = new DateFormatter("uk-UA", { dateStyle: "long" });
     let dateValue = $state<DateValue | undefined>(undefined);
     let timeHours = $state("00");
     let timeMinutes = $state("00");
-    let calendarOpen = $state(false);
     let includeTime = $state(false);
 
     const ALL_OPERATORS = [
@@ -234,15 +231,10 @@
             }
             // Parse datetime-local string to readable format
             try {
-                const date = new Date(filter.value);
-                return (
-                    df.format(date) +
-                    " " +
-                    date.toLocaleTimeString("uk-UA", {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                    })
-                );
+                if (filter.value.length === 10) {
+                    return formatDateOnly(filter.value);
+                }
+                return formatDate(filter.value);
             } catch {
                 return filter.value;
             }
@@ -263,7 +255,7 @@
 
     function addFilter() {
         if (!selectedField || !selectedOperator) return;
-        if (!isDateField && !inputValue) return;
+        if (!isVerifiedAtField && !isDateField && !inputValue) return;
         if (isDateField && selectedOperator !== "last_days" && !dateValue)
             return;
 
@@ -277,7 +269,6 @@
                     past.setDate(past.getDate() - amount);
                 }
 
-                // Format to YYYY-MM-DDThh:mm format
                 const pad = (n: number) => n.toString().padStart(2, "0");
                 const formatDT = (d: Date) =>
                     `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
@@ -286,7 +277,6 @@
                 if (selectedOperator === "last_days")
                     labelText = `За останні ${amount} дн`;
 
-                // Add greater-than-or-equal past threshold
                 filtersToAdd.push({
                     field: selectedField,
                     operator: "gte",
@@ -305,13 +295,14 @@
                 : "";
 
             if (selectedOperator === "eq") {
+                const displayVal = includeTime
+                    ? formatDate(`${dateStr}${timeStr}`)
+                    : formatDateOnly(dateStr);
                 filtersToAdd.push({
                     field: selectedField,
                     operator: "eq",
                     value: `${dateStr}${timeStr}`,
-                    label: includeTime
-                        ? `${dateStr}${timeStr}`
-                        : `${dateStr} (Точність: день)`,
+                    label: `${displayVal}`,
                 });
             } else {
                 let finalVal = `${dateStr}${timeStr}`;
@@ -325,13 +316,15 @@
                         finalVal = `${dateStr}T00:00`;
                 }
 
+                const displayVal = includeTime
+                    ? formatDate(`${dateStr}${timeStr}`)
+                    : formatDateOnly(dateStr);
+
                 filtersToAdd.push({
                     field: selectedField,
                     operator: selectedOperator,
                     value: finalVal,
-                    label: includeTime
-                        ? `${dateStr}${timeStr}`
-                        : `${dateStr} (Точність: день)`,
+                    label: displayVal,
                 });
             }
         } else {
@@ -373,46 +366,48 @@
     }
 
     $effect(() => {
-        // Auto-fill value for isnull/notnull since they don't need user input
         if (selectedOperator === "isnull" || selectedOperator === "notnull") {
             inputValue = "true";
         }
     });
+
+    // Formatting for select options
+    const formattedCustomsModes = $derived(
+        customsModes.map((m: any) => ({
+            ID: m.code,
+            name: `${m.code} - ${m.name}`,
+        })),
+    );
+    const statusOptions = [
+        { ID: "false", name: "Активні" },
+        { ID: "true", name: "Закриті" },
+    ];
 </script>
 
 <div class="flex flex-wrap items-center gap-2">
     <!-- Active Filters Badges -->
     {#each filters as filter, index}
-        <div
-            class="flex items-center gap-1 bg-primary/10 text-primary px-2 py-1 rounded-md border border-primary/20 text-xs"
-        >
-            <span class="font-medium">{parseColumnName(filter.field)}</span>
-            {#if filter.field === "verified_at"}
-                <span class="font-bold ml-1">
-                    {filter.operator === "notnull" ? "Є" : "Немає"}
-                </span>
-            {:else if filter.label}
-                <span class="font-bold ml-1">{filter.label}</span>
-            {:else}
-                <span class="text-muted-foreground ml-1"
-                    >{availableOperators.find(
-                        (o) => o.value === filter.operator,
-                    )?.label ||
-                        ALL_OPERATORS.find((o) => o.value === filter.operator)
-                            ?.label ||
-                        filter.operator}</span
-                >
-                <span class="font-bold ml-1">"{getDisplayValue(filter)}"</span>
-            {/if}
-            <Button
-                variant="ghost"
-                size="icon"
-                class="h-4 w-4 ml-1 rounded-full hover:bg-primary/20 hover:text-primary"
-                onclick={() => removeFilter(index)}
-            >
-                <X class="h-3 w-3" />
-            </Button>
-        </div>
+        {@const opLabel =
+            filter.field === "verified_at" || filter.label
+                ? undefined
+                : availableOperators.find((o) => o.value === filter.operator)
+                      ?.label ||
+                  ALL_OPERATORS.find((o) => o.value === filter.operator)?.label}
+        {@const displayVal =
+            filter.field === "verified_at"
+                ? filter.operator === "notnull"
+                    ? "Є"
+                    : "Немає"
+                : filter.label
+                  ? filter.label
+                  : `"${getDisplayValue(filter)}"`}
+
+        <FilterBadge
+            fieldName={parseColumnName(filter.field)}
+            operatorLabel={opLabel}
+            value={displayVal}
+            onRemove={() => removeFilter(index)}
+        />
     {/each}
 
     <Popover.Root bind:open={popoverOpen}>
@@ -430,290 +425,66 @@
             {/snippet}
         </Popover.Trigger>
         <Popover.Content align="start" class="w-80 p-4" sideOffset={8}>
-            <div class="space-y-4 text-sm break-words flex flex-col">
+            <div class="space-y-4 text-sm wrap-break-word flex flex-col">
                 <div class="font-medium text-sm flex items-center gap-2">
                     <Filter class="w-4 h-4" /> Додати умову
                 </div>
 
-                <div class="space-y-2">
-                    <span class="text-xs text-muted-foreground block"
-                        >Поле для пошуку</span
-                    >
-                    <Select.Root
-                        type="single"
-                        value={selectedField}
-                        onValueChange={(v) => {
-                            selectedField = v;
-                            inputValue = "";
-                            selectedOperator = "eq";
-                        }}
-                    >
-                        <Select.Trigger class="w-full text-sm">
-                            {selectedField
-                                ? parseColumnName(selectedField)
-                                : "Виберіть колонку..."}
-                        </Select.Trigger>
-                        <Select.Content>
-                            {#each filterableColumnsGroups as group}
-                                {#if group.items.length > 0}
-                                    <Select.Group>
-                                        <Select.Label
-                                            class="text-xs font-semibold text-muted-foreground uppercase"
-                                            >{group.label}</Select.Label
-                                        >
-                                        {#each group.items as col}
-                                            <Select.Item value={col.id}>
-                                                {col.header}
-                                            </Select.Item>
-                                        {/each}
-                                    </Select.Group>
-                                {/if}
-                            {/each}
-                        </Select.Content>
-                    </Select.Root>
-                </div>
+                <FieldSelect
+                    bind:value={selectedField}
+                    groups={filterableColumnsGroups}
+                    onValueChange={() => {
+                        inputValue = "";
+                        selectedOperator = "eq";
+                    }}
+                />
+
+                <OperatorSelect
+                    bind:value={selectedOperator}
+                    operators={availableOperators}
+                />
 
                 <div class="space-y-2">
-                    <span class="text-xs text-muted-foreground block"
-                        >Оператор</span
-                    >
-                    <Select.Root
-                        type="single"
-                        value={selectedOperator}
-                        onValueChange={(v) => {
-                            selectedOperator = v;
-                        }}
-                    >
-                        <Select.Trigger class="w-full text-sm">
-                            {availableOperators.find(
-                                (o) => o.value === selectedOperator,
-                            )?.label || "Виберіть..."}
-                        </Select.Trigger>
-                        <Select.Content>
-                            {#each availableOperators as op}
-                                <Select.Item value={op.value}
-                                    >{op.label}</Select.Item
-                                >
-                            {/each}
-                        </Select.Content>
-                    </Select.Root>
-                </div>
-
-                <div class="space-y-2">
-                    <label
-                        for="filterValue"
-                        class="text-xs text-muted-foreground block"
-                        >Значення</label
-                    >
                     {#if isDateField}
-                        {#if ["last_days"].includes(selectedOperator)}
-                            <Input
-                                type="number"
-                                min="1"
-                                id="filterValue"
-                                placeholder="Вкажіть кількість..."
-                                class="h-9 text-sm"
-                                bind:value={inputValue}
-                                onkeydown={(e) => {
-                                    if (e.key === "Enter") addFilter();
-                                }}
-                            />
-                        {:else}
-                            <Popover.Root bind:open={calendarOpen}>
-                                <Popover.Trigger
-                                    class={cn(
-                                        buttonVariants({
-                                            variant: "outline",
-                                            class: "w-full justify-start text-left font-normal",
-                                        }),
-                                        !dateValue && "text-muted-foreground",
-                                    )}
-                                >
-                                    <CalendarIcon class="mr-2 h-4 w-4" />
-                                    {dateValue
-                                        ? includeTime
-                                            ? `${df.format(dateValue.toDate(getLocalTimeZone()))} ${timeHours.padStart(2, "0")}:${timeMinutes.padStart(2, "0")}`
-                                            : df.format(
-                                                  dateValue.toDate(
-                                                      getLocalTimeZone(),
-                                                  ),
-                                              )
-                                        : "Оберіть дату..."}
-                                </Popover.Trigger>
-                                <Popover.Content
-                                    class="w-auto p-0 flex flex-col"
-                                >
-                                    <Calendar
-                                        type="single"
-                                        bind:value={dateValue}
-                                    />
-                                    <div class="p-3 border-t border-border">
-                                        <label
-                                            class="text-sm font-medium flex items-center gap-2 cursor-pointer"
-                                        >
-                                            <input
-                                                type="checkbox"
-                                                bind:checked={includeTime}
-                                                class="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary"
-                                            />
-                                            Враховувати час (точність до хвилини)
-                                        </label>
-                                    </div>
-                                    {#if includeTime}
-                                        <div
-                                            class="p-3 border-t border-border flex items-center justify-between gap-2 bg-muted/30"
-                                        >
-                                            <div class="text-sm font-medium">
-                                                Час:
-                                            </div>
-                                            <div
-                                                class="flex items-center gap-1"
-                                            >
-                                                <Input
-                                                    type="number"
-                                                    min="0"
-                                                    max="23"
-                                                    bind:value={timeHours}
-                                                    class="w-16 h-8 text-center"
-                                                    placeholder="ГГ"
-                                                />
-                                                <span>:</span>
-                                                <Input
-                                                    type="number"
-                                                    min="0"
-                                                    max="59"
-                                                    bind:value={timeMinutes}
-                                                    class="w-16 h-8 text-center"
-                                                    placeholder="ХХ"
-                                                />
-                                            </div>
-                                        </div>
-                                    {/if}
-                                    <div
-                                        class="p-3 border-t border-border flex justify-end"
-                                    >
-                                        <Button
-                                            size="sm"
-                                            class="w-full"
-                                            onclick={() => {
-                                                calendarOpen = false;
-                                                // Trigger focus loss or something if needed
-                                            }}
-                                        >
-                                            Застосувати
-                                        </Button>
-                                    </div>
-                                </Popover.Content>
-                            </Popover.Root>
-                        {/if}
+                        <DateValueInput
+                            {selectedOperator}
+                            bind:inputValue
+                            bind:dateValue
+                            bind:timeHours
+                            bind:timeMinutes
+                            bind:includeTime
+                            onApply={addFilter}
+                        />
                     {:else if isPostField}
-                        <Select.Root
-                            type="single"
-                            value={inputValue}
-                            onValueChange={(v) => {
-                                inputValue = v;
-                            }}
-                        >
-                            <Select.Trigger class="w-full text-sm">
-                                {posts.find(
-                                    (p: CustomsPost) =>
-                                        p.ID.toString() === inputValue,
-                                )?.name || "Оберіть пост..."}
-                            </Select.Trigger>
-                            <Select.Content>
-                                {#each posts as post}
-                                    <Select.Item value={post.ID.toString()}
-                                        >{post.name}</Select.Item
-                                    >
-                                {/each}
-                            </Select.Content>
-                        </Select.Root>
+                        <SelectValueInput
+                            bind:value={inputValue}
+                            options={posts}
+                            placeholder="Оберіть пост..."
+                        />
                     {:else if isVehicleField}
-                        <Select.Root
-                            type="single"
-                            value={inputValue}
-                            onValueChange={(v) => {
-                                inputValue = v;
-                            }}
-                        >
-                            <Select.Trigger class="w-full text-sm">
-                                {vehicleTypes.find(
-                                    (v: VehicleType) =>
-                                        v.ID.toString() === inputValue,
-                                )?.name || "Оберіть тип авто..."}
-                            </Select.Trigger>
-                            <Select.Content>
-                                {#each vehicleTypes as type}
-                                    <Select.Item value={type.ID.toString()}
-                                        >{type.name}</Select.Item
-                                    >
-                                {/each}
-                            </Select.Content>
-                        </Select.Root>
+                        <SelectValueInput
+                            bind:value={inputValue}
+                            options={vehicleTypes}
+                            placeholder="Оберіть тип авто..."
+                        />
                     {:else if isPaymentField}
-                        <Select.Root
-                            type="single"
-                            value={inputValue}
-                            onValueChange={(v) => {
-                                inputValue = v;
-                            }}
-                        >
-                            <Select.Trigger class="w-full text-sm">
-                                {paymentTypes.find(
-                                    (p: PaymentType) =>
-                                        p.ID.toString() === inputValue,
-                                )?.name || "Оберіть тип оплати..."}
-                            </Select.Trigger>
-                            <Select.Content>
-                                {#each paymentTypes as type}
-                                    <Select.Item value={type.ID.toString()}
-                                        >{type.name}</Select.Item
-                                    >
-                                {/each}
-                            </Select.Content>
-                        </Select.Root>
+                        <SelectValueInput
+                            bind:value={inputValue}
+                            options={paymentTypes}
+                            placeholder="Оберіть тип оплати..."
+                        />
                     {:else if isStatusField}
-                        <Select.Root
-                            type="single"
-                            value={inputValue}
-                            onValueChange={(v) => {
-                                inputValue = v;
-                            }}
-                        >
-                            <Select.Trigger class="w-full text-sm">
-                                {inputValue === "true"
-                                    ? "Закриті"
-                                    : inputValue === "false"
-                                      ? "Активні"
-                                      : "Оберіть статус..."}
-                            </Select.Trigger>
-                            <Select.Content>
-                                <Select.Item value="false">Активні</Select.Item>
-                                <Select.Item value="true">Закриті</Select.Item>
-                            </Select.Content>
-                        </Select.Root>
+                        <SelectValueInput
+                            bind:value={inputValue}
+                            options={statusOptions}
+                            placeholder="Оберіть статус..."
+                        />
                     {:else if isCustomsModeField}
-                        <Select.Root
-                            type="single"
-                            value={inputValue}
-                            onValueChange={(v) => {
-                                inputValue = v;
-                            }}
-                        >
-                            <Select.Trigger class="w-full text-sm">
-                                {customsModes.find(
-                                    (m: { code: string; name: string }) =>
-                                        m.code === inputValue,
-                                )?.name || "Оберіть режим..."}
-                            </Select.Trigger>
-                            <Select.Content>
-                                {#each customsModes as mode}
-                                    <Select.Item value={mode.code}
-                                        >{mode.code} - {mode.name}</Select.Item
-                                    >
-                                {/each}
-                            </Select.Content>
-                        </Select.Root>
+                        <SelectValueInput
+                            bind:value={inputValue}
+                            options={formattedCustomsModes}
+                            placeholder="Оберіть режим..."
+                        />
                     {:else if isVerifiedAtField}
                         <div
                             class="text-xs text-muted-foreground bg-muted p-2 rounded-md"
@@ -721,15 +492,22 @@
                             Значення не потрібне для цього оператора
                         </div>
                     {:else}
-                        <Input
-                            id="filterValue"
-                            placeholder="Введіть шукане значення..."
-                            class="h-9 text-sm"
-                            bind:value={inputValue}
-                            onkeydown={(e) => {
-                                if (e.key === "Enter") addFilter();
-                            }}
-                        />
+                        <div class="space-y-2">
+                            <label
+                                for="filterValue"
+                                class="text-xs text-muted-foreground block"
+                                >Значення</label
+                            >
+                            <Input
+                                id="filterValue"
+                                placeholder="Введіть шукане значення..."
+                                class="h-9 text-sm"
+                                bind:value={inputValue}
+                                onkeydown={(e) => {
+                                    if (e.key === "Enter") addFilter();
+                                }}
+                            />
+                        </div>
                     {/if}
                 </div>
 
@@ -739,7 +517,7 @@
                     onclick={addFilter}
                     disabled={!selectedField ||
                         !selectedOperator ||
-                        (!isDateField && !inputValue) ||
+                        (!isVerifiedAtField && !isDateField && !inputValue) ||
                         (isDateField &&
                             selectedOperator !== "last_days" &&
                             !dateValue) ||

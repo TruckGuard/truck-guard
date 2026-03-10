@@ -61,6 +61,7 @@ export interface Permit {
     payment_type_id?: number;
     payment_type?: PaymentType;
     entry_fee: number;
+    daily_fee: number;
     exit_fee: number;
     total_sum: number;
     discount_amount: number;

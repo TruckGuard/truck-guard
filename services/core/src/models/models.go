@@ -21,7 +21,7 @@ type CustomsMode struct {
 	Name           string         `json:"name"`
 	Code           string         `gorm:"uniqueIndex;not null" json:"code"`
 	Description    string         `json:"description"`
-	RequiredFields datatypes.JSON `gorm:"type:jsonb;default:'[]'" json:"required_fields"`
+	RequiredFields   datatypes.JSON `gorm:"type:jsonb;default:'[]'" json:"required_fields"`
 }
 
 type Company struct {
@@ -137,6 +137,7 @@ type Permit struct {
 	PaymentTypeID  *uint        `json:"payment_type_id"`
 	PaymentType    *PaymentType `gorm:"foreignKey:PaymentTypeID" json:"payment_type,omitempty"`
 	EntryFee       float64      `json:"entry_fee"`
+	DailyFee       float64      `json:"daily_fee"`
 	ExitFee        float64      `json:"exit_fee"`
 	TotalSum       float64      `json:"total_sum"`
 	DiscountAmount float64      `json:"discount_amount"`

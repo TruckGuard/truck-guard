@@ -6,12 +6,9 @@
     import * as Popover from "$lib/components/ui/popover";
     import { RangeCalendar } from "$lib/components/ui/range-calendar";
     import { Calendar as CalendarIcon, X, Funnel } from "@lucide/svelte";
-    import { DateFormatter, getLocalTimeZone } from "@internationalized/date";
+    import { getLocalTimeZone } from "@internationalized/date";
+    import { formatDateOnly } from "$lib/utils/date";
     import { cn } from "$lib/utils";
-
-    const df = new DateFormatter("uk-UA", {
-        dateStyle: "medium",
-    });
 
     let {
         activeTab,
@@ -77,17 +74,17 @@
                                 <CalendarIcon class="mr-2 h-4 w-4 opacity-50" />
                                 {#if range.start}
                                     {#if range.end}
-                                        {df.format(
+                                        {formatDateOnly(
                                             range.start.toDate(
                                                 getLocalTimeZone(),
                                             ),
-                                        )} - {df.format(
+                                        )} - {formatDateOnly(
                                             range.end.toDate(
                                                 getLocalTimeZone(),
                                             ),
                                         )}
                                     {:else}
-                                        {df.format(
+                                        {formatDateOnly(
                                             range.start.toDate(
                                                 getLocalTimeZone(),
                                             ),

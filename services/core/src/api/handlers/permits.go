@@ -16,6 +16,7 @@ func HandleGetPermits(c *gin.Context) {
 	limit, offset, page := utils.GetPagination(c)
 
 	// Parse is_closed filter
+	slog.Debug("Full url", "url", c.Request.URL.String())
 	var isClosed *bool
 	if val := c.Query("is_closed"); val != "" {
 		b := val == "true"

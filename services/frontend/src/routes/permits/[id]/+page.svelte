@@ -47,18 +47,7 @@
   let permit = $state<Partial<Permit>>({});
 
   // Payer state array
-  let payers = $state<PayerState[]>(
-    data.permit.payers?.length
-      ? data.permit.payers.map((p: any) => ({
-          company_id: p.company_id,
-          slot_index: p.slot_index,
-          company:
-            p.company ||
-            data.companies.find((c: any) => c.ID === p.company_id) ||
-            null,
-        }))
-      : [{ company_id: 0, slot_index: 1, company: null }],
-  );
+  let payers = $state<PayerState[]>([]);
 
   let activeTab = $state("events");
   let loadingAudits = $state(false);
@@ -80,6 +69,7 @@
     "customs_data.receiver": "Отримувач",
     vehicle_type_id: "Категорія авто",
     customs_mode_code: "Митний режим",
+    payer: "Платник (мінімум один)",
   };
 
   // Target scroll IDs per field
@@ -95,12 +85,15 @@
     "customs_data.receiver": "customs-data-section",
     vehicle_type_id: "category-input",
     customs_mode_code: "mode-input",
+    payer: "financial-section",
   };
 
-  // Derive required fields from the selected customs mode
+  const selectedMode = $derived(
+    data.customsModes.find((m: any) => m.code === permit.customs_mode_code),
+  );
+
   const requiredFields = $derived(
-    (data.customsModes.find((m: any) => m.code === permit.customs_mode_code)
-      ?.required_fields as string[]) ?? [],
+    (selectedMode?.required_fields as string[]) ?? [],
   );
 
   function isFieldValid(key: string): boolean {
@@ -127,6 +120,8 @@
         return !!permit.vehicle_type_id;
       case "customs_mode_code":
         return !!permit.customs_mode_code;
+      case "payer":
+        return payers.some((p) => p.company && (p.company.ID || 0) > 0);
       default:
         return true;
     }
@@ -171,7 +166,6 @@
 
     if (!permit.customs_data) {
       permit.customs_data = {
-        ID: 0,
         goods: "",
         declarant: "",
         vmd_number: "",

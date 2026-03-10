@@ -32,6 +32,26 @@
             targetId?: string;
         }[];
     }>();
+
+    let estimatedSum = $derived.by(() => {
+        if (permit.is_closed || !permit.entry_time) return null;
+
+        const entry = new Date(permit.entry_time);
+        const now = new Date();
+        const durationMs = now.getTime() - entry.getTime();
+        const hours = durationMs / (1000 * 60 * 60);
+
+        let days = Math.floor(hours / 24);
+        if (hours > days * 24 || durationMs <= 0) {
+            days++;
+        }
+        if (days < 1) days = 1;
+
+        const entryFee = permit.entry_fee || (permit.vehicle_type?.entry_price || 0);
+        const dailyPrice = permit.daily_fee || (permit.vehicle_type?.daily_price || 0);
+
+        return entryFee + days * dailyPrice;
+    });
 </script>
 
 <div class="lg:col-span-4 space-y-6 sticky top-8">
@@ -115,7 +135,8 @@
                         </div>
                     {/if}
 
-                    {#if permit.total_sum !== undefined}
+
+                    {#if permit.is_closed && permit.total_sum !== undefined}
                         <div class="pt-3 border-t border-dashed">
                             <div class="flex items-center justify-between">
                                 <span
@@ -126,6 +147,25 @@
                                 <span
                                     class="text-2xl font-black font-mono text-emerald-600"
                                     >₴{permit.total_sum.toFixed(2)}</span
+                                >
+                            </div>
+                        </div>
+                    {:else if !permit.is_closed && estimatedSum !== null}
+                        <div class="pt-3 border-t border-dashed animate-in fade-in slide-in-from-top-2 duration-300">
+                            <div class="flex items-center justify-between">
+                                <div class="flex flex-col">
+                                    <span
+                                        class="text-[10px] font-black uppercase tracking-widest text-amber-600 dark:text-amber-400 flex items-center gap-2"
+                                    >
+                                        <Coins class="h-3 w-3" /> Приблизна оплата
+                                    </span>
+                                    <span class="text-[9px] text-muted-foreground font-medium italic mt-0.5">
+                                        (без урахування знижок)
+                                    </span>
+                                </div>
+                                <span
+                                    class="text-2xl font-black font-mono text-amber-600 dark:text-amber-400"
+                                    >₴{estimatedSum.toFixed(2)}</span
                                 >
                             </div>
                         </div>

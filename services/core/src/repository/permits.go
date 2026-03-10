@@ -53,7 +53,7 @@ var allowedSortFields = map[string]string{
 	"entry_fee":          "permits.entry_fee",
 	"exit_fee":           "permits.exit_fee",
 	"total_sum":          "permits.total_sum",
-	"days_in_zone":       "EXTRACT(DAY FROM (NOW() - permits.entry_time))",
+	"days_in_zone":       "permits.days_in_zone",
 }
 
 // allowedFilterFields prevents SQL injection by restricting what fields can be filtered dynamically
@@ -80,7 +80,7 @@ var allowedFilterFields = map[string]string{
 	"entry_fee":                     "permits.entry_fee",
 	"exit_fee":                      "permits.exit_fee",
 	"total_sum":                     "permits.total_sum",
-	"days_in_zone":                  "EXTRACT(DAY FROM (NOW() - permits.entry_time))",
+	"days_in_zone":                  "permits.days_in_zone",
 }
 
 func GetPermits(ctx context.Context, limit, offset int, params PermitQueryParams) ([]models.Permit, int64, error) {
@@ -95,6 +95,7 @@ func GetPermits(ctx context.Context, limit, offset int, params PermitQueryParams
 		query = query.Where("permits.plate_front = ? OR permits.plate_back = ?", params.Plate, params.Plate)
 	}
 
+	slog.Debug("Params", "params", params)
 	if params.IsClosed != nil {
 		query = query.Where("permits.is_closed = ?", *params.IsClosed)
 	}
@@ -154,10 +155,14 @@ func GetPermits(ctx context.Context, limit, offset int, params PermitQueryParams
 					} else if col == "permits.customs_post_id" || col == "permits.vehicle_type_id" || col == "permits.payment_type_id" || col == "permits.verified_by" || col == "EXTRACT(DAY FROM (NOW() - permits.entry_time))" {
 						if vInt, err := strconv.Atoi(f.Value); err == nil {
 							val = vInt
+						} else if f.Operator != "isnull" && f.Operator != "notnull" {
+							continue
 						}
 					} else if col == "permits.total_weight" || col == "permits.entry_fee" || col == "permits.exit_fee" || col == "permits.total_sum" {
 						if vFloat, err := strconv.ParseFloat(f.Value, 64); err == nil {
 							val = vFloat
+						} else if f.Operator != "isnull" && f.Operator != "notnull" {
+							continue
 						}
 					}
 
@@ -295,6 +300,32 @@ func UpdatePermit(ctx context.Context, id string, input map[string]interface{}, 
 
 	var user models.User
 	DB.WithContext(ctx).Where("auth_id = ?", authID).First(&user)
+
+	// If vehicle_type_id is provided, automatically populate entry_fee and daily_fee
+	if vtIDRaw, ok := input["vehicle_type_id"]; ok && vtIDRaw != nil {
+		var vtID uint
+		switch v := vtIDRaw.(type) {
+		case float64:
+			vtID = uint(v)
+		case int:
+			vtID = uint(v)
+		case string:
+			if id, err := strconv.Atoi(v); err == nil {
+				vtID = uint(id)
+			}
+		}
+
+		if vtID > 0 {
+			var vt models.VehicleType
+			if err := DB.WithContext(ctx).First(&vt, vtID).Error; err == nil {
+				// Only populate if not explicitly provided in the input, or always? 
+				// User said "also price for entry and cost per day are filled". 
+				// Usually this means we want to override with defaults from VehicleType.
+				input["entry_fee"] = vt.EntryPrice
+				input["daily_fee"] = vt.DailyPrice
+			}
+		}
+	}
 
 	// Copy changes for audit trace before modification
 	auditChanges := make(map[string]interface{})
@@ -486,7 +517,9 @@ func CalculateFinancials(ctx context.Context, permit *models.Permit, updates map
 
 	// 4. Calculate Exist Fee (Sum 2)
 	dailyPrice := 0.0
-	if permit.VehicleType != nil {
+	if permit.DailyFee > 0 {
+		dailyPrice = permit.DailyFee
+	} else if permit.VehicleType != nil {
 		dailyPrice = permit.VehicleType.DailyPrice
 	}
 	exitFee := float64(days) * dailyPrice

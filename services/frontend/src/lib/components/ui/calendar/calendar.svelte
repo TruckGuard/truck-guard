@@ -14,7 +14,7 @@
 		weekdayFormat = "short",
 		buttonVariant = "ghost",
 		captionLayout = "label",
-		locale = "en-US",
+		locale = "uk-UA",
 		months: monthsProp,
 		years,
 		monthFormat: monthFormatProp,

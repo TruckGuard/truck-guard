@@ -26,7 +26,9 @@
 
   function refresh() {
     loading = true;
-    goto("?page=1", { invalidateAll: true }).then(() => (loading = false));
+    const query = new URLSearchParams(page.url.searchParams.toString());
+    query.set("page", "1");
+    goto(`?${query.toString()}`, { invalidateAll: true }).then(() => (loading = false));
   }
 
   function startCreatePermit(event?: any) {

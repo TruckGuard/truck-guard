@@ -229,11 +229,11 @@ export const columns: ColumnDef<Permit>[] = [
                 enableSorting: true,
             },
             {
-                accessorKey: "exit_fee",
-                id: "exit_fee",
-                header: "Вихідна плата",
+                accessorKey: "daily_fee",
+                id: "daily_fee",
+                header: "Денна плата",
                 cell: ({ row }) => {
-                    const fee = row.getValue("exit_fee") as number;
+                    const fee = row.getValue("daily_fee") as number;
                     return fee ? `${fee.toLocaleString("uk-UA")} грн` : "-";
                 },
                 enableSorting: true,
@@ -243,8 +243,26 @@ export const columns: ColumnDef<Permit>[] = [
                 id: "total_sum",
                 header: "Загальна плата",
                 cell: ({ row }) => {
-                    const fee = row.getValue("total_sum") as number;
-                    return fee ? `${fee.toLocaleString("uk-UA")} грн` : "-";
+                    const p = row.original;
+                    let fee = p.total_sum;
+
+                    if (!p.is_closed && p.entry_time) {
+                        const entry = new Date(p.entry_time).getTime();
+                        const now = Date.now();
+                        const hours = (now - entry) / (1000 * 60 * 60);
+
+                        let days = Math.floor(hours / 24);
+                        if (hours > days * 24 || (now - entry) <= 0) {
+                            days++;
+                        }
+                        if (days < 1) days = 1;
+
+                        const entryFee = p.entry_fee || p.vehicle_type?.entry_price || 0;
+                        const dailyPrice = p.daily_fee || p.vehicle_type?.daily_price || 0;
+                        fee = entryFee + days * dailyPrice;
+                    }
+
+                    return fee ? `${!p.is_closed ? "~ " : ""}${fee.toLocaleString("uk-UA")} грн` : "-";
                 },
                 enableSorting: true,
             },

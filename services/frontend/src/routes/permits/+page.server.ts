@@ -41,12 +41,11 @@ export const load: PageServerLoad = async ({ locals, url }) => {
                 'search', 'is_closed', 'custom_filters'
             ];
 
-            // If is_closed is not provided in URL, default to displaying only active permits
-            if (!url.searchParams.has('is_closed')) {
-                filters['is_closed'] = 'false';
-            } else if (url.searchParams.get('is_closed') === 'all') {
-                filters['is_closed'] = 'all';
-            }
+            // Pass is_closed filter directly
+            const isClosedVal = url.searchParams.get('is_closed');
+  
+            filters['is_closed'] = isClosedVal || "";
+            
 
             for (const key of keys) {
                 const val = url.searchParams.get(key);
@@ -78,16 +77,17 @@ export const load: PageServerLoad = async ({ locals, url }) => {
                 paymentTypes = ptRes.data;
             }
 
-            const usersRes = await locals.coreClient.listData<any>('users', 1, 100);
-            if (usersRes) {
-                users = usersRes.data.map((u: any) => ({
+            const usersList = await locals.coreClient.listUsers();
+            if (usersList) {
+                users = usersList.map((u: any) => ({
                     ID: u.ID,
                     name: `${u.first_name} ${u.last_name}`
                 }));
             }
 
-            const modesRes = await locals.coreClient.listData<any>('customs-modes', 1, 100);
+            const modesRes = await locals.coreClient.listData<any>('modes', 1, 100);
             if (modesRes) {
+                console.log(modesRes);
                 customsModes = modesRes.data;
             }
         } catch (e) {

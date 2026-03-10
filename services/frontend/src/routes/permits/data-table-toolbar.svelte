@@ -86,7 +86,7 @@
     );
 
     // Fallback for is_closed which defaults to 'false' inside page.server.ts if not set
-    const currentIsClosed = $derived(searchParams.get("is_closed") ?? "false");
+    const currentIsClosed = $derived(searchParams.get("is_closed") ?? "");
 </script>
 
 <div class="flex flex-col gap-3 mb-4">
@@ -133,15 +133,15 @@
                 updateQuery("is_closed", val === "all" ? undefined : val)}
         >
             <Select.Trigger class="w-[140px] h-9 text-sm">
-                {currentIsClosed === "all"
+                {currentIsClosed == ""
                     ? "Всі статуси"
                     : currentIsClosed === "true"
                       ? "Закриті"
-                      : "В зоні (Активні)"}
+                      : "В зоні"}
             </Select.Trigger>
             <Select.Content>
                 <Select.Item value="all">Всі статуси</Select.Item>
-                <Select.Item value="false">В зоні (Активні)</Select.Item>
+                <Select.Item value="false">В зоні</Select.Item>
                 <Select.Item value="true">Закриті</Select.Item>
             </Select.Content>
         </Select.Root>
