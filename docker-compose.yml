@@ -43,18 +43,17 @@ services:
     restart: always
 
   frontend:
-    build:
-      context: ./services/frontend
-      dockerfile: Dockerfile
+    image: ghcr.io/truckguard/truck-guard/frontend:dev
     environment:
       - PORT=5173
       - HOSTNAME=0.0.0.0
+      - ORIGIN=http://localhost
+      - PROTOCOL_HEADER=x-forwarded-proto
+      - HOST_HEADER=x-forwarded-host
     restart: always
 
   auth:
-    build:
-      context: ./services/auth
-      dockerfile: Dockerfile
+    image: ghcr.io/truckguard/truck-guard/auth:dev
     restart: on-failure
     depends_on:
       db:
@@ -66,15 +65,15 @@ services:
       - JWT_SECRET=${JWT_SECRET}
       - PORT=8080
       - VALKEY_ADDR=${VALKEY_ADDR}
+      - REDIS_ADDR=${VALKEY_ADDR}
       - WORKER_SYSTEM_KEY=${WORKER_SYSTEM_KEY}
       - ADMIN_DEFAULT_PASSWORD=${ADMIN_DEFAULT_PASSWORD}
+      - OTEL_EXPORTER_OTLP_ENDPOINT=otel-collector:4317
     ports:
       - "8080:8080"
 
   ingestor:
-    build:
-      context: ./services/ingestor
-      dockerfile: Dockerfile
+    image: ghcr.io/truckguard/truck-guard/ingestor:dev
     restart: on-failure
     depends_on:
       valkey:
@@ -84,70 +83,63 @@ services:
     environment:
       - PORT=8080
       - VALKEY_ADDR=${VALKEY_ADDR}
+      - REDIS_ADDR=${VALKEY_ADDR}
       - STORAGE_ENDPOINT=garage:3900
-      - STORAGE_ACCESS_KEY=local-admin
-      - STORAGE_SECRET_KEY=local-admin
+      - STORAGE_ACCESS_KEY=${STORAGE_ACCESS_KEY}
+      - STORAGE_SECRET_KEY=${STORAGE_SECRET_KEY}
       - BUCKET_NAME=${STORAGE_BUCKET_NAME}
+      - OTEL_EXPORTER_OTLP_ENDPOINT=otel-collector:4317
     ports:
       - "8082:8080"
 
   core:
-    build:
-      context: ./services/core
-      dockerfile: Dockerfile
+    image: ghcr.io/truckguard/truck-guard/core:dev
     restart: on-failure
     depends_on:
       db:
         condition: service_healthy
+      valkey:
+        condition: service_started
     environment:
       - DATABASE_URL=postgres://${CORE_DB_USER}:${CORE_DB_PASSWORD}@db:5432/${CORE_DB_NAME}
+      - VALKEY_ADDR=${VALKEY_ADDR}
+      - REDIS_ADDR=${VALKEY_ADDR}
       - PORT=8080
       - AUTH_SERVICE_URL=http://gateway/auth
+      - OTEL_EXPORTER_OTLP_ENDPOINT=otel-collector:4317
     ports:
       - "8081:8080"
 
   customs-parser:
-    build:
-      context: ./services/customs-parser
-      dockerfile: Dockerfile
+    image: ghcr.io/truckguard/truck-guard/customs-parser:dev
     restart: on-failure
     environment:
       - PORT=8085
+      - OTEL_EXPORTER_OTLP_ENDPOINT=otel-collector:4317
     ports:
       - "8085:8085"
 
   adapter-worker:
-    build:
-      context: ./services/adapter-worker
-      dockerfile: Dockerfile
+    image: ghcr.io/truckguard/truck-guard/adapter-worker:dev
     restart: unless-stopped
     environment:
       - CORE_URL=http://gateway/api
-      - ANPR_URL=http://anpr:8000/recognize
       - VALKEY_ADDR=${VALKEY_ADDR}
+      - REDIS_ADDR=${VALKEY_ADDR}
       - STORAGE_ENDPOINT=garage:3900
       - STORAGE_BUCKET=${STORAGE_BUCKET_NAME}
-      - STORAGE_ACCESS_KEY=local-admin
-      - STORAGE_SECRET_KEY=local-admin
+      - STORAGE_ACCESS_KEY=${STORAGE_ACCESS_KEY}
+      - STORAGE_SECRET_KEY=${STORAGE_SECRET_KEY}
       - WORKER_API_KEY=${WORKER_SYSTEM_KEY}
       - PYTHONUNBUFFERED=1
+      - OTEL_EXPORTER_OTLP_ENDPOINT=otel-collector:4317
     depends_on:
-      - valkey
-      - core
-      - garage
-
-  anpr:
-    build:
-      context: ./services/anpr
-      dockerfile: Dockerfile
-    restart: unless-stopped
-    environment:
-      - TORCH_FORCE_WEIGHTS_ONLY_LOAD=0
-      - PYTHONUNBUFFERED=1
-    ports:
-      - "8000:8000"
-    volumes:
-      - nomeroff_models_cache:/root/.nomeroff_net
+      valkey:
+        condition: service_started
+      core:
+        condition: service_started
+      garage:
+        condition: service_healthy
 
   valkey:
     image: valkey/valkey:8.0-alpine
@@ -156,12 +148,13 @@ services:
     restart: always
 
   garage:
-    image: dxflrs/garage:v2.0.0
+    image: dxflrs/garage:v2.2.0
     restart: unless-stopped
     command: /garage server
     environment:
       - GARAGE_RPC_SECRET=${STORAGE_SECRET}
       - GARAGE_ADMIN_TOKEN=${STORAGE_ROOT_PASSWORD}
+      - GARAGE_ALLOW_WORLD_READABLE_SECRETS=true
     volumes:
       - ./infra/garage/garage.toml:/etc/garage.toml
       - garage_meta:/var/lib/garage/meta
@@ -180,29 +173,46 @@ services:
     image: alpine:3.18
     depends_on:
       garage:
-        condition: service_started
+        condition: service_healthy
     environment:
-      - STORAGE_ROOT_USER=${STORAGE_ROOT_USER}
-      - STORAGE_ROOT_PASSWORD=${STORAGE_ROOT_PASSWORD}
-      - STORAGE_BUCKET_NAME=${STORAGE_BUCKET_NAME}
-      - GARAGE_RPC_SECRET=${STORAGE_SECRET}
       - GARAGE_ADMIN_TOKEN=${STORAGE_ROOT_PASSWORD}
+      - STORAGE_BUCKET_NAME=${STORAGE_BUCKET_NAME}
+      - STORAGE_ACCESS_KEY=${STORAGE_ACCESS_KEY}
+      - STORAGE_SECRET_KEY=${STORAGE_SECRET_KEY}
     entrypoint: >
       /bin/sh -c "
         set -e;
-        apk add --no-cache curl;
-        wget -q -O /usr/local/bin/garage https://garagehq.deuxfleurs.fr/_releases/v2.0.0/x86_64-unknown-linux-musl/garage;
+        apk add --no-cache wget;
+        wget -q -O /usr/local/bin/garage https://garagehq.deuxfleurs.fr/_releases/v2.2.0/x86_64-unknown-linux-musl/garage;
         chmod +x /usr/local/bin/garage;
-        echo 'Waiting for Garage to be fully ready...';
-        sleep 10;
-        NODE_ID=$$(garage -u http://garage:3903 -t $$GARAGE_ADMIN_TOKEN status | grep 'Local node' | awk '{print $$3}');
-        if [ -z \"$$NODE_ID\" ]; then echo \"Node ID not found\"; exit 1; fi;
-        garage -u http://garage:3903 -t $$GARAGE_ADMIN_TOKEN layout assign $$NODE_ID -z garage -c 1G -t garage;
-        garage -u http://garage:3903 -t $$GARAGE_ADMIN_TOKEN layout apply --version 1 || true;
-        garage -u http://garage:3903 -t $$GARAGE_ADMIN_TOKEN bucket create ${STORAGE_BUCKET_NAME} || true;
-        garage -u http://garage:3903 -t $$GARAGE_ADMIN_TOKEN bucket allow ${STORAGE_BUCKET_NAME} --key local-admin --read --write || true;
+        echo 'Wait for garage to be ready...';
+        until /usr/local/bin/garage -u http://garage:3903 -t $$GARAGE_ADMIN_TOKEN status > /dev/null 2>&1; do
+          sleep 1;
+        done;
+        NODE_ID=$$(/usr/local/bin/garage -u http://garage:3903 -t $$GARAGE_ADMIN_TOKEN status | grep 'Local node' | awk '{print $$3}');
+        if [ -z \"$$NODE_ID\" ]; then echo 'Node ID not found'; exit 1; fi;
+        echo \"Assigning node $$NODE_ID...\";
+        /usr/local/bin/garage -u http://garage:3903 -t $$GARAGE_ADMIN_TOKEN layout assign $$NODE_ID -z garage -c 1G -t garage || true;
+        echo 'Applying layout...';
+        /usr/local/bin/garage -u http://garage:3903 -t $$GARAGE_ADMIN_TOKEN layout apply --version 1 || true;
+        echo 'Importing keys...';
+        /usr/local/bin/garage -u http://garage:3903 -t $$GARAGE_ADMIN_TOKEN key import local-key $$STORAGE_ACCESS_KEY $$STORAGE_SECRET_KEY || true;
+        echo \"Creating bucket $$STORAGE_BUCKET_NAME...\";
+        /usr/local/bin/garage -u http://garage:3903 -t $$GARAGE_ADMIN_TOKEN bucket create $$STORAGE_BUCKET_NAME || true;
+        echo 'Allowing key...';
+        /usr/local/bin/garage -u http://garage:3903 -t $$GARAGE_ADMIN_TOKEN bucket allow $$STORAGE_BUCKET_NAME --key $$STORAGE_ACCESS_KEY --read --write || true;
         echo 'Garage initialization complete';
       "
+
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:latest
+    command: ["--config=/etc/otel-config.yaml"]
+    volumes:
+      - ./infra/otel/otel-config.yaml:/etc/otel-config.yaml
+    ports:
+      - "4317:4317" # OTLP gRPC
+      - "4318:4318" # OTLP HTTP
+      - "8889:8889" # Prometheus Exporter
 
 volumes:
   postgres_data:
