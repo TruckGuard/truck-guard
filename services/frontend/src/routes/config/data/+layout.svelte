@@ -33,7 +33,7 @@
   }
 </script>
 
-<div class="flex flex-col gap-6">
+<div class="flex flex-col  overflow-auto gap-6">
   <div class="flex flex-col gap-1">
     <h1 class="text-3xl font-bold tracking-tight">Довідники</h1>
     <p class="text-muted-foreground">Керування основними даними системи.</p>

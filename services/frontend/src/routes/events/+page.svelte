@@ -110,32 +110,34 @@
   }
 </script>
 
-<div class="container mx-auto py-6 space-y-6">
-  <div
-    class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"
-  >
-    <div>
-      <h1 class="text-3xl font-bold tracking-tight text-foreground">
-        Моніторинг подій
-      </h1>
-      <p class="text-muted-foreground">
-        Централізований перегляд активності системи
-      </p>
-    </div>
-    <Button
-      variant="outline"
-      size="sm"
-      onclick={refresh}
-      disabled={loading}
-      class="w-fit shadow-sm"
+<div class="flex flex-col h-full overflow-hidden space-y-6">
+  <div class="shrink-0">
+    <div
+      class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"
     >
-      <RefreshCcw class="mr-2 h-4 w-4 {loading ? 'animate-spin' : ''}" />
-      Оновити дані
-    </Button>
+      <div>
+        <h1 class="text-3xl md:text-4xl font-bold tracking-tight text-foreground mb-2">
+          Моніторинг подій
+        </h1>
+        <p class="text-muted-foreground text-sm mb-0">
+          Централізований перегляд активності системи в реальному часі
+        </p>
+      </div>
+      <Button
+        variant="outline"
+        size="sm"
+        onclick={refresh}
+        disabled={loading}
+        class="h-10 px-4 shadow-sm"
+      >
+        <RefreshCcw class="mr-2 h-4 w-4 {loading ? 'animate-spin' : ''}" />
+        Оновити дані
+      </Button>
+    </div>
   </div>
 
-  <Tabs.Root value={activeTab} onValueChange={handleTabChange} class="w-full">
-    <div class="flex items-center justify-between mb-4">
+  <Tabs.Root value={activeTab} onValueChange={handleTabChange} class="flex-1 flex flex-col min-h-0 w-full overflow-hidden">
+    <div class="flex items-center justify-between mb-4 shrink-0">
       <Tabs.List class="w-full justify-start grid-cols-3 lg:w-[640px] grid">
         <Tabs.Trigger value="plate"
           ><Camera class="mr-2 h-4 w-4" /> Номери</Tabs.Trigger
@@ -149,28 +151,23 @@
       </Tabs.List>
     </div>
 
-    <EventsFilters
-      {activeTab}
-      bind:range
-      bind:filters
-      bind:isOpen={isFiltersOpen}
-      onApply={applyFilters}
-      onReset={resetFilters}
-    />
+    <div class="flex-1 min-h-0 overflow-hidden flex flex-col mb-4">
+      {#if activeTab === "plate"}
+        <PlateEventsTable {items} flex={true} />
+      {:else if activeTab === "weight"}
+        <WeightEventsTable {items} flex={true} />
+      {:else if activeTab === "system"}
+        <SystemEventsTable {items} flex={true} />
+      {/if}
+    </div>
 
-    {#if activeTab === "plate"}
-      <PlateEventsTable {items} />
-    {:else if activeTab === "weight"}
-      <WeightEventsTable {items} />
-    {:else if activeTab === "system"}
-      <SystemEventsTable {items} />
-    {/if}
-
-    <SimplePagination
-      currentPage={data.events.metadata?.current_page || data.page}
-      {totalPages}
-      {loading}
-      onPageChange={handlePageChange}
-    />
+    <div class="shrink-0">
+      <SimplePagination
+        currentPage={data.events.metadata?.current_page || data.page}
+        {totalPages}
+        {loading}
+        onPageChange={handlePageChange}
+      />
+    </div>
   </Tabs.Root>
 </div>

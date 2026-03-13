@@ -1,19 +1,17 @@
 <script lang="ts">
-  import { enhance } from "$app/forms";
-  import * as Table from "$lib/components/ui/table";
-  import * as Dialog from "$lib/components/ui/dialog";
+  import RolesTable from "./components/RolesTable.svelte";
   import { Button } from "$lib/components/ui/button";
+  import { can as authCan } from "$lib/auth";
+  import Plus from "@lucide/svelte/icons/plus";
+  import Search from "@lucide/svelte/icons/search";
+  import * as Dialog from "$lib/components/ui/dialog";
+  import { enhance } from "$app/forms";
+  import { toast } from "svelte-sonner";
   import { Input } from "$lib/components/ui/input";
   import { Label } from "$lib/components/ui/label";
   import { Checkbox } from "$lib/components/ui/checkbox";
   import type { PageData } from "./$types";
   import type { Role, Permission } from "$lib/server/auth-client";
-  import Pencil from "@lucide/svelte/icons/pencil";
-  import Trash2 from "@lucide/svelte/icons/trash-2";
-  import Shield from "@lucide/svelte/icons/shield";
-  import Plus from "@lucide/svelte/icons/plus";
-  import { toast } from "svelte-sonner";
-  import { can as authCan } from "$lib/auth";
 
   let { data }: { data: PageData } = $props();
 
@@ -25,6 +23,14 @@
   let currentRole: Role | null = $state(null);
   let selectedPermissions: string[] = $state([]);
   let permSearch = $state("");
+  let roleSearch = $state("");
+
+  let filteredRoles = $derived(
+    data.roles.filter((r: Role) => 
+      r.name.toLowerCase().includes(roleSearch.toLowerCase()) ||
+      r.description.toLowerCase().includes(roleSearch.toLowerCase())
+    )
+  );
 
   let filteredPermissions = $derived(
     data.permissions.filter(
@@ -68,72 +74,40 @@
     }
   }
 </script>
+<div class="flex flex-col h-full overflow-hidden space-y-6">
+  <div class="shrink-0">
+    <h1 class="text-3xl md:text-4xl font-bold tracking-tight text-foreground mb-2">Ролі та права</h1>
+    <p class="text-muted-foreground text-sm mb-0">
+      Керування ролями користувачів та їх доступом до функцій системи
+    </p>
+  </div>
 
-<div class="p-6 space-y-6">
-  <div class="flex items-center justify-between">
-    <div>
-      <h1 class="text-3xl font-bold tracking-tight">Ролі та права</h1>
-      <p class="text-muted-foreground">
-        Керування ролями користувачів та їх доступом.
-      </p>
+  <div class="flex items-center justify-between gap-4 shrink-0">
+    <div class="relative max-w-sm w-full group">
+      <Search class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
+      <Input
+        placeholder="Пошук ролей..."
+        class="pl-9 h-10 bg-muted/50 border-none focus-visible:ring-1 focus-visible:ring-primary/20"
+        bind:value={roleSearch}
+      />
     </div>
     {#if authCan(data.user, "create:roles")}
-      <Button onclick={openCreate}>
+      <Button size="sm" class="h-10 shadow-sm" onclick={openCreate}>
         <Plus class="mr-2 h-4 w-4" />
         Створити роль
       </Button>
     {/if}
   </div>
 
-  <div class="border rounded-md">
-    <Table.Root>
-      <Table.Header>
-        <Table.Row>
-          <Table.Head>Назва</Table.Head>
-          <Table.Head>Опис</Table.Head>
-          <Table.Head class="text-right">Дії</Table.Head>
-        </Table.Row>
-      </Table.Header>
-      <Table.Body>
-        {#each data.roles as role (role.id)}
-          <Table.Row>
-            <Table.Cell class="font-medium">{role.name}</Table.Cell>
-            <Table.Cell>{role.description}</Table.Cell>
-            <Table.Cell class="text-right space-x-2">
-              {#if authCan(data.user, "update:roles")}
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onclick={() => openPerms(role)}
-                  title="Права доступу"
-                >
-                  <Shield class="h-4 w-4" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onclick={() => openEdit(role)}
-                  title="Редагувати"
-                >
-                  <Pencil class="h-4 w-4" />
-                </Button>
-              {/if}
-              {#if authCan(data.user, "delete:roles")}
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onclick={() => openDelete(role)}
-                  class="text-destructive hover:text-destructive"
-                  title="Видалити"
-                >
-                  <Trash2 class="h-4 w-4" />
-                </Button>
-              {/if}
-            </Table.Cell>
-          </Table.Row>
-        {/each}
-      </Table.Body>
-    </Table.Root>
+  <div class="flex-1 min-h-0 overflow-hidden flex flex-col">
+    <RolesTable 
+      roles={filteredRoles} 
+      currentUser={data.user} 
+      flex={true}
+      onPerms={openPerms} 
+      onEdit={openEdit} 
+      onDelete={openDelete} 
+    />
   </div>
 
   <!-- Create Role Dialog -->

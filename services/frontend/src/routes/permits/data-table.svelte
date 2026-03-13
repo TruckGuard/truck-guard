@@ -1,4 +1,5 @@
 <script lang="ts">
+    import DataTable from "$lib/components/common/DataTable.svelte";
     import { getCoreRowModel } from "@tanstack/table-core";
     import type {
         ColumnDef,
@@ -210,17 +211,20 @@
 
 {#snippet leafHeader(header: any, rowspan = 1, colspan = 1, isGroupEnd = false)}
     {@const meta = getMeta(header.column)}
-    {@const align = meta.align === "right" ? "justify-end text-right" : "text-left leading-tight"}
+    {@const align =
+        meta.align === "right"
+            ? "justify-end text-right"
+            : "text-left leading-tight"}
     <Table.Head
         {rowspan}
         {colspan}
         class="whitespace-nowrap transition-colors {isGroupEnd && rowspan === 1
-            ? 'border-r border-slate-200 dark:border-zinc-800'
+            ? 'border-r'
             : ''} last:border-r-0 {header.column.getCanSort()
-            ? 'cursor-pointer hover:bg-slate-200/50 dark:hover:bg-zinc-800/50'
+            ? 'cursor-pointer hover:bg-muted/50'
             : ''} {dragOverColumnId === header.column.id
             ? 'bg-primary/5 border-l-2 border-primary'
-            : ''} align-middle h-14 px-4 py-2 text-slate-700 dark:text-zinc-300 font-bold border-b border-slate-200 dark:border-zinc-800 text-sm"
+            : ''} align-middle h-12 px-4 py-2 text-muted-foreground font-bold border-b text-xs uppercase tracking-wider bg-card"
         onclick={() =>
             handleSortClick(header.column.id, header.column.getCanSort())}
         draggable="true"
@@ -250,7 +254,7 @@
 {/snippet}
 
 <div
-    class="space-y-4 flex flex-col h-full bg-card rounded-2xl shadow-sm p-3 w-full"
+    class="space-y-4 flex flex-col h-full bg-card rounded-2xl shadow-md w-full"
 >
     <DataTableToolbar
         table={table as any}
@@ -262,13 +266,11 @@
         {hasAllPermitsAccess}
     />
 
-    <div class="rounded-xl overflow-auto flex-1 bg-background relative scrollbar-thin border-t border-slate-200 dark:border-zinc-800">
-        <Table.Root class="w-full text-base border-separate border-spacing-0">
-            <Table.Header
-                class="sticky top-0 z-20 bg-slate-100/90 dark:bg-zinc-950/80 backdrop-blur-md shadow-sm border-y border-slate-200 dark:border-zinc-800"
-            >
+    <DataTable maxHeight="75vh" class="flex-1">
+        <Table.Root class="w-full">
+            <Table.Header class="sticky-table-header z-30 bg-accent">
                 {#each table.getHeaderGroups() as headerGroup, i (headerGroup.id)}
-                    <Table.Row class="border-none hover:bg-transparent">
+                    <Table.Row class="hover:bg-transparent">
                         {#each headerGroup.headers as header, j (header.id)}
                             {@const isGroupedTable =
                                 table.getHeaderGroups().length > 1}
@@ -294,10 +296,10 @@
                                     <!-- Group header -->
                                     <Table.Head
                                         colspan={header.colSpan}
-                                        class="h-10 border-b border-slate-200 dark:border-zinc-800 border-r border-slate-200 dark:border-zinc-800 last:border-r-0 text-center bg-transparent"
+                                        class="h-10 border-b border-r last:border-r-0 text-center bg-transparent"
                                     >
                                         <span
-                                            class="font-extrabold text-[11px] tracking-[0.15em] uppercase text-slate-500 dark:text-zinc-500 whitespace-nowrap"
+                                            class="font-black text-[10px] tracking-[0.2em] uppercase text-muted-foreground whitespace-nowrap"
                                         >
                                             {typeof header.column.columnDef
                                                 .header === "string"
@@ -326,7 +328,7 @@
                     <Table.Row>
                         <Table.Cell
                             colspan={columns.length}
-                            class="h-60 text-center text-slate-400 dark:text-zinc-500 italic bg-slate-50/10 dark:bg-zinc-900/10"
+                            class="h-60 text-center text-muted-foreground italic bg-muted/5"
                         >
                             Немає перепусток
                         </Table.Cell>
@@ -334,25 +336,35 @@
                 {:else}
                     {#each table.getRowModel().rows as row (row.id)}
                         <Table.Row
-                            class="group hover:bg-blue-50/30 dark:hover:bg-blue-900/20 even:bg-slate-50/40 dark:even:bg-zinc-900/40 cursor-pointer transition-all duration-150 border-b border-slate-100 dark:border-zinc-900 last:border-0"
+                            class="group hover:bg-primary/5 cursor-pointer transition-colors border-b last:border-0"
                             onclick={() =>
                                 goto(`/permits/${(row.original as Permit).ID}`)}
                         >
                             {#each row.getVisibleCells() as cell, j (cell.id)}
                                 {@const meta = getMeta(cell.column)}
-                                {@const align = meta.align === "right" ? "text-right" : "text-left"}
-                                {@const isSeparatorCol = cell.column.id === "days_in_zone"}
-                                
+                                {@const align =
+                                    meta.align === "right"
+                                        ? "text-right"
+                                        : "text-left"}
+                                {@const isSeparatorCol =
+                                    cell.column.id === "days_in_zone"}
+
                                 <Table.Cell
-                                    class="py-4 px-4 transition-colors {align} {isSeparatorCol ? 'border-r border-slate-200/80 dark:border-zinc-800/50' : ''}"
+                                    class="py-2.5 px-4 transition-colors {align} text-sm {isSeparatorCol
+                                        ? 'border-r'
+                                        : ''}"
                                 >
-                                    <div class="
+                                    <div
+                                        class="
                                         {meta.mono ? 'font-mono' : ''} 
                                         {meta.fontMedium ? 'font-medium' : ''}
-                                        {meta.fontSemiBold ? 'font-semibold' : ''}
+                                        {meta.fontSemiBold
+                                            ? 'font-semibold'
+                                            : ''}
                                         {meta.tabular ? 'tabular-nums' : ''}
                                         {meta.className || ''}
-                                    ">
+                                    "
+                                    >
                                         <FlexRender
                                             content={cell.column.columnDef.cell}
                                             context={cell.getContext()}
@@ -365,10 +377,10 @@
                 {/if}
             </Table.Body>
         </Table.Root>
-    </div>
+    </DataTable>
 
     {#if metadata && metadata.total_pages > 1}
-        <div class="pt-4 px-2 border-t border-slate-200 dark:border-zinc-800">
+        <div class="pt-4">
             <SimplePagination
                 currentPage={metadata.current_page}
                 totalPages={metadata.total_pages}
@@ -386,20 +398,3 @@
         </div>
     {/if}
 </div>
-
-<style>
-    .scrollbar-thin::-webkit-scrollbar {
-        width: 6px;
-        height: 6px;
-    }
-    .scrollbar-thin::-webkit-scrollbar-track {
-        background: transparent;
-    }
-    .scrollbar-thin::-webkit-scrollbar-thumb {
-        background: hsl(var(--muted-foreground) / 0.2);
-        border-radius: 10px;
-    }
-    .scrollbar-thin::-webkit-scrollbar-thumb:hover {
-        background: hsl(var(--muted-foreground) / 0.3);
-    }
-</style>

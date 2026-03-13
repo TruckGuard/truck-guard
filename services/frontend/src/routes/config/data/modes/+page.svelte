@@ -49,33 +49,26 @@
   }
 </script>
 
-<div class="space-y-4 p-6">
-  {#if data.error}
-    <Alert.Root variant="destructive">
-      <CircleAlert class="h-4 w-4" />
-      <Alert.Title>Помилка</Alert.Title>
-      <Alert.Description>{data.error}</Alert.Description>
-    </Alert.Root>
-  {/if}
-
-  <div class="flex items-center justify-between">
-    <div class="flex items-center gap-2 max-w-sm w-full">
+<div class="flex flex-col h-full overflow-hidden space-y-6">
+  <div class="flex items-center justify-between gap-4 shrink-0">
+    <div class="relative max-w-sm w-full group">
+      <Search class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
       <Input
         placeholder="Пошук за назвою..."
+        class="pl-9 h-10 bg-muted/50 border-none focus-visible:ring-1 focus-visible:ring-primary/20"
         bind:value={searchQuery}
         onkeydown={(e) => e.key === "Enter" && handleSearch()}
       />
-      <Button variant="outline" size="icon" onclick={handleSearch}>
-        <Search class="h-4 w-4" />
-      </Button>
     </div>
-    <Button onclick={() => (isCreateOpen = true)}>
+    <Button size="sm" class="h-10 shadow-sm" onclick={() => (isCreateOpen = true)}>
       <Plus class="mr-2 h-4 w-4" />
       Додати режим
     </Button>
   </div>
 
-  <ModesTable modes={data.modes} onEdit={openEdit} onDelete={openDelete} />
+  <div class="flex-1 min-h-0 overflow-hidden flex flex-col">
+    <ModesTable modes={data.modes} flex={true} onEdit={openEdit} onDelete={openDelete} />
+  </div>
 
   {#if data.pagination && data.pagination.total_pages > 1}
     <SimplePagination

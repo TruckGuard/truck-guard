@@ -1,76 +1,88 @@
 <script lang="ts">
     import * as Table from "$lib/components/ui/table";
-    import { Button } from "$lib/components/ui/button";
-    import { Activity, Database } from "@lucide/svelte";
+    import DataTable from "$lib/components/common/DataTable.svelte";
     import { formatDate } from "$lib/utils/date";
+    import { Activity, Database } from "@lucide/svelte";
 
-    let { items } = $props<{
+    let { items, flex = false } = $props<{
         items: any[];
+        flex?: boolean;
     }>();
+
+    function parsePayload(payload: any) {
+        if (!payload) return null;
+        if (typeof payload !== "string") return payload;
+        try {
+            return JSON.parse(payload);
+        } catch (e) {
+            return null;
+        }
+    }
 </script>
 
-<div class="rounded-xl border bg-card shadow-md overflow-hidden transition-all">
-    <Table.Root>
-        <Table.Header class="bg-muted/30">
-            <Table.Row>
-                <Table.Head class="w-[80px] text-center">ID</Table.Head>
-                <Table.Head>Час</Table.Head>
-                <Table.Head>Категорія</Table.Head>
-                <Table.Head>Дані</Table.Head>
-            </Table.Row>
-        </Table.Header>
-        <Table.Body>
-            {#if items.length === 0}
-                <Table.Row>
-                    <Table.Cell
-                        colspan={4}
-                        class="h-40 text-center text-muted-foreground"
-                    >
-                        <div
-                            class="flex flex-col items-center justify-center gap-2"
-                        >
-                            <Database class="h-8 w-8 opacity-20" />
-                            <span class="text-lg font-medium italic"
-                                >Дані не знайдено</span
-                            >
-                        </div>
-                    </Table.Cell>
-                </Table.Row>
+{#snippet header()}
+    <Table.Row class="hover:bg-transparent">
+        <Table.Head
+            class="h-12 px-4 py-2 font-bold text-xs uppercase tracking-wider text-muted-foreground border-b"
+            >ID</Table.Head
+        >
+        <Table.Head
+            class="h-12 px-4 py-2 font-bold text-xs uppercase tracking-wider text-muted-foreground border-b"
+            >Час</Table.Head
+        >
+        <Table.Head
+            class="h-12 px-4 py-2 font-bold text-xs uppercase tracking-wider text-muted-foreground border-b"
+            >Категорія</Table.Head
+        >
+        <Table.Head
+            class="h-12 px-4 py-2 font-bold text-xs uppercase tracking-wider text-muted-foreground border-b"
+            >Дані</Table.Head
+        >
+    </Table.Row>
+{/snippet}
+
+{#snippet row(item: any)}
+    {@const data = parsePayload(item.payload)}
+    <Table.Cell class="py-2.5 px-4 font-mono">
+        <a
+            href="/events/system/{item.ID}"
+            class="text-primary hover:underline font-bold decoration-primary/30 underline-offset-4"
+        >
+            #{item.ID}
+        </a>
+    </Table.Cell>
+    <Table.Cell class="py-2.5 px-4 tabular-nums"
+        >{formatDate(item.timestamp)}</Table.Cell
+    >
+    <Table.Cell class="py-2.5 px-4">
+        <div class="flex items-center gap-2">
+            <Activity class="h-3.5 w-3.5 text-muted-foreground/60" />
+            <span class="font-medium text-foreground/80"
+                >{item.type || "Системна подія"}</span
+            >
+        </div>
+    </Table.Cell>
+    <Table.Cell class="py-2.5 px-4">
+        <div class="max-w-[400px]">
+            {#if data && typeof data === "object"}
+                <code
+                    class="text-xs bg-muted px-2 py-1.5 rounded text-muted-foreground block line-clamp-3 break-all leading-relaxed"
+                    title={JSON.stringify(data)}
+                >
+                    {JSON.stringify(data)}
+                </code>
             {:else}
-                {#each items as item}
-                    <Table.Row
-                        class="hover:bg-muted/40 transition-colors border-b last:border-0"
-                    >
-                        <Table.Cell>
-                            <Button
-                                variant="link"
-                                href={`/events/system/${item.ID}`}
-                            >
-                                #{item.ID}
-                            </Button>
-                        </Table.Cell>
-                        <Table.Cell class="whitespace-nowrap text-sm"
-                            >{formatDate(item.timestamp)}</Table.Cell
-                        >
-                        <Table.Cell>
-                            <div
-                                class="inline-flex items-center gap-1.5 bg-primary text-primary-foreground px-2 py-0.5 rounded font-mono font-bold"
-                            >
-                                <Activity class="h-3 w-3" />
-                                {item.type}
-                            </div>
-                        </Table.Cell>
-                        <Table.Cell>
-                            <div
-                                class="max-w-[55vw] truncate font-mono bg-muted p-1.5 rounded border border-border"
-                                title={item.payload}
-                            >
-                                {item.payload}
-                            </div>
-                        </Table.Cell>
-                    </Table.Row>
-                {/each}
+                <span class="text-muted-foreground/50 italic">-</span>
             {/if}
-        </Table.Body>
-    </Table.Root>
-</div>
+        </div>
+    </Table.Cell>
+{/snippet}
+
+<DataTable
+    columns={4}
+    {items}
+    {flex}
+    headerSnippet={header}
+    rowSnippet={row}
+    emptyStateIcon={Database}
+/>

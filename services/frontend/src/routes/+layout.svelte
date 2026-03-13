@@ -58,12 +58,12 @@
 {#if data.user}
   <Sidebar.Provider>
     <AppSidebar user={data.user} />
-    <Sidebar.Inset>
-      <header class="flex h-14 shrink-0 items-center gap-2 border-b px-4">
+    <Sidebar.Inset class="h-svh overflow-hidden flex flex-col">
+      <header class="flex h-14 shrink-0 items-center gap-2 border-b px-4 bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/60 z-30">
         <Sidebar.Trigger class="-ms-1" />
         <Separator orientation="vertical" class="me-2 h-4" />
       </header>
-      <div class="flex flex-1 flex-col gap-4 p-4 pt-0">
+      <div class="flex-1 flex flex-col min-h-0 overflow-auto p-4 pt-0">
         {@render children()}
       </div>
     </Sidebar.Inset>

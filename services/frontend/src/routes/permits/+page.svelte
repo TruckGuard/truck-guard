@@ -28,7 +28,9 @@
     loading = true;
     const query = new URLSearchParams(page.url.searchParams.toString());
     query.set("page", "1");
-    goto(`?${query.toString()}`, { invalidateAll: true }).then(() => (loading = false));
+    goto(`?${query.toString()}`, { invalidateAll: true }).then(
+      () => (loading = false),
+    );
   }
 
   function startCreatePermit(event?: any) {
@@ -47,29 +49,29 @@
 </script>
 
 <div
-  class="container h-[calc(100vh-80px)] mx-auto py-6 flex flex-col space-y-4"
+  class="flex flex-col h-full overflow-hidden space-y-6"
 >
   <div class="flex items-center justify-between shrink-0">
     <div>
-      <h1 class="text-3xl font-bold tracking-tight text-foreground">
+      <h1 class="text-3xl md:text-4xl font-bold tracking-tight text-foreground mb-2">
         Панель оператора перепусток
       </h1>
-      <p class="text-muted-foreground">
-        Моніторинг живих подій та керування активними перепустками
+      <p class="text-muted-foreground text-sm mb-0">
+        Моніторинг живих подій та керування активними перепустками в зоні
       </p>
     </div>
     <div class="flex items-center gap-3">
-      <Button variant="outline" size="sm" onclick={refresh} disabled={loading}>
+      <Button variant="outline" size="sm" class="h-10 px-4 shadow-sm" onclick={refresh} disabled={loading}>
         <RefreshCcw class="mr-2 h-4 w-4 {loading ? 'animate-spin' : ''}" />
         Оновити дані
       </Button>
-      <Button onclick={() => startCreatePermit()}>
+      <Button size="sm" class="h-10 px-4 shadow-sm" onclick={() => startCreatePermit()}>
         <Plus class="mr-2 h-4 w-4" /> Створити вручну
       </Button>
     </div>
   </div>
 
-  <div class="flex h-full gap-6 overflow-hidden">
+  <div class="flex-1 flex flex-col min-h-0 overflow-hidden">
     <DataTable
       data={data.activePermits?.data || []}
       {columns}

@@ -4,7 +4,7 @@ import type { ApiResponse } from '$lib/types/events';
 export const load: PageServerLoad = async ({ url, locals }) => {
     const tab = url.searchParams.get('tab') || 'plate';
     const page = Number(url.searchParams.get('page')) || 1;
-    const limit = Number(url.searchParams.get('limit')) || 9;
+    const limit = Number(url.searchParams.get('limit')) || 15;
 
     let events: ApiResponse<any> = {
         data: [],

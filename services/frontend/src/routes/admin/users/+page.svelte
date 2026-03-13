@@ -1,10 +1,9 @@
 <script lang="ts">
-  import * as Table from "$lib/components/ui/table";
-  import { Badge } from "$lib/components/ui/badge";
+  import UsersTable from "./components/UsersTable.svelte";
   import { Button } from "$lib/components/ui/button";
-  import { format } from "date-fns";
+  import { Input } from "$lib/components/ui/input";
   import { can } from "$lib/auth";
-  import { Pencil, Plus, Trash2 } from "@lucide/svelte";
+  import { Plus, Search } from "@lucide/svelte";
   import * as Dialog from "$lib/components/ui/dialog";
   import { enhance } from "$app/forms";
   import { toast } from "svelte-sonner";
@@ -13,6 +12,14 @@
 
   let isDeleteOpen = $state(false);
   let userToDelete: any = $state(null);
+  let searchQuery = $state("");
+
+  let filteredUsers = $derived(
+    data.users.filter((u: any) => 
+      u.username.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      u.role.toLowerCase().includes(searchQuery.toLowerCase())
+    )
+  );
 
   function openDelete(user: any) {
     userToDelete = user;
@@ -20,117 +27,33 @@
   }
 </script>
 
-<div class="p-6 space-y-6 overflow-auto">
-  <div class="flex items-center justify-between">
-    <div>
-      <h1 class="text-3xl font-bold tracking-tight">Користувачі</h1>
-      <p class="text-muted-foreground">
-        Список всіх користувачів системи з ролями та статусом
-      </p>
+<div class="flex flex-col h-full overflow-hidden space-y-6">
+  <div class="flex items-center justify-between gap-4 shrink-0">
+    <div class="relative max-w-sm w-full group">
+      <Search class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
+      <Input
+        placeholder="Пошук за логіном або роллю..."
+        class="pl-9 h-10 bg-muted/50 border-none focus-visible:ring-1 focus-visible:ring-primary/20"
+        bind:value={searchQuery}
+      />
     </div>
     {#if can(data.user, "create:users")}
-      <Button href="/admin/users/create">
+      <Button size="sm" class="h-10 shadow-sm" href="/admin/users/create">
         <Plus class="mr-2 h-4 w-4" />
         Створити користувача
       </Button>
     {/if}
   </div>
 
-  <div class="rounded-md border">
-    <Table.Root>
-      <Table.Header>
-        <Table.Row>
-          <Table.Head>Username</Table.Head>
-          <Table.Head>Роль</Table.Head>
-          <Table.Head>ПІБ</Table.Head>
-          <Table.Head>Email</Table.Head>
-          <Table.Head>Телефон</Table.Head>
-          <Table.Head>Пост</Table.Head>
-          <Table.Head>Останній вхід</Table.Head>
-          <Table.Head class="text-right">Дії</Table.Head>
-        </Table.Row>
-      </Table.Header>
-      <Table.Body>
-        {#each data.users as user (user.id)}
-          <Table.Row>
-            <Table.Cell>
-              {user.username}
-              {#if user.id === data.user.id}
-                <Badge variant="outline">Ви</Badge>
-              {/if}
-            </Table.Cell>
-            <Table.Cell>
-              <Badge variant="outline">{user.role?.name || "No Role"}</Badge>
-            </Table.Cell>
-            <Table.Cell>
-              {#if user.profile}
-                {user.profile.last_name || ""}
-                {user.profile.first_name || ""}
-                {user.profile.third_name || ""}
-              {:else}
-                <span class="text-muted-foreground italic"
-                  >Профіль не знайдено</span
-                >
-              {/if}
-            </Table.Cell>
-            <Table.Cell>
-              {#if user.profile?.email}
-                {user.profile.email}
-              {:else}
-                -
-              {/if}
-            </Table.Cell>
-            <Table.Cell>
-              {#if user.profile?.phone_number}
-                {user.profile.phone_number}
-              {:else}
-                -
-              {/if}
-            </Table.Cell>
-            <Table.Cell>
-              {#if user.profile?.customs_post_id}
-                {@const post = data.posts?.find(
-                  (p: any) => p.ID === user.profile.customs_post_id,
-                )}
-                {post?.name || user.profile.customs_post_id}
-              {:else}
-                -
-              {/if}
-            </Table.Cell>
-            <Table.Cell>
-              {#if user.last_login}
-                {format(new Date(user.last_login), "dd.MM.yyyy HH:mm")}
-              {:else}
-                <span class="text-muted-foreground">Ніколи</span>
-              {/if}
-            </Table.Cell>
-            <Table.Cell class="text-right space-x-2">
-              {#if can(data.user, "update:users") && user.profile && user.id != data.user.id}
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  href={`/admin/users/${user.id}`}
-                  title="Змінити"
-                >
-                  <Pencil class="h-4 w-4" />
-                </Button>
-              {/if}
-              {#if can(data.user, "delete:users") && user.id != data.user.id}
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onclick={() => openDelete(user)}
-                  class="text-destructive hover:text-destructive"
-                  title="Видалити"
-                >
-                  <Trash2 class="h-4 w-4" />
-                </Button>
-              {/if}
-            </Table.Cell>
-          </Table.Row>
-        {/each}
-      </Table.Body>
-    </Table.Root>
+  <div class="flex-1 min-h-0 overflow-hidden flex flex-col">
+    <UsersTable 
+      users={filteredUsers} 
+      currentUser={data.user} 
+      posts={data.posts} 
+      flex={true}
+      onDelete={openDelete} 
+      onEdit={() => {}}
+    />
   </div>
 
   <Dialog.Root bind:open={isDeleteOpen}>
@@ -159,7 +82,6 @@
                 await update();
               } else {
                 toast.error("Не вдалося видалити користувача");
-                // Optional: revert optimistic UI if we implemented it
               }
             };
           }}
