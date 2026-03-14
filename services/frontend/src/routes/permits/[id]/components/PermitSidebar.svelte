@@ -18,6 +18,9 @@
         handleSave,
         handleValidatePermit,
         handleClosePermit,
+        handleRestore,
+        handleVoid,
+        handleDelete,
         validationItems,
     } = $props<{
         permit: any;
@@ -26,6 +29,9 @@
         handleSave: (silent?: boolean) => Promise<boolean>;
         handleValidatePermit: () => Promise<void>;
         handleClosePermit: () => Promise<void>;
+        handleRestore: () => Promise<void>;
+        handleVoid: () => Promise<void>;
+        handleDelete: () => Promise<void>;
         validationItems: {
             label: string;
             isValid: boolean;
@@ -122,6 +128,15 @@
                         >
                     </div>
 
+                    {#if permit.creator}
+                        <div class="flex items-center justify-between text-[11px] pt-1 border-t border-muted/20 mt-1">
+                            <span class="text-muted-foreground italic">Реєстрація:</span>
+                            <span class="font-medium">
+                                {permit.creator.first_name} {permit.creator.last_name}
+                            </span>
+                        </div>
+                    {/if}
+
                     {#if permit.is_closed && permit.exit_time}
                         <div class="flex items-center justify-between text-sm">
                             <span
@@ -132,6 +147,29 @@
                             <span class="font-bold"
                                 >{formatDate(permit.exit_time)}</span
                             >
+                        </div>
+                        {#if permit.closed_by}
+                            <div class="flex items-center justify-between text-xs pt-1">
+                                <span class="text-muted-foreground italic">Закрив:</span>
+                                <span class="font-medium">{permit.closed_by.first_name} {permit.closed_by.last_name}</span>
+                            </div>
+                        {/if}
+                    {/if}
+
+                    {#if permit.is_void}
+                        <div class="p-3 bg-red-50 dark:bg-red-950/30 rounded-lg border border-red-100 dark:border-red-800 flex items-center gap-3">
+                            <div class="h-8 w-8 rounded-full bg-red-100 dark:bg-red-900/50 flex items-center justify-center shrink-0">
+                                <Activity class="h-4 w-4 text-red-600" />
+                            </div>
+                            <div>
+                                <div class="text-[10px] font-black uppercase text-red-600 dark:text-red-400">Анульовано</div>
+                                <div class="text-[11px] text-red-700/70 dark:text-red-400/70">Ця перепустка більше не є дійсною</div>
+                                {#if permit.voided_by}
+                                    <div class="text-[10px] mt-1 italic text-red-600/80 dark:text-red-400/80">
+                                        Анулював: {permit.voided_by.first_name} {permit.voided_by.last_name}
+                                    </div>
+                                {/if}
+                            </div>
                         </div>
                     {/if}
 
@@ -174,8 +212,8 @@
             </div>
         </div>
 
-        <!-- Validation Checklist Card (if not verified) -->
-        {#if !permit.verified_at && !permit.is_closed}
+        <!-- Validation Checklist Card (if not verified and NOT void) -->
+        {#if !permit.verified_at && !permit.is_closed && !permit.is_void}
             <div
                 class="bg-card border-2 border-amber-100 dark:border-amber-800/50 rounded-xl shadow-md overflow-hidden bg-amber-50/10 dark:bg-amber-950/10 animate-in fade-in slide-in-from-right-4 duration-500"
             >
@@ -221,10 +259,10 @@
                 : ''}"
         >
             <Save class="h-5 w-5 {loading ? 'animate-spin' : ''}" />
-            {data.isNew ? "Зареєструвати заїзд" : "Зберегти зміни"}
+            {!permit.verified_at ? "Зареєструвати заїзд" : "Зберегти зміни"}
         </Button>
 
-        {#if !data.isNew && !permit.is_closed}
+        {#if !permit.is_closed && !permit.is_void}
             {#if data.canValidate && !permit.verified_at}
                 <Button
                     variant="outline"
@@ -236,30 +274,87 @@
                 </Button>
             {/if}
 
+            {#if !permit.is_void}
+                <div class="grid grid-cols-2 gap-2">
+                    <AlertDialog.Root>
+                        <AlertDialog.Trigger>
+                            <Button
+                                variant="outline"
+                                disabled={loading}
+                                class="w-full gap-2 h-12 text-sm font-bold border shadow-sm bg-white dark:bg-transparent hover:bg-red-50 dark:hover:bg-red-950/30 hover:text-red-600 dark:hover:text-red-400 hover:border-red-200 dark:hover:border-red-800 transition-all"
+                            >
+                                <Activity class="h-4 w-4" /> Анулювати
+                            </Button>
+                        </AlertDialog.Trigger>
+                        <AlertDialog.Content>
+                            <AlertDialog.Header>
+                                <AlertDialog.Title>Підтвердження анулювання</AlertDialog.Title>
+                                <AlertDialog.Description>
+                                    Ви впевнені, що хочете анулювати цю перепустку? Це зробить її недійсною.
+                                </AlertDialog.Description>
+                            </AlertDialog.Header>
+                            <AlertDialog.Footer>
+                                <AlertDialog.Cancel>Скасувати</AlertDialog.Cancel>
+                                <AlertDialog.Action onclick={handleVoid} class="bg-red-600 hover:bg-red-700">Анулювати</AlertDialog.Action>
+                            </AlertDialog.Footer>
+                        </AlertDialog.Content>
+                    </AlertDialog.Root>
+
+                    <AlertDialog.Root>
+                        <AlertDialog.Trigger>
+                            <Button
+                                variant="secondary"
+                                disabled={loading}
+                                class="w-full gap-2 h-12 text-sm font-bold border shadow-sm bg-white dark:bg-transparent hover:bg-slate-50 dark:hover:bg-slate-950/30 transition-all"
+                            >
+                                <Send class="h-4 w-4" /> Закрити
+                            </Button>
+                        </AlertDialog.Trigger>
+                        <AlertDialog.Content>
+                            <AlertDialog.Header>
+                                <AlertDialog.Title>Підтвердження закриття</AlertDialog.Title>
+                                <AlertDialog.Description>Ви впевнені, що хочете закрити цю перепустку?</AlertDialog.Description>
+                            </AlertDialog.Header>
+                            <AlertDialog.Footer>
+                                <AlertDialog.Cancel>Скасувати</AlertDialog.Cancel>
+                                <AlertDialog.Action onclick={handleClosePermit}>Підтвердити</AlertDialog.Action>
+                            </AlertDialog.Footer>
+                        </AlertDialog.Content>
+                    </AlertDialog.Root>
+                </div>
+            {/if}
+        {/if}
+
+        {#if permit.is_void}
+            <Button
+                variant="outline"
+                onclick={handleRestore}
+                disabled={loading}
+                class="w-full gap-2.5 h-12 text-base font-bold border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/30"
+            >
+                <Activity class="h-5 w-5" /> Відновити перепустку
+            </Button>
+
             <AlertDialog.Root>
                 <AlertDialog.Trigger>
                     <Button
-                        variant="secondary"
+                        variant="destructive"
                         disabled={loading}
-                        class="w-full gap-2.5 h-12 text-base font-bold border shadow-sm bg-white dark:bg-transparent hover:bg-rose-50 dark:hover:bg-rose-950/30 hover:text-rose-600 dark:hover:text-rose-400 hover:border-rose-200 dark:hover:border-rose-800 transition-all"
+                        class="w-full gap-2.5 h-12 text-base font-bold shadow-md"
                     >
-                        <Send class="h-5 w-5" /> Завершити стоянку
+                        <Activity class="h-5 w-5" /> Видалити остаточно
                     </Button>
                 </AlertDialog.Trigger>
                 <AlertDialog.Content>
                     <AlertDialog.Header>
-                        <AlertDialog.Title
-                            >Підтвердження закриття</AlertDialog.Title
-                        >
-                        <AlertDialog.Description
-                            >Ви впевнені, що хочете закрити цю перепустку?</AlertDialog.Description
-                        >
+                        <AlertDialog.Title>Видалення перепустки</AlertDialog.Title>
+                        <AlertDialog.Description>
+                            Ви впевнені, що хочете остаточно видалити цю перепустку зі сховища? Це скасує всі пов'язані записи.
+                        </AlertDialog.Description>
                     </AlertDialog.Header>
                     <AlertDialog.Footer>
                         <AlertDialog.Cancel>Скасувати</AlertDialog.Cancel>
-                        <AlertDialog.Action onclick={handleClosePermit}
-                            >Підтвердити</AlertDialog.Action
-                        >
+                        <AlertDialog.Action onclick={handleDelete} class="bg-red-600 hover:bg-red-700">Видалити</AlertDialog.Action>
                     </AlertDialog.Footer>
                 </AlertDialog.Content>
             </AlertDialog.Root>

@@ -157,6 +157,10 @@ type Permit struct {
 	VerifiedBy        *uint      `json:"verified_by"`
 	Verifier          *User      `gorm:"foreignKey:VerifiedBy" json:"verifier,omitempty"`
 	VerifiedAt        *time.Time `json:"verified_at"`
+	ClosedByID        *uint      `json:"closed_by_id"`
+	ClosedBy          *User      `gorm:"foreignKey:ClosedByID" json:"closed_by,omitempty"`
+	VoidedByID        *uint      `json:"voided_by_id"`
+	VoidedBy          *User      `gorm:"foreignKey:VoidedByID" json:"voided_by,omitempty"`
 	ResponsibleUserID *uint      `json:"responsible_user_id"`
 	ResponsibleUser   *User      `gorm:"foreignKey:ResponsibleUserID" json:"responsible_user,omitempty"`
 

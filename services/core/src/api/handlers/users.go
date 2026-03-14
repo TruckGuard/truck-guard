@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"errors"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -10,6 +11,7 @@ import (
 	"github.com/truckguard/core/src/api/clients"
 	"github.com/truckguard/core/src/models"
 	"github.com/truckguard/core/src/repository"
+	"gorm.io/gorm"
 )
 
 func HandleCreateUser(c *gin.Context) {
@@ -87,8 +89,13 @@ func HandleListUsers(c *gin.Context) {
 func HandleGetUser(c *gin.Context) {
 	id := c.Param("id")
 	var user models.User
-	if err := repository.DB.WithContext(c.Request.Context()).Where("ID = ?", id).First(&user).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "User profile not found"})
+	err := repository.DB.WithContext(c.Request.Context()).Where("ID = ?", id).First(&user).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"error": "Профіль користувача не знайдено"})
+		} else {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Помилка при отриманні профілю користувача"})
+		}
 		return
 	}
 	c.JSON(http.StatusOK, user)
@@ -102,7 +109,11 @@ func HandleGetUserByAuthID(c *gin.Context) {
 
 	user, err := repository.GetUserByAuthID(c.Request.Context(), authID)
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "User profile not found for this Auth ID"})
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"error": "Профіль користувача для цього Auth ID не знайдено"})
+		} else {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Помилка при отриманні профілю користувача за Auth ID"})
+		}
 		return
 	}
 	c.JSON(http.StatusOK, user)

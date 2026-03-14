@@ -9,6 +9,7 @@ import (
 	"github.com/truckguard/core/src/api/handlers"
 	"github.com/truckguard/core/src/api/handlers/data"
 	"github.com/truckguard/core/src/api/middleware"
+	"github.com/truckguard/core/src/logic"
 	"github.com/truckguard/core/src/models"
 	"github.com/truckguard/core/src/pkg/notify"
 	"github.com/truckguard/core/src/pkg/telemetry"
@@ -28,6 +29,7 @@ func main() {
 	defer telemetry.Shutdown(context.Background())
 
 	repository.InitDB(os.Getenv("DATABASE_URL"))
+	SeedData()
 	valkeyAddr := os.Getenv("VALKEY_ADDR")
 	if valkeyAddr == "" {
 		valkeyAddr = os.Getenv("REDIS_ADDR")
@@ -69,45 +71,54 @@ func main() {
 			configs.DELETE("/cameras/:id", handlers.HandleDeleteCamera)
 
 			configs.GET("/scales", handlers.HandleGetScales)
+			configs.GET("/scales/:id", handlers.HandleGetScaleConfigByID)
 			configs.POST("/scales", handlers.HandleCreateScale)
 			configs.PUT("/scales/:id", handlers.HandleUpdateScale)
 			configs.DELETE("/scales/:id", handlers.HandleDeleteScale)
 
-			configs.GET("/settings", handlers.HandleListSettings)
-			configs.POST("/settings", handlers.HandleUpdateSetting)
+			configs.GET("/settings", middleware.RequireCorePermission("read:settings"), handlers.HandleListSystemSettings)
+			configs.POST("/settings", middleware.RequireCorePermission("manage:settings"), handlers.HandleUpsertSystemSetting)
 
-			configs.GET("/excluded-plates", handlers.HandleListExcludedPlates)
-			configs.POST("/excluded-plates", handlers.HandleCreateExcludedPlate)
-			configs.DELETE("/excluded-plates/:id", handlers.HandleDeleteExcludedPlate)
 
 		}
 
 		dataGroup := api.Group("/data")
 		{
 			dataGroup.GET("/posts", data.HandleListPosts)
+			dataGroup.GET("/posts/:id", data.HandleGetPostByID)
 			dataGroup.POST("/posts", data.HandleCreatePost)
 			dataGroup.PUT("/posts/:id", data.HandleUpdatePost)
 			dataGroup.DELETE("/posts/:id", data.HandleDeletePost)
 
 			dataGroup.GET("/modes", data.HandleListModes)
+			dataGroup.GET("/modes/:id", data.HandleGetModeByID)
 			dataGroup.POST("/modes", data.HandleCreateMode)
 			dataGroup.PUT("/modes/:id", data.HandleUpdateMode)
 			dataGroup.DELETE("/modes/:id", data.HandleDeleteMode)
 
 			dataGroup.GET("/vehicle-types", data.HandleListVehicleTypes)
+			dataGroup.GET("/vehicle-types/:id", data.HandleGetVehicleTypeByID)
 			dataGroup.POST("/vehicle-types", data.HandleCreateVehicleType)
 			dataGroup.PUT("/vehicle-types/:id", data.HandleUpdateVehicleType)
 			dataGroup.DELETE("/vehicle-types/:id", data.HandleDeleteVehicleType)
 
 			dataGroup.GET("/payment-types", data.HandleListPaymentTypes)
+			dataGroup.GET("/payment-types/:id", data.HandleGetPaymentTypeByID)
 			dataGroup.POST("/payment-types", data.HandleCreatePaymentType)
 			dataGroup.PUT("/payment-types/:id", data.HandleUpdatePaymentType)
 			dataGroup.DELETE("/payment-types/:id", data.HandleDeletePaymentType)
 
 			dataGroup.GET("/companies", data.HandleListCompanies)
+			dataGroup.GET("/companies/:id", data.HandleGetCompanyByID)
 			dataGroup.POST("/companies", data.HandleCreateCompany)
 			dataGroup.PUT("/companies/:id", data.HandleUpdateCompany)
 			dataGroup.DELETE("/companies/:id", data.HandleDeleteCompany)
+
+			dataGroup.GET("/excluded-plates", data.HandleListExcludedPlates)
+			dataGroup.GET("/excluded-plates/:id", data.HandleGetExcludedPlateByID)
+			dataGroup.POST("/excluded-plates", data.HandleCreateExcludedPlate)
+			dataGroup.PUT("/excluded-plates/:id", data.HandleUpdateExcludedPlate)
+			dataGroup.DELETE("/excluded-plates/:id", data.HandleDeleteExcludedPlate)
 		}
 
 		events := api.Group("/events")
@@ -137,7 +148,10 @@ func main() {
 			permits.GET("/:id/audit", handlers.HandleGetPermitAuditEvents)
 			permits.POST("", handlers.HandleCreatePermit)
 			permits.PUT("/:id", handlers.HandleUpdatePermit)
+			permits.POST("/:id/restore", handlers.HandleRestorePermit)
+			permits.POST("/:id/void", handlers.HandleVoidPermit)
 			permits.POST("/:id/validate", handlers.HandleValidatePermit)
+			permits.DELETE("/:id", handlers.HandleDeletePermit)
 		}
 
 		// Real-time SSE notifications for operators
@@ -157,6 +171,8 @@ func main() {
 	}
 
 	repository.DB.FirstOrCreate(&models.SystemSetting{Key: "match_window_seconds", Value: "120"})
+
+	go logic.RunCleanupBackground(context.Background())
 
 	port := os.Getenv("PORT")
 	if port == "" {

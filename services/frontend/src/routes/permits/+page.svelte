@@ -9,6 +9,9 @@
 
   import DataTable from "./data-table.svelte";
   import { columns } from "./columns";
+  import * as AlertDialog from "$lib/components/ui/alert-dialog";
+  import { enhance } from "$app/forms";
+  import { toast } from "svelte-sonner";
 
   let { data } = $props<{
     data: {
@@ -34,18 +37,18 @@
   }
 
   function startCreatePermit(event?: any) {
-    let query = new URLSearchParams();
     if (event) {
-      if (event._type === "plate") {
-        query.set("plate", event.plate);
-        query.set("camera_event_id", event.ID.toString());
-      } else if (event._type === "weight") {
-        query.set("weight", event.weight.toString());
-        query.set("scale_event_id", event.ID.toString());
-      }
+        pendingEvent = event;
+        showCreateConfirm = true;
+    } else {
+        pendingEvent = null;
+        showCreateConfirm = true;
     }
-    goto(`/permits/new?${query.toString()}`);
   }
+
+  let pendingEvent = $state<any>(null);
+  let showCreateConfirm = $state(false);
+  let creating = $state(false);
 </script>
 
 <div
@@ -85,3 +88,43 @@
     />
   </div>
 </div>
+
+<AlertDialog.Root bind:open={showCreateConfirm}>
+    <AlertDialog.Content>
+        <AlertDialog.Header>
+            <AlertDialog.Title>Створити нову перепустку?</AlertDialog.Title>
+            <AlertDialog.Description>
+                Система створить нову порожню перепустку та призначить їй унікальний код. 
+                Ви будете автоматично перенаправлені на сторінку редагування для заповнення даних.
+            </AlertDialog.Description>
+        </AlertDialog.Header>
+        <AlertDialog.Footer>
+            <AlertDialog.Cancel>Скасувати</AlertDialog.Cancel>
+            <form 
+                action="?/create" 
+                method="POST" 
+                use:enhance={() => {
+                    creating = true;
+                    return async ({ result, update }) => {
+                        creating = false;
+                        if (result.type === 'error' || result.type === 'failure') {
+                            toast.error("Не вдалося створити перепустку: " + (result as any).data?.error);
+                        }
+                        await update();
+                    };
+                }}
+            >
+                {#if pendingEvent}
+                    {#if pendingEvent._type === 'plate'}
+                        <input type="hidden" name="camera_event_id" value={pendingEvent.ID} />
+                    {:else if pendingEvent._type === 'weight'}
+                        <input type="hidden" name="scale_event_id" value={pendingEvent.ID} />
+                    {/if}
+                {/if}
+                <Button type="submit" disabled={creating}>
+                    {creating ? "Створення..." : "Так, створити"}
+                </Button>
+            </form>
+        </AlertDialog.Footer>
+    </AlertDialog.Content>
+</AlertDialog.Root>

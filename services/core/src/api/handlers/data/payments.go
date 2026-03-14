@@ -1,6 +1,7 @@
 package data
 
 import (
+	"errors"
 	"log/slog"
 	"net/http"
 
@@ -8,6 +9,7 @@ import (
 	"github.com/truckguard/core/src/models"
 	datarepo "github.com/truckguard/core/src/repository/data"
 	"github.com/truckguard/core/src/utils"
+	"gorm.io/gorm"
 )
 
 func HandleListPaymentTypes(c *gin.Context) {
@@ -38,6 +40,20 @@ func HandleCreatePaymentType(c *gin.Context) {
 	c.JSON(http.StatusCreated, input)
 }
 
+func HandleGetPaymentTypeByID(c *gin.Context) {
+	id := c.Param("id")
+	paymentType, err := datarepo.GetPaymentType(c.Request.Context(), id)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"error": "Тип оплати не знайдено"})
+		} else {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Помилка при отриманні типу оплати"})
+		}
+		return
+	}
+	c.JSON(http.StatusOK, paymentType)
+}
+
 func HandleUpdatePaymentType(c *gin.Context) {
 	id := c.Param("id")
 	var input models.PaymentType
@@ -47,8 +63,12 @@ func HandleUpdatePaymentType(c *gin.Context) {
 	}
 	pt, err := datarepo.UpdatePaymentType(c.Request.Context(), id, &input)
 	if err != nil {
-		slog.Error("Failed to update payment type", "error", err, "id", id)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update payment type: " + err.Error()})
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"error": "Тип оплати не знайдено"})
+		} else {
+			slog.Error("Failed to update payment type", "error", err, "id", id)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Помилка при оновленні типу оплати: " + err.Error()})
+		}
 		return
 	}
 	c.JSON(http.StatusOK, pt)
@@ -57,8 +77,12 @@ func HandleUpdatePaymentType(c *gin.Context) {
 func HandleDeletePaymentType(c *gin.Context) {
 	id := c.Param("id")
 	if err := datarepo.DeletePaymentType(c.Request.Context(), id); err != nil {
-		slog.Error("Failed to delete payment type", "error", err, "id", id)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete payment type: " + err.Error()})
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"error": "Тип оплати не знайдено"})
+		} else {
+			slog.Error("Failed to delete payment type", "error", err, "id", id)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Помилка при видаленні типу оплати: " + err.Error()})
+		}
 		return
 	}
 	c.Status(http.StatusNoContent)

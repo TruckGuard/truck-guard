@@ -1,4 +1,4 @@
-import { fail, redirect } from '@sveltejs/kit';
+import { error, fail, redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 import { can } from '$lib/auth';
 
@@ -15,10 +15,22 @@ export const load: PageServerLoad = async ({ params, locals, cookies }) => {
     const authUser = allAuthUsers.find((u: { id: string; }) => u.id == id);
 
     if (!authUser) {
-        throw new Error('User not found in Auth service');
+        throw error(404, 'Користувача не знайдено в сервісі автентифікації');
     }
 
-    const coreUser = await locals.coreClient.getUser(id);
+    let coreUser = null;
+    try {
+        coreUser = await locals.coreClient.getUser(id);
+    } catch (e: any) {
+        if (e.status && e.status !== 404) {
+            throw error(e.status, e.data?.error || 'Помилка при отриманні профілю користувача');
+        }
+        // If 404 in core, we might still want to show the auth user, but maybe not?
+        // For now, let's just propagate the error if it's important.
+        if (e.status === 404) {
+             throw error(404, 'Профіль користувача не знайдено');
+        }
+    }
     const postsResponse = await locals.coreClient.listData<any>('posts', 1, 100);
 
     return {

@@ -1,27 +1,21 @@
-import { fail, type Actions } from '@sveltejs/kit';
+import { error, fail, type Actions } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
 import type { Company } from '$lib/types/data';
 
 export const load: PageServerLoad = async ({ locals, params }) => {
+    if (!locals.coreClient) {
+        throw error(401, 'Unauthorized');
+    }
+
 	try {
 		const company = await locals.coreClient.getData<Company>('companies', params.id);
-
-		if (!company) {
-			return { 
-				company: null, 
-				error: 'Компанію не знайдено' 
-			};
-		}
-
-		return {
-			company,
-			error: null
-		};
+		return { company };
 	} catch (e: any) {
-		return {
-			company: null,
-			error: e.message || 'Помилка завантаження даних'
-		};
+        if (e.status) {
+            throw error(e.status, e.data?.error || 'Помилка при отриманні даних компанії');
+        }
+		console.error('Failed to load company details:', e);
+        throw error(500, 'Не вдалося завантажити деталі компанії');
 	}
 };
 

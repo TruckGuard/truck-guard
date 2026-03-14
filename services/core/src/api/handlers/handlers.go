@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"context"
+	"errors"
 	"log/slog"
 	"net/http"
 
@@ -10,8 +11,10 @@ import (
 	"github.com/truckguard/core/src/logic"
 	"github.com/truckguard/core/src/models"
 	"github.com/truckguard/core/src/repository"
+	datarepo "github.com/truckguard/core/src/repository/data"
 	"github.com/truckguard/core/src/utils"
 	"go.opentelemetry.io/otel/trace"
+	"gorm.io/gorm"
 )
 
 func HandlePlateEvent(c *gin.Context) {
@@ -42,6 +45,13 @@ func HandlePlateEvent(c *gin.Context) {
 	}
 	slog.Info("Plate event saved", "id", event.ID, "plate", event.Plate, "camera_id", event.CameraID)
 
+	// Check if plate is excluded
+	if excluded, comment := datarepo.IsPlateExcluded(c.Request.Context(), event.Plate); excluded {
+		slog.Info("Plate is ignored, skipping matching logic", "plate", event.Plate, "comment", comment)
+		c.JSON(http.StatusAccepted, gin.H{"status": "ignored", "id": event.ID})
+		return
+	}
+
 	detachCtx := trace.ContextWithSpan(context.Background(), trace.SpanFromContext(c.Request.Context()))
 	go logic.MatchPlateEvent(detachCtx, &event)
 
@@ -66,7 +76,11 @@ func HandleGetPlateEventByID(c *gin.Context) {
 	id := c.Param("id")
 	event, err := repository.GetPlateEventByID(c.Request.Context(), id)
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Event not found"})
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"error": "Подію не знайдено"})
+		} else {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Помилка при отриманні події"})
+		}
 		return
 	}
 
@@ -123,7 +137,11 @@ func HandleGetWeightEventByID(c *gin.Context) {
 	id := c.Param("id")
 	event, err := repository.GetWeightEventByID(c.Request.Context(), id)
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Weight event not found"})
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"error": "Подію зважування не знайдено"})
+		} else {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Помилка при отриманні події зважування"})
+		}
 		return
 	}
 	c.JSON(http.StatusOK, event)
@@ -147,7 +165,11 @@ func HandleGetSystemEventByID(c *gin.Context) {
 	id := c.Param("id")
 	event, err := repository.GetSystemEventByID(c.Request.Context(), id)
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "System event not found"})
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"error": "Системну подію не знайдено"})
+		} else {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Помилка при отриманні системної події"})
+		}
 		return
 	}
 	c.JSON(http.StatusOK, event)

@@ -24,6 +24,7 @@ type CustomFilter struct {
 type PermitQueryParams struct {
 	Plate             string
 	IsClosed          *bool
+	IsVoid            *bool
 	SortField         string // validated against allowedSortFields allowlist
 	SortOrder         string // "asc" or "desc"
 	FilterFrom        string // RFC3339
@@ -98,6 +99,9 @@ func GetPermits(ctx context.Context, limit, offset int, params PermitQueryParams
 	slog.Debug("Params", "params", params)
 	if params.IsClosed != nil {
 		query = query.Where("permits.is_closed = ?", *params.IsClosed)
+	}
+	if params.IsVoid != nil {
+		query = query.Where("permits.is_void = ?", *params.IsVoid)
 	}
 
 	if params.Search != "" {
@@ -259,6 +263,8 @@ func GetPermitByID(ctx context.Context, id string) (models.Permit, error) {
 		Preload("PaymentType").
 		Preload("Payers").
 		Preload("Creator").
+		Preload("ClosedBy").
+		Preload("VoidedBy").
 		Preload("ResponsibleUser").
 		Preload("AuditEvents", func(db *gorm.DB) *gorm.DB {
 			return db.Order("created_at desc")
@@ -288,7 +294,15 @@ func CreatePermit(ctx context.Context, input *models.Permit, authID string) erro
 		return err
 	}
 
-	LogPermitAudit(ctx, input.ID, user.ID, "create", map[string]interface{}{"source": "manual"}, "Створено вручну")
+	// Generate code: {PostID}{PermitID}
+	postID := uint(0)
+	if input.CustomsPostID != nil {
+		postID = *input.CustomsPostID
+	}
+	input.Code = fmt.Sprintf("%02d%06d", postID, input.ID)
+	DB.WithContext(ctx).Model(input).Update("code", input.Code)
+
+	LogPermitAudit(ctx, input.ID, user.ID, "create", map[string]interface{}{"source": "manual", "code": input.Code}, "Створено вручну")
 	return nil
 }
 
@@ -344,6 +358,9 @@ func UpdatePermit(ctx context.Context, id string, input map[string]interface{}, 
 			now := time.Now()
 			input["exit_time"] = now
 			permit.ExitTime = &now
+		}
+		if user.ID != 0 {
+			input["closed_by_id"] = user.ID
 		}
 		if err := CalculateFinancials(ctx, &permit, input); err != nil {
 			return permit, err
@@ -577,4 +594,160 @@ func GetPermitAuditEvents(ctx context.Context, permitID string) ([]models.Permit
 		Order("created_at desc").
 		Find(&audits).Error
 	return audits, err
+}
+
+// VoidUnverifiedPermits voids non-verified permits older than specified hours.
+func VoidUnverifiedPermits(ctx context.Context, hours int) (int64, error) {
+	if hours <= 0 {
+		return 0, nil
+	}
+
+	var permits []models.Permit
+	err := DB.WithContext(ctx).
+		Where("is_void = false AND verified_by IS NULL AND created_at < ?", time.Now().Add(-time.Duration(hours)*time.Hour)).
+		Find(&permits).Error
+	if err != nil {
+		return 0, err
+	}
+
+	if len(permits) == 0 {
+		return 0, nil
+	}
+
+	var ids []uint
+	for _, p := range permits {
+		ids = append(ids, p.ID)
+	}
+
+	res := DB.WithContext(ctx).Model(&models.Permit{}).
+		Where("id IN ?", ids).
+		Updates(map[string]interface{}{
+			"is_void":    true,
+			"updated_at": time.Now(),
+		})
+
+	if res.Error == nil && res.RowsAffected > 0 {
+		for _, p := range permits {
+			LogSystemPermitAudit(ctx, p.ID, "void", nil, "Перепустку анульовано автоматично (таймаут)")
+		}
+	}
+
+	return res.RowsAffected, res.Error
+}
+
+// CleanupAuditLogs deletes audit logs for closed permits older than specified days.
+func CleanupAuditLogs(ctx context.Context, days int) (int64, error) {
+	if days <= 0 {
+		return 0, nil
+	}
+	res := DB.WithContext(ctx).
+		Where("permit_id IN (SELECT id FROM permits WHERE is_closed = true) AND created_at < ?", time.Now().Add(-time.Duration(days)*24*time.Hour)).
+		Delete(&models.PermitAudit{})
+	return res.RowsAffected, res.Error
+}
+
+// RestorePermit restores a voided permit.
+func RestorePermit(ctx context.Context, id string, authID string) error {
+	var user models.User
+	DB.WithContext(ctx).Where("auth_id = ?", authID).First(&user)
+
+	res := DB.WithContext(ctx).Model(&models.Permit{}).
+		Where("id = ? AND is_void = true", id).
+		Updates(map[string]interface{}{
+			"is_void":    false,
+			"updated_at": time.Now(),
+		})
+	if res.Error != nil {
+		return res.Error
+	}
+
+	permitID, _ := strconv.Atoi(id)
+	LogPermitAudit(ctx, uint(permitID), user.ID, "restore", nil, "Перепустку відновлено")
+	return nil
+}
+
+// VoidPermit marks a permit as voided.
+func VoidPermit(ctx context.Context, id string, authID string) error {
+	var user models.User
+	DB.WithContext(ctx).Where("auth_id = ?", authID).First(&user)
+
+	res := DB.WithContext(ctx).Model(&models.Permit{}).
+		Where("id = ? AND is_void = false", id).
+		Updates(map[string]interface{}{
+			"is_void":        true,
+			"voided_by_id":   user.ID,
+			"updated_at":     time.Now(),
+		})
+	if res.Error != nil {
+		return res.Error
+	}
+
+	permitID, _ := strconv.Atoi(id)
+	LogPermitAudit(ctx, uint(permitID), user.ID, "void", nil, "Перепустку анульовано вручну")
+	return nil
+}
+
+// DeletePermit permanently deletes a permit and all its related events/data.
+func DeletePermit(ctx context.Context, id string, authID string) error {
+	var user models.User
+	DB.WithContext(ctx).Where("auth_id = ?", authID).First(&user)
+
+	return DB.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		// 1. Delete associated event links (Audit, PlateEvents, WeightEvents, Payers)
+		// Note: We are doing a hard delete (Unscoped) for these as well if the parent is hard deleted
+		if err := tx.Unscoped().Where("permit_id = ?", id).Delete(&models.PermitAudit{}).Error; err != nil {
+			return err
+		}
+		if err := tx.Unscoped().Where("permit_id = ?", id).Delete(&models.PermitPayer{}).Error; err != nil {
+			return err
+		}
+
+		// For PlateEvents and WeightEvents, we might want to just un-link them 
+		// OR delete them if they were created specifically for this permit.
+		// Given user's request "events from permit also deleted", we delete them.
+		if err := tx.Unscoped().Where("permit_id = ?", id).Delete(&models.PlateEvent{}).Error; err != nil {
+			return err
+		}
+		if err := tx.Unscoped().Where("permit_id = ?", id).Delete(&models.WeightEvent{}).Error; err != nil {
+			return err
+		}
+
+		// 2. Finally hard delete the permit
+		if err := tx.Unscoped().Delete(&models.Permit{}, id).Error; err != nil {
+			return err
+		}
+
+		return nil
+	})
+}
+
+// CleanupVoidedPermits permanently deletes voided permits older than specified days.
+func CleanupVoidedPermits(ctx context.Context, days int) (int64, error) {
+	if days <= 0 {
+		return 0, nil
+	}
+	
+	now := time.Now()
+	threshold := now.Add(-time.Duration(days) * 24 * time.Hour)
+
+	var ids []uint
+	if err := DB.WithContext(ctx).Model(&models.Permit{}).
+		Where("is_void = true AND updated_at < ?", threshold).
+		Pluck("id", &ids).Error; err != nil {
+		return 0, err
+	}
+
+	if len(ids) == 0 {
+		return 0, nil
+	}
+
+	err := DB.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		tx.Unscoped().Where("permit_id IN ?", ids).Delete(&models.PermitAudit{})
+		tx.Unscoped().Where("permit_id IN ?", ids).Delete(&models.PermitPayer{})
+		tx.Unscoped().Where("permit_id IN ?", ids).Delete(&models.PlateEvent{})
+		tx.Unscoped().Where("permit_id IN ?", ids).Delete(&models.WeightEvent{})
+		return tx.Unscoped().Where("id IN ?", ids).Delete(&models.Permit{}).Error
+	})
+
+	return int64(len(ids)), err
 }

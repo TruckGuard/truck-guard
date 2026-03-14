@@ -69,7 +69,7 @@
         const filters = [
             "search", "filter_payer", "filter_post_id", 
             "filter_vehicle_type", "filter_payment_type", 
-            "is_closed", "filter_from", "filter_to", "custom_filters"
+            "is_closed", "is_void", "filter_from", "filter_to", "custom_filters"
         ];
         filters.forEach(f => query.delete(f));
         query.set("page", "1");
@@ -83,6 +83,7 @@
         searchParams.has("filter_vehicle_type") ||
         searchParams.has("filter_payment_type") ||
         searchParams.has("is_closed") ||
+        searchParams.has("is_void") ||
         searchParams.has("filter_from") ||
         searchParams.has("filter_to") ||
         searchParams.has("custom_filters")
@@ -105,6 +106,13 @@
                 label: val === "true" ? "Статус: Закриті" : "Статус: В зоні" 
             });
         }
+        if (searchParams.get("is_void") && searchParams.get("is_void") !== "false") {
+            const val = searchParams.get("is_void");
+            filters.push({ 
+                key: "is_void", 
+                label: val === "true" ? "Анульовані" : "Всі перепустки" 
+            });
+        }
         if (searchParams.get("filter_post_id")) {
             const post = posts.find((p: CustomsPost) => p.ID.toString() === searchParams.get("filter_post_id"));
             if (post) filters.push({ key: "filter_post_id", label: `Пост: ${post.name}` });
@@ -125,6 +133,7 @@
     });
 
     const currentIsClosed = $derived(searchParams.get("is_closed") || "all");
+    const currentIsVoid = $derived(searchParams.get("is_void") || "false");
     let exportOpen = $state(false);
 
     // Helper to get labels for select triggers when Select.Value is missing
@@ -280,6 +289,25 @@
                                             {#each paymentTypes as type}
                                                 <Select.Item value={type.ID.toString()}>{type.name}</Select.Item>
                                             {/each}
+                                        </Select.Content>
+                                    </Select.Root>
+                                </div>
+
+                                <!-- Void Status Filter -->
+                                <div class="space-y-2">
+                                    <UiLabel class="text-[11px] uppercase tracking-wider text-muted-foreground font-bold">Статус анулювання</UiLabel>
+                                    <Select.Root
+                                        type="single"
+                                        value={currentIsVoid}
+                                        onValueChange={(val) => updateQuery("is_void", val)}
+                                    >
+                                        <Select.Trigger class="w-full h-9 text-sm bg-muted/30 text-left px-3">
+                                            {currentIsVoid === "show_all" ? "Всі перепустки" : currentIsVoid === "true" ? "Анульовані" : "Тільки дійсні"}
+                                        </Select.Trigger>
+                                        <Select.Content>
+                                            <Select.Item value="show_all">Всі перепустки</Select.Item>
+                                            <Select.Item value="false">Тільки дійсні</Select.Item>
+                                            <Select.Item value="true">Тільки анульовані</Select.Item>
                                         </Select.Content>
                                     </Select.Root>
                                 </div>

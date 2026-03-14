@@ -45,37 +45,3 @@ func HandleUpdateSetting(c *gin.Context) {
 	c.JSON(http.StatusOK, setting)
 }
 
-// Excluded Plates Handlers
-
-func HandleListExcludedPlates(c *gin.Context) {
-	var plates []models.ExcludedPlate
-	if err := repository.DB.WithContext(c.Request.Context()).Find(&plates).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch excluded plates"})
-		return
-	}
-	c.JSON(http.StatusOK, plates)
-}
-
-func HandleCreateExcludedPlate(c *gin.Context) {
-	var input models.ExcludedPlate
-	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-
-	if err := repository.DB.WithContext(c.Request.Context()).Create(&input).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to add plate to ignore list"})
-		return
-	}
-
-	c.JSON(http.StatusCreated, input)
-}
-
-func HandleDeleteExcludedPlate(c *gin.Context) {
-	id := c.Param("id")
-	if err := repository.DB.WithContext(c.Request.Context()).Delete(&models.ExcludedPlate{}, id).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to remove plate"})
-		return
-	}
-	c.JSON(http.StatusOK, gin.H{"status": "deleted"})
-}

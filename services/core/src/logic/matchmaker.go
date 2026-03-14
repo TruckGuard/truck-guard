@@ -34,11 +34,11 @@ const (
 
 // getPermitTimeout fetches the timeout from SystemSettings or returns default
 func getPermitTimeout(ctx context.Context) time.Duration {
-	var setting models.SystemSetting
-	if err := repository.DB.WithContext(ctx).Where("key = ?", "permit_timeout_seconds").First(&setting).Error; err != nil {
+	val := repository.GetSystemSetting(ctx, "permit_timeout_seconds")
+	if val == "" {
 		return defaultPermitTimeout
 	}
-	sec, err := strconv.Atoi(setting.Value)
+	sec, err := strconv.Atoi(val)
 	if err != nil {
 		return defaultPermitTimeout
 	}

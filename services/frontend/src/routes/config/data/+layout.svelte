@@ -19,6 +19,11 @@
       label: "Типи оплати",
       path: "/config/data/payment-types",
     },
+    {
+      id: "excluded-plates",
+      label: "Ігноровані номери",
+      path: "/config/data/excluded-plates",
+    },
   ];
 
   let activeTab = $derived(
@@ -40,7 +45,7 @@
   </div>
 
   <Tabs.Root value={activeTab} onValueChange={handleTabChange} class="w-full">
-    <Tabs.List class="grid w-full max-w-4xl grid-cols-5">
+    <Tabs.List class="grid w-full max-w-5xl grid-cols-6">
       {#each tabs as tab}
         <Tabs.Trigger value={tab.id}>{tab.label}</Tabs.Trigger>
       {/each}

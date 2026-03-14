@@ -1,9 +1,15 @@
 <script lang="ts">
-    let { isClosed = false } = $props<{ isClosed: boolean }>();
+    let { isClosed = false, isVoid = false } = $props<{ isClosed: boolean, isVoid?: boolean }>();
 </script>
 
 <div class="flex items-center gap-2">
-    {#if isClosed}
+    {#if isVoid}
+        <span class="relative flex h-2 w-2">
+            <span class="absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+            <span class="relative inline-flex h-2 w-2 rounded-full bg-red-500"></span>
+        </span>
+        <span class="text-xs font-bold text-red-600 dark:text-red-400 leading-none uppercase tracking-wider">Анульовано</span>
+    {:else if isClosed}
         <span class="relative flex h-2 w-2">
             <span class="absolute inline-flex h-full w-full rounded-full bg-slate-300 dark:bg-slate-700 opacity-75"></span>
             <span class="relative inline-flex h-2 w-2 rounded-full bg-slate-400 dark:bg-slate-500"></span>

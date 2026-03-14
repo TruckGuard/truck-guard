@@ -5,45 +5,30 @@ import type { Company, CustomsMode, PaymentType, VehicleType } from '$lib/types/
 
 export const load: PageServerLoad = async ({ params, url, locals }) => {
     const id = params.id;
-    const isNew = id === 'new';
+    if (id === 'new') {
+        throw redirect(303, '/permits');
+    }
 
     if (!locals.coreClient) {
         throw redirect(303, '/login');
     }
 
-    let permit: Partial<Permit> = {
-        is_closed: false,
-        is_void: false
-    };
+    let permit: Partial<Permit> = {};
 
-    // Pre-fill from URL params if creating new
-    if (isNew) {
-        const plate = url.searchParams.get('plate');
-        const plate_back = url.searchParams.get('plate_back');
-        const weight = url.searchParams.get('weight');
-        const camera_event_id = url.searchParams.get('camera_event_id');
-        const scale_event_id = url.searchParams.get('scale_event_id');
-
-        if (plate) permit.plate_front = plate;
-        if (plate_back) permit.plate_back = plate_back;
-        if (weight) permit.total_weight = Number(weight);
-
-        // At this point we just set frontend states. Actual linking 
-        // will require backend support (e.g passing event IDs on create)
-        // For the sake of UI we pass them along.
-        (permit as any)._initial_camera_event = camera_event_id;
-        (permit as any)._initial_scale_event = scale_event_id;
-    } else {
-        try {
-            const fetched = await locals.coreClient.getPermit<Permit>(id);
-            if (fetched) {
-                permit = fetched;
-            } else {
-                throw error(404, 'Перепустку не знайдено');
-            }
-        } catch (e: any) {
-            throw error(e.status || 500, 'Не вдалося завантажити перепустку');
+    try {
+        const fetched = await locals.coreClient.getPermit<Permit>(id);
+        if (fetched) {
+            permit = fetched;
+        } else {
+            throw error(404, 'Перепустку не знайдено');
         }
+    } catch (e: any) {
+        if (e.status === 303 || e.status === 404 || e.status === 500) {
+            if (e.status === 404) throw error(404, 'Перепустку не знайдено');
+            if (e.status === 303) throw e;
+            throw error(e.status, e.message || 'Помилка завантаження');
+        }
+        throw error(e.status || 500, e.message || 'Не вдалося завантажити перепустку');
     }
 
     // Load reference data for selects
@@ -79,7 +64,7 @@ export const load: PageServerLoad = async ({ params, url, locals }) => {
     console.log('permit', permit);
     return {
         permit,
-        isNew,
+        isNew: false,
         userRole,
         canValidate,
         canManageCustoms,
@@ -136,6 +121,42 @@ export const actions: Actions = {
         } catch (e: any) {
             console.error('Validate permit error:', e);
             return { type: 'error', error: { message: e.message || 'Error validating permit' } };
+        }
+    },
+
+    restore: async ({ locals, params }) => {
+        if (!locals.coreClient || params.id === 'new') return { type: 'error', error: { message: 'Invalid operation' } };
+
+        try {
+            const result = await locals.coreClient.restorePermit(params.id);
+            return { type: 'success', data: result };
+        } catch (e: any) {
+            console.error('Restore permit error:', e);
+            return { type: 'error', error: { message: e.message || 'Error restoring permit' } };
+        }
+    },
+
+    void: async ({ locals, params }) => {
+        if (!locals.coreClient || params.id === 'new') return { type: 'error', error: { message: 'Invalid operation' } };
+
+        try {
+            const result = await locals.coreClient.voidPermit(params.id);
+            return { type: 'success', data: result };
+        } catch (e: any) {
+            console.error('Void permit error:', e);
+            return { type: 'error', error: { message: e.message || 'Error voiding permit' } };
+        }
+    },
+
+    delete: async ({ locals, params }) => {
+        if (!locals.coreClient || params.id === 'new') return { type: 'error', error: { message: 'Invalid operation' } };
+
+        try {
+            await locals.coreClient.deletePermit(params.id);
+            return { type: 'success' };
+        } catch (e: any) {
+            console.error('Delete permit error:', e);
+            return { type: 'error', error: { message: e.message || 'Error deleting permit' } };
         }
     },
 

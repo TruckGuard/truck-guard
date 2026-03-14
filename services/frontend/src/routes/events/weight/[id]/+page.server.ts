@@ -9,12 +9,12 @@ export const load: PageServerLoad = async ({ params, locals }) => {
     const { id } = params;
     try {
         const event = await locals.coreClient.getWeightEvent(id);
-        if (!event) {
-            throw error(404, 'Event not found');
-        }
         return { event };
-    } catch (e) {
+    } catch (e: any) {
+        if (e.status) {
+            throw error(e.status, e.data?.error || 'Помилка при отриманні події зважування');
+        }
         console.error('Failed to load weight event:', e);
-        throw error(500, 'Failed to load event details');
+        throw error(500, 'Не вдалося завантажити деталі події зважування');
     }
 };

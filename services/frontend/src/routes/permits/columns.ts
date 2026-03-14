@@ -78,6 +78,7 @@ export const columns: ColumnDef<Permit>[] = [
                 cell: ({ row }) => {
                     return renderComponent(CellStatus, {
                         isClosed: row.original.is_closed,
+                        isVoid: row.original.is_void,
                     });
                 },
                 enableSorting: true,

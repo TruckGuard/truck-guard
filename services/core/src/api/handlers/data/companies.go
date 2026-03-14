@@ -1,6 +1,7 @@
 package data
 
 import (
+	"errors"
 	"log/slog"
 	"net/http"
 
@@ -8,6 +9,7 @@ import (
 	"github.com/truckguard/core/src/models"
 	datarepo "github.com/truckguard/core/src/repository/data"
 	"github.com/truckguard/core/src/utils"
+	"gorm.io/gorm"
 )
 
 func HandleListCompanies(c *gin.Context) {
@@ -39,6 +41,20 @@ func HandleCreateCompany(c *gin.Context) {
 	c.JSON(http.StatusCreated, input)
 }
 
+func HandleGetCompanyByID(c *gin.Context) {
+	id := c.Param("id")
+	company, err := datarepo.GetCompany(c.Request.Context(), id)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"error": "Компанію не знайдено"})
+		} else {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Помилка при отриманні компанії"})
+		}
+		return
+	}
+	c.JSON(http.StatusOK, company)
+}
+
 func HandleUpdateCompany(c *gin.Context) {
 	id := c.Param("id")
 	var input models.Company
@@ -48,8 +64,12 @@ func HandleUpdateCompany(c *gin.Context) {
 	}
 	company, err := datarepo.UpdateCompany(c.Request.Context(), id, &input)
 	if err != nil {
-		slog.Error("Failed to update company", "error", err, "id", id)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update company: " + err.Error()})
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"error": "Компанію не знайдено"})
+		} else {
+			slog.Error("Failed to update company", "error", err, "id", id)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Помилка при оновленні компанії: " + err.Error()})
+		}
 		return
 	}
 	c.JSON(http.StatusOK, company)
@@ -58,8 +78,12 @@ func HandleUpdateCompany(c *gin.Context) {
 func HandleDeleteCompany(c *gin.Context) {
 	id := c.Param("id")
 	if err := datarepo.DeleteCompany(c.Request.Context(), id); err != nil {
-		slog.Error("Failed to delete company", "error", err, "id", id)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete company: " + err.Error()})
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"error": "Компанію не знайдено"})
+		} else {
+			slog.Error("Failed to delete company", "error", err, "id", id)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Помилка при видаленні компанії: " + err.Error()})
+		}
 		return
 	}
 	c.Status(http.StatusNoContent)

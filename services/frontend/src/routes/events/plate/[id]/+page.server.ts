@@ -10,13 +10,13 @@ export const load: PageServerLoad = async ({ params, locals }) => {
     const { id } = params;
     try {
         const event = await locals.coreClient.getPlateEvent(id);
-        if (!event) {
-            throw error(404, 'Event not found');
-        }
         return { event };
-    } catch (e) {
+    } catch (e: any) {
+        if (e.status) {
+            throw error(e.status, e.data?.error || 'Помилка при отриманні події');
+        }
         console.error('Failed to load plate event:', e);
-        throw error(500, 'Failed to load event details');
+        throw error(500, 'Не вдалося завантажити деталі події');
     }
 };
 

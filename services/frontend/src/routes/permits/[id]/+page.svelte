@@ -244,20 +244,13 @@
       // Submit updated payers
       payload.payers = payloadPayers;
 
-      if (Object.keys(payload).length === 0 && !data.isNew) {
+      if (Object.keys(payload).length === 0) {
         if (!silent) toast.info("Немає змін для збереження.");
         return true;
       }
 
       // Add linking IDs if new
-      if (data.isNew) {
-        if ((permit as any)._initial_camera_event)
-          payload.camera_event_id = Number(
-            (permit as any)._initial_camera_event,
-          );
-        if ((permit as any)._initial_scale_event)
-          payload.scale_event_id = Number((permit as any)._initial_scale_event);
-      }
+      // Event linking is now handled during initial creation via server action
 
       // We make direct fetch calls since we can't easily access coreClient locally from svelte component.
       // Another approach is submitting native forms to actions in +page.server.ts. Let's use fetch to our backend APIs
@@ -286,7 +279,7 @@
         };
 
         // Optimistic UI update for Audit History:
-        if (!data.isNew && Object.keys(payload).length > 0) {
+        if (Object.keys(payload).length > 0) {
           const optimisticChanges: any = {};
           // To simulate a git diff, we store both old and new for the UI
           for (const key of Object.keys(payload)) {
@@ -309,12 +302,8 @@
           }
         }
 
-        if (data.isNew) {
-          goto("/permits");
-        } else {
-          // Just silently refresh missing data in background
-          invalidateAll();
-        }
+        // Just silently refresh missing data in background
+        invalidateAll();
         return true;
       } else {
         toast.error("Помилка при збереженні.", {
@@ -388,6 +377,81 @@
     }
   }
 
+  async function handleRestorePermit() {
+    loading = true;
+    // Optimistic update
+    const previousVoidStatus = permit.is_void;
+    permit.is_void = false;
+
+    try {
+      const form = new FormData();
+      const res = await fetch(`?/restore`, { method: "POST", body: form });
+      const result = await res.json();
+      if (result.type === "success") {
+        toast.success("Перепустку відновлено.");
+        await invalidateAll();
+      } else {
+        permit.is_void = previousVoidStatus; // Rollback
+        toast.error("Помилка відновлення.", {
+          description: result.error?.message,
+        });
+      }
+    } catch (e: any) {
+      permit.is_void = previousVoidStatus; // Rollback
+      toast.error("Непередбачена помилка", { description: e.message });
+    } finally {
+      loading = false;
+    }
+  }
+
+  async function handleDeletePermit() {
+    loading = true;
+    try {
+      const form = new FormData();
+      const res = await fetch(`?/delete`, { method: "POST", body: form });
+      const result = await res.json();
+      if (result.type === "success") {
+        toast.success("Перепустку остаточно видалено.");
+        goto("/permits");
+      } else {
+        toast.error("Помилка видалення.", {
+          description: result.error?.message,
+        });
+      }
+    } catch (e: any) {
+      toast.error("Непередбачена помилка", { description: e.message });
+    } finally {
+      loading = false;
+    }
+  }
+
+  async function handleVoidPermit() {
+    loading = true;
+    // Optimistic update
+    const previousVoidStatus = permit.is_void;
+    permit.is_void = true;
+    
+    try {
+      const form = new FormData();
+      const res = await fetch(`?/void`, { method: "POST", body: form });
+      const result = await res.json();
+      if (result.type === "success") {
+        toast.success("Перепустку анульовано.");
+        await invalidateAll();
+      } else {
+        permit.is_void = previousVoidStatus; // Rollback
+        toast.error("Помилка анулювання.", {
+          description: result.error?.message,
+        });
+      }
+    } catch (e: any) {
+      permit.is_void = previousVoidStatus; // Rollback
+      toast.error("Непередбачена помилка", { description: e.message });
+    } finally {
+      loading = false;
+    }
+  }
+
   async function fetchAuditLogs() {
     if (auditLogs.length > 0 || loadingAudits) return;
 
@@ -407,7 +471,7 @@
   }
 
   $effect(() => {
-    if (activeTab === "audit" && !data.isNew) {
+    if (activeTab === "audit") {
       fetchAuditLogs();
     }
   });
@@ -415,7 +479,6 @@
 
 <div class="container mx-auto py-8 max-w-7xl">
   <PermitHeader
-    isNew={data.isNew}
     permitCode={permit.code}
     permitId={permit.ID}
   />
@@ -449,12 +512,15 @@
       {handleSave}
       {handleValidatePermit}
       {handleClosePermit}
+      handleRestore={handleRestorePermit}
+      handleVoid={handleVoidPermit}
+      handleDelete={handleDeletePermit}
       {validationItems}
     />
   </div>
 
   <!-- Audit & Events History -->
-  {#if !data.isNew}
+  {#if permit.ID}
     <div class="mt-12 pt-12 border-t">
       <Tabs.Root bind:value={activeTab} class="w-full">
         <Tabs.List class="grid w-full grid-cols-2 mb-8 h-12">

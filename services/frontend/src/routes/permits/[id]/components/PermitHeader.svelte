@@ -3,8 +3,7 @@
     import { ChevronLeft, RefreshCw } from "@lucide/svelte";
     import { Button } from "$lib/components/ui/button";
 
-    let { isNew, permitCode, permitId } = $props<{
-        isNew: boolean;
+    let { permitCode, permitId } = $props<{
         permitCode?: string;
         permitId?: number;
     }>();
@@ -28,22 +27,16 @@
         <ChevronLeft class="h-5 w-5" />
     </Button>
     <h1 class="text-3xl font-extrabold tracking-tight flex-1">
-        {#if isNew}
-            Створення нової перепустки
-        {:else}
-            Перепустка {permitCode || `#${permitId}`}
-        {/if}
+        Перепустка {permitCode || `#${permitId}`}
     </h1>
-    {#if !isNew}
-        <Button
-            variant="ghost"
-            size="sm"
-            onclick={handleRefresh}
-            disabled={refreshing}
-            class="gap-2 text-muted-foreground hover:text-foreground"
-        >
-            <RefreshCw class="h-4 w-4 {refreshing ? 'animate-spin' : ''}" />
-            Оновити
-        </Button>
-    {/if}
+    <Button
+        variant="ghost"
+        size="sm"
+        onclick={handleRefresh}
+        disabled={refreshing}
+        class="gap-2 text-muted-foreground hover:text-foreground"
+    >
+        <RefreshCw class="h-4 w-4 {refreshing ? 'animate-spin' : ''}" />
+        Оновити
+    </Button>
 </div>

@@ -43,6 +43,11 @@ export interface PaymentType extends GormModel {
     icon: string;
 }
 
+export interface ExcludedPlate extends GormModel {
+    plate: string;
+    comment: string;
+}
+
 export interface PaginatedResponse<T> {
     data: T[];
     metadata: PaginationMetadata;

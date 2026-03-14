@@ -1,6 +1,7 @@
 package data
 
 import (
+	"errors"
 	"log/slog"
 	"net/http"
 
@@ -8,6 +9,7 @@ import (
 	"github.com/truckguard/core/src/models"
 	datarepo "github.com/truckguard/core/src/repository/data"
 	"github.com/truckguard/core/src/utils"
+	"gorm.io/gorm"
 )
 
 func HandleListVehicleTypes(c *gin.Context) {
@@ -38,6 +40,20 @@ func HandleCreateVehicleType(c *gin.Context) {
 	c.JSON(http.StatusCreated, input)
 }
 
+func HandleGetVehicleTypeByID(c *gin.Context) {
+	id := c.Param("id")
+	vehicleType, err := datarepo.GetVehicleType(c.Request.Context(), id)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"error": "Тип транспорту не знайдено"})
+		} else {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Помилка при отриманні типу транспорту"})
+		}
+		return
+	}
+	c.JSON(http.StatusOK, vehicleType)
+}
+
 func HandleUpdateVehicleType(c *gin.Context) {
 	id := c.Param("id")
 	var input models.VehicleType
@@ -47,8 +63,12 @@ func HandleUpdateVehicleType(c *gin.Context) {
 	}
 	vt, err := datarepo.UpdateVehicleType(c.Request.Context(), id, &input)
 	if err != nil {
-		slog.Error("Failed to update vehicle type", "error", err, "id", id)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update vehicle type: " + err.Error()})
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"error": "Тип транспорту не знайдено"})
+		} else {
+			slog.Error("Failed to update vehicle type", "error", err, "id", id)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Помилка при оновленні типу транспорту: " + err.Error()})
+		}
 		return
 	}
 	c.JSON(http.StatusOK, vt)
@@ -57,8 +77,12 @@ func HandleUpdateVehicleType(c *gin.Context) {
 func HandleDeleteVehicleType(c *gin.Context) {
 	id := c.Param("id")
 	if err := datarepo.DeleteVehicleType(c.Request.Context(), id); err != nil {
-		slog.Error("Failed to delete vehicle type", "error", err, "id", id)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete vehicle type: " + err.Error()})
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"error": "Тип транспорту не знайдено"})
+		} else {
+			slog.Error("Failed to delete vehicle type", "error", err, "id", id)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Помилка при видаленні типу транспорту: " + err.Error()})
+		}
 		return
 	}
 	c.Status(http.StatusNoContent)

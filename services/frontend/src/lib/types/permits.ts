@@ -79,6 +79,11 @@ export interface Permit {
     verified_by?: number;
     verified_at?: string;
     responsible_user_id?: number;
+    closed_by_id?: number;
+    closed_by?: { first_name: string; last_name: string };
+    voided_by_id?: number;
+    voided_by?: { first_name: string; last_name: string };
+    porters?: any[];
     responsible_user?: {
         first_name: string;
         last_name: string;

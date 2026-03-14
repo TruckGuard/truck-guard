@@ -168,6 +168,18 @@ export class CoreClient {
         return this.fetchWithAuth<T>(`/permits/${id}/validate`, 'POST');
     }
 
+    async restorePermit<T>(id: string | number): Promise<T> {
+        return this.fetchWithAuth<T>(`/permits/${id}/restore`, 'POST');
+    }
+
+    async voidPermit<T>(id: string | number): Promise<T> {
+        return this.fetchWithAuth<T>(`/permits/${id}/void`, 'POST');
+    }
+
+    async deletePermit(id: string | number): Promise<boolean> {
+        return this.fetchWithAuth<boolean>(`/permits/${id}`, 'DELETE');
+    }
+
     // --- Customs Parser ---
 
     async getCustomsDeclaration<T>(number: string): Promise<T> {
@@ -217,13 +229,17 @@ export class CoreClient {
 
             if (!response.ok) {
                 let errorMessage = `Request failed with status ${response.status}`;
+                let errorData: any = {};
                 try {
-                    const errorData = await response.json();
+                    errorData = await response.json();
                     errorMessage = errorData.error || errorData.message || errorMessage;
                 } catch (e) {
-                    // Body is not JSON, use default status message
+                    // Body is not JSON
                 }
-                throw new Error(errorMessage);
+                const error: any = new Error(errorMessage);
+                error.status = response.status;
+                error.data = errorData;
+                throw error;
             }
 
             if (response.status === 204) {
