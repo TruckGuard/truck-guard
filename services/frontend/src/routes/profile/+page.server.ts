@@ -66,5 +66,23 @@ export const actions: Actions = {
 
         cookies.delete('session', { path: '/' });
         throw redirect(303, '/login');
+    },
+    changePassword: async ({ request, locals }) => {
+        const data = await request.formData();
+        const currentPass = data.get('current_password') as string;
+        const newPass = data.get('new_password') as string;
+        const confirmPass = data.get('confirm_password') as string;
+
+        if (newPass !== confirmPass) {
+            return fail(400, { error: 'Паролі не збігаються' });
+        }
+
+        try {
+            await locals.authClient.changePassword(currentPass, newPass);
+            return { success: true };
+        } catch (e: any) {
+            console.error("Change password error", e);
+            return fail(e.status || 500, { error: e.data?.error || 'Помилка зміни пароля' });
+        }
     }
 };

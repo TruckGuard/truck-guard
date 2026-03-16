@@ -602,3 +602,46 @@ func HandleDeleteRole(c *gin.Context) {
 	repository.DB.WithContext(c.Request.Context()).Delete(&models.Role{}, id)
 	c.Status(204)
 }
+
+func HandleChangePassword(c *gin.Context) {
+	userIDStr := c.GetHeader("X-User-ID")
+	if userIDStr == "" {
+		c.Status(401)
+		return
+	}
+
+	var b struct {
+		CurrentPass string `json:"current_password" binding:"required"`
+		NewPass     string `json:"new_password" binding:"required"`
+	}
+	if err := c.BindJSON(&b); err != nil {
+		c.JSON(400, gin.H{"error": err.Error()})
+		return
+	}
+
+	var u models.User
+	if err := repository.DB.WithContext(c.Request.Context()).Where("id = ?", userIDStr).First(&u).Error; err != nil {
+		c.Status(404)
+		return
+	}
+
+	if err := bcrypt.CompareHashAndPassword([]byte(u.PasswordHash), []byte(b.CurrentPass)); err != nil {
+		c.JSON(401, gin.H{"error": "Невірний поточний пароль"})
+		return
+	}
+
+	h, err := bcrypt.GenerateFromPassword([]byte(b.NewPass), 10)
+	if err != nil {
+		c.JSON(500, gin.H{"error": "Failed to generate password hash"})
+		return
+	}
+
+	u.PasswordHash = string(h)
+	if err := repository.DB.WithContext(c.Request.Context()).Save(&u).Error; err != nil {
+		c.JSON(500, gin.H{"error": "Failed to update password"})
+		return
+	}
+
+	slog.Info("Password changed", "user_id", u.ID, "username", u.Username)
+	c.JSON(200, gin.H{"message": "Пароль успішно змінено"})
+}

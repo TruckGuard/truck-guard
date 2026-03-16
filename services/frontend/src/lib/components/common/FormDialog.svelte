@@ -9,7 +9,7 @@
         trigger,
         children,
         footer,
-        maxWidth = "max-w-[550px]",
+        maxWidth = "max-w-fit",
     } = $props<{
         title: string;
         description?: string;

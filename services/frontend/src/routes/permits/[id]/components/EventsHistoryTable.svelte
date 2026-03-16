@@ -1,9 +1,25 @@
 <script lang="ts">
-    import { Activity, Truck, Coins } from "@lucide/svelte";
+    import { Activity, Truck, Coins, Unlink, Loader2 } from "@lucide/svelte";
     import { Button } from "$lib/components/ui/button";
+    import * as AlertDialog from "$lib/components/ui/alert-dialog";
+    import { enhance } from "$app/forms";
     import { formatDate } from "$lib/utils/date";
 
-    let { permit } = $props<{ permit: any }>();
+    let { permit, onUnlink } = $props<{ 
+        permit: any,
+        onUnlink?: (entity: any, type: 'plate' | 'weight') => void 
+    }>();
+
+    let unlinkingId = $state<number | null>(null);
+    let showConfirmUnlink = $state(false);
+    let eventToUnlink = $state<any>(null);
+    let formToSubmit = $state<HTMLFormElement | null>(null);
+
+    function handleUnlinkClick(event: any, form: HTMLFormElement | null) {
+        eventToUnlink = event;
+        formToSubmit = form;
+        showConfirmUnlink = true;
+    }
 
     const events = $derived(
         [...(permit.plate_events || []), ...(permit.weight_events || [])].sort(
@@ -33,6 +49,7 @@
                     <th class="px-6 py-4">Тип</th>
                     <th class="px-6 py-4">Джерело</th>
                     <th class="px-6 py-4">Значення</th>
+                    <th class="px-6 py-4 text-right">Дії</th>
                 </tr>
             </thead>
             <tbody class="divide-y">
@@ -97,12 +114,42 @@
                                 {event.weight} кг
                             {/if}
                         </td>
+                        <td class="px-6 py-4 text-right">
+                            <form method="POST" action="?/unlinkEntity" use:enhance={() => {
+                                unlinkingId = event.ID;
+                                return async ({ result }) => {
+                                    if (result.type === 'success') {
+                                        if (onUnlink) onUnlink(event, eventType);
+                                    }
+                                    unlinkingId = null;
+                                }
+                            }}>
+                                <input type="hidden" name="permit_id" value={permit.ID} />
+                                <input type="hidden" name="event_id" value={event.ID} />
+                                <input type="hidden" name="event_type" value={eventType} />
+                                <Button 
+                                    size="icon" 
+                                    variant="ghost" 
+                                    type="button"
+                                    class="h-8 w-8 text-muted-foreground hover:text-destructive"
+                                    disabled={unlinkingId === event.ID}
+                                    title="Відв'язати від перепустки"
+                                    onclick={(e) => handleUnlinkClick(event, (e.currentTarget as HTMLButtonElement).form)}
+                                >
+                                    {#if unlinkingId === event.ID}
+                                        <Loader2 class="h-4 w-4 animate-spin" />
+                                    {:else}
+                                        <Unlink class="h-4 w-4" />
+                                    {/if}
+                                </Button>
+                            </form>
+                        </td>
                     </tr>
                 {/each}
                 {#if events.length === 0}
                     <tr>
                         <td
-                            colspan="5"
+                            colspan="6"
                             class="px-4 py-8 text-center text-muted-foreground"
                         >
                             Подій не знайдено
@@ -112,4 +159,37 @@
             </tbody>
         </table>
     </div>
+
+    <AlertDialog.Root bind:open={showConfirmUnlink}>
+        <AlertDialog.Content>
+            <AlertDialog.Header>
+                <AlertDialog.Title>Відв'язати подію?</AlertDialog.Title>
+                <AlertDialog.Description>
+                    Ви впевнені, що хочете відв'язати цю подію 
+                    {#if eventToUnlink}
+                        <strong>
+                            {#if "plate" in eventToUnlink}
+                                {eventToUnlink.plate}
+                            {:else}
+                                {eventToUnlink.weight} кг
+                            {/if}
+                        </strong>
+                    {/if} 
+                    від перепустки?
+                </AlertDialog.Description>
+            </AlertDialog.Header>
+            <AlertDialog.Footer>
+                <AlertDialog.Cancel>Скасувати</AlertDialog.Cancel>
+                <AlertDialog.Action 
+                    onclick={() => {
+                        formToSubmit?.requestSubmit();
+                        showConfirmUnlink = false;
+                    }}
+                    class="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                >
+                    Відв'язати
+                </AlertDialog.Action>
+            </AlertDialog.Footer>
+        </AlertDialog.Content>
+    </AlertDialog.Root>
 </div>

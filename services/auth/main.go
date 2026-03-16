@@ -45,6 +45,7 @@ func main() {
 	r.POST("/sessions/revoke-all", handlers.HandleRevokeAllSessions)
 	r.GET("/health", func(c *gin.Context) { c.JSON(200, gin.H{"status": "ok"}) })
 	r.POST("/register", handlers.HandleRegister)
+	r.POST("/change-password", handlers.HandleChangePassword)
 
 	admin := r.Group("/admin")
 	{

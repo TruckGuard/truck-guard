@@ -1,4 +1,4 @@
-import type { PageServerLoad } from './$types';
+import type { Actions, PageServerLoad } from './$types';
 import { error } from '@sveltejs/kit';
 
 export const load: PageServerLoad = async ({ params, locals }) => {
@@ -16,5 +16,23 @@ export const load: PageServerLoad = async ({ params, locals }) => {
         }
         console.error('Failed to load weight event:', e);
         throw error(500, 'Не вдалося завантажити деталі події зважування');
+    }
+};
+
+export const actions: Actions = {
+    linkEntity: async ({ request, locals }) => {
+        if (!locals.coreClient) return { type: 'error', error: { message: 'Unauthorized' } };
+        const data = await request.formData();
+        const permitId = Number(data.get('permit_id'));
+        const eventId = Number(data.get('event_id'));
+        const eventType = data.get('event_type') as 'plate' | 'weight';
+
+        try {
+            await locals.coreClient.linkPermit(permitId, eventId, eventType);
+            return { type: 'success' };
+        } catch (e: any) {
+            console.error('Link entity error:', e);
+            return { type: 'error', error: { message: e.message || 'Помилка зв\'язування' } };
+        }
     }
 };

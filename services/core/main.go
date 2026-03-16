@@ -151,6 +151,8 @@ func main() {
 			permits.POST("/:id/restore", handlers.HandleRestorePermit)
 			permits.POST("/:id/void", handlers.HandleVoidPermit)
 			permits.POST("/:id/validate", handlers.HandleValidatePermit)
+			permits.PATCH("/link", handlers.HandleLinkPermit)
+			permits.PATCH("/unlink", handlers.HandleUnlinkPermit)
 			permits.DELETE("/:id", handlers.HandleDeletePermit)
 		}
 

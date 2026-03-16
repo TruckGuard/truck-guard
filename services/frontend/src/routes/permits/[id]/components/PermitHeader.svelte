@@ -1,11 +1,12 @@
 <script lang="ts">
     import { goto, invalidateAll } from "$app/navigation";
-    import { ChevronLeft, RefreshCw } from "@lucide/svelte";
+    import { ChevronLeft, RefreshCw, Link } from "@lucide/svelte";
     import { Button } from "$lib/components/ui/button";
 
-    let { permitCode, permitId } = $props<{
+    let { permitCode, permitId, onclickLink } = $props<{
         permitCode?: string;
         permitId?: number;
+        onclickLink?: () => void;
     }>();
 
     let refreshing = $state(false);
@@ -39,4 +40,15 @@
         <RefreshCw class="h-4 w-4 {refreshing ? 'animate-spin' : ''}" />
         Оновити
     </Button>
+    {#if onclickLink}
+        <Button
+            variant="outline"
+            size="sm"
+            onclick={onclickLink}
+            class="gap-2 border-blue-200 text-blue-700 hover:bg-blue-50 hover:text-blue-800 dark:border-blue-900/30 dark:text-blue-400 dark:hover:bg-blue-900/20"
+        >
+            <Link class="h-4 w-4" />
+            Прив'язати
+        </Button>
+    {/if}
 </div>

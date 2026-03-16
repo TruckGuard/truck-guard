@@ -204,3 +204,47 @@ func HandleDeletePermit(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, gin.H{"status": "deleted"})
 }
+
+func HandleLinkPermit(c *gin.Context) {
+	var input struct {
+		PermitID  uint   `json:"permit_id" binding:"required"`
+		EventID   uint   `json:"event_id" binding:"required"`
+		EventType string `json:"event_type" binding:"required"` // plate or weight
+	}
+
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	authID := c.GetHeader("X-User-ID")
+	if err := repository.LinkPermitEvent(c.Request.Context(), input.PermitID, input.EventID, input.EventType, authID); err != nil {
+		slog.Error("HandleLinkPermit: error", "error", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to link permit: " + err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"status": "linked"})
+}
+
+func HandleUnlinkPermit(c *gin.Context) {
+	var input struct {
+		PermitID  uint   `json:"permit_id" binding:"required"`
+		EventID   uint   `json:"event_id" binding:"required"`
+		EventType string `json:"event_type" binding:"required"` // plate or weight
+	}
+
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	authID := c.GetHeader("X-User-ID")
+	if err := repository.UnlinkPermitEvent(c.Request.Context(), input.PermitID, input.EventID, input.EventType, authID); err != nil {
+		slog.Error("HandleUnlinkPermit: error", "error", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to unlink permit: " + err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"status": "unlinked"})
+}

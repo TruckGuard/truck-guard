@@ -63,8 +63,9 @@ func HandleGetPlateEvents(c *gin.Context) {
 	plate := c.Query("plate")
 	from := c.Query("from")
 	to := c.Query("to")
+	onlyUnlinked := c.Query("unlinked") == "true"
 
-	events, total, err := repository.GetPlateEvents(c.Request.Context(), limit, offset, plate, from, to)
+	events, total, err := repository.GetPlateEvents(c.Request.Context(), limit, offset, plate, from, to, onlyUnlinked)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch events"})
 		return
@@ -124,8 +125,9 @@ func HandleGetWeightEvents(c *gin.Context) {
 	limit, offset, page := utils.GetPagination(c)
 	from := c.Query("from")
 	to := c.Query("to")
+	onlyUnlinked := c.Query("unlinked") == "true"
 
-	events, total, err := repository.GetWeightEvents(c.Request.Context(), limit, offset, from, to)
+	events, total, err := repository.GetWeightEvents(c.Request.Context(), limit, offset, from, to, onlyUnlinked)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch weight events"})
 		return

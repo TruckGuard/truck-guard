@@ -178,6 +178,13 @@ export class AuthClient {
         return this.fetchWithAuth<boolean>(`/admin/users/${id}/role`, 'PUT', { role_id: roleId });
     }
 
+    async changePassword(currentPassword: string, newPassword: string): Promise<boolean> {
+        return this.fetchWithAuth<boolean>('/change-password', 'POST', {
+            current_password: currentPassword,
+            new_password: newPassword
+        });
+    }
+
     // Helper for authenticated requests
     private async fetchWithAuth<T>(endpoint: string, method: string = 'GET', body?: any): Promise<T> {
         if (!this.sessionId) {

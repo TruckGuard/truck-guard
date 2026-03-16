@@ -202,5 +202,36 @@ export const actions: Actions = {
             console.error('Search companies error:', e);
             return { type: 'error', error: { message: e.message || 'Error searching companies' } };
         }
+    },
+
+    linkEntity: async ({ request, locals }) => {
+        if (!locals.coreClient) return { type: 'error', error: { message: 'Unauthorized' } };
+        const data = await request.formData();
+        const permitId = Number(data.get('permit_id'));
+        const eventId = Number(data.get('event_id'));
+        const eventType = data.get('event_type') as 'plate' | 'weight';
+
+        try {
+            await locals.coreClient.linkPermit(permitId, eventId, eventType);
+            return { type: 'success' };
+        } catch (e: any) {
+            console.error('Link entity error:', e);
+            return { type: 'error', error: { message: e.message || 'Помилка зв\'язування' } };
+        }
+    },
+    unlinkEntity: async ({ request, locals }) => {
+        if (!locals.coreClient) return { type: 'error', error: { message: 'Unauthorized' } };
+        const data = await request.formData();
+        const permitId = Number(data.get('permit_id'));
+        const eventId = Number(data.get('event_id'));
+        const eventType = data.get('event_type') as 'plate' | 'weight';
+
+        try {
+            await locals.coreClient.unlinkPermit(permitId, eventId, eventType);
+            return { type: 'success' };
+        } catch (e: any) {
+            console.error('Unlink entity error:', e);
+            return { type: 'error', error: { message: e.message || 'Помилка відв\'язування' } };
+        }
     }
 };

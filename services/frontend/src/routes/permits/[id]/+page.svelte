@@ -20,6 +20,7 @@
   import { formatDate } from "$lib/utils/date";
   import { onMount } from "svelte";
     import CustomsModeBanner from "./components/CustomsModeBanner.svelte";
+    import LinkDialog from "../components/LinkDialog.svelte";
 
   interface PayerState {
     company_id: number;
@@ -55,6 +56,29 @@
 
   // Validation state
   let showValidationErrors = $state(false);
+  let showLinkDialog = $state(false);
+
+  function handleLinked(entity: any, type: string) {
+    if (type === "plate") {
+      if (!permit.plate_events) permit.plate_events = [];
+      permit.plate_events = [entity, ...permit.plate_events];
+      if (!permit.plate_front) permit.plate_front = entity.plate;
+    } else if (type === "weight") {
+      if (!permit.weight_events) permit.weight_events = [];
+      permit.weight_events = [entity, ...permit.weight_events];
+      if (!permit.total_weight) permit.total_weight = entity.weight;
+    }
+    toast.success("Подію успішно прив'язано");
+  }
+
+  function handleUnlinked(entity: any, type: string) {
+    if (type === "plate") {
+      permit.plate_events = permit.plate_events?.filter((e: any) => e.ID !== entity.ID) || [];
+    } else if (type === "weight") {
+      permit.weight_events = permit.weight_events?.filter((e: any) => e.ID !== entity.ID) || [];
+    }
+    toast.success("Подію успішно відв'язано");
+  }
 
   // Field label map shared between ModeForm & permit checklist
   const FIELD_LABELS: Record<string, string> = {
@@ -481,6 +505,7 @@
   <PermitHeader
     permitCode={permit.code}
     permitId={permit.ID}
+    onclickLink={() => (showLinkDialog = true)}
   />
 
   <CustomsModeBanner
@@ -545,9 +570,15 @@
         </Tabs.Content>
 
         <Tabs.Content value="events">
-          <EventsHistoryTable {permit} />
+          <EventsHistoryTable {permit} onUnlink={handleUnlinked} />
         </Tabs.Content>
       </Tabs.Root>
     </div>
   {/if}
+
+  <LinkDialog 
+    bind:open={showLinkDialog} 
+    permitId={permit.ID} 
+    onLink={handleLinked}
+  />
 </div>

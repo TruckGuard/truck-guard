@@ -751,3 +751,116 @@ func CleanupVoidedPermits(ctx context.Context, days int) (int64, error) {
 
 	return int64(len(ids)), err
 }
+
+// LinkPermitEvent links a permit to a plate or weight event.
+func LinkPermitEvent(ctx context.Context, permitID uint, eventID uint, eventType string, authID string) error {
+	var user models.User
+	DB.WithContext(ctx).Where("auth_id = ?", authID).First(&user)
+
+	return DB.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		var permit models.Permit
+		if err := tx.First(&permit, permitID).Error; err != nil {
+			return fmt.Errorf("permit not found: %w", err)
+		}
+
+		var action, comment string
+		changes := map[string]interface{}{
+			"event_id":   eventID,
+			"event_type": eventType,
+		}
+
+		if eventType == "plate" {
+			var event models.PlateEvent
+			if err := tx.First(&event, eventID).Error; err != nil {
+				return fmt.Errorf("plate event not found: %w", err)
+			}
+			if event.PermitID != nil && *event.PermitID == permitID {
+				return nil // Already linked
+			}
+			event.PermitID = &permitID
+			if err := tx.Save(&event).Error; err != nil {
+				return err
+			}
+			action = "link_plate"
+			comment = fmt.Sprintf("Прив'язано подію камери #%d", eventID)
+			
+			// If permit has no plate, update it from event
+			if permit.PlateFront == "" {
+				tx.Model(&permit).Update("plate_front", event.Plate)
+			}
+		} else if eventType == "weight" {
+			var event models.WeightEvent
+			if err := tx.First(&event, eventID).Error; err != nil {
+				return fmt.Errorf("weight event not found: %w", err)
+			}
+			if event.PermitID != nil && *event.PermitID == permitID {
+				return nil // Already linked
+			}
+			event.PermitID = &permitID
+			if err := tx.Save(&event).Error; err != nil {
+				return err
+			}
+			action = "link_weight"
+			comment = fmt.Sprintf("Прив'язано подію ваг #%d", eventID)
+
+			// If permit has no weight, update it from event
+			if permit.TotalWeight == 0 {
+				tx.Model(&permit).Update("total_weight", event.Weight)
+			}
+		} else {
+			return fmt.Errorf("invalid event type: %s", eventType)
+		}
+
+		LogPermitAudit(ctx, permitID, user.ID, action, changes, comment)
+		return nil
+	})
+}
+
+// UnlinkPermitEvent removes the link between a permit and an event.
+func UnlinkPermitEvent(ctx context.Context, permitID uint, eventID uint, eventType string, authID string) error {
+	var user models.User
+	DB.WithContext(ctx).Where("auth_id = ?", authID).First(&user)
+
+	return DB.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		var action, comment string
+		changes := map[string]interface{}{
+			"event_id":   eventID,
+			"event_type": eventType,
+		}
+
+		if eventType == "plate" {
+			var event models.PlateEvent
+			if err := tx.First(&event, eventID).Error; err != nil {
+				return fmt.Errorf("plate event not found: %w", err)
+			}
+			if event.PermitID == nil || *event.PermitID != permitID {
+				return fmt.Errorf("event is not linked to this permit")
+			}
+			event.PermitID = nil
+			if err := tx.Save(&event).Error; err != nil {
+				return err
+			}
+			action = "unlink_plate"
+			comment = fmt.Sprintf("Відв'язано подію камери #%d", eventID)
+		} else if eventType == "weight" {
+			var event models.WeightEvent
+			if err := tx.First(&event, eventID).Error; err != nil {
+				return fmt.Errorf("weight event not found: %w", err)
+			}
+			if event.PermitID == nil || *event.PermitID != permitID {
+				return fmt.Errorf("event is not linked to this permit")
+			}
+			event.PermitID = nil
+			if err := tx.Save(&event).Error; err != nil {
+				return err
+			}
+			action = "unlink_weight"
+			comment = fmt.Sprintf("Відв'язано подію ваг #%d", eventID)
+		} else {
+			return fmt.Errorf("invalid event type: %s", eventType)
+		}
+
+		LogPermitAudit(ctx, permitID, user.ID, action, changes, comment)
+		return nil
+	})
+}

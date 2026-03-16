@@ -2,11 +2,14 @@
     import * as Card from "$lib/components/ui/card";
     import { Button } from "$lib/components/ui/button";
     import { Label } from "$lib/components/ui/label";
-    import { ChevronLeft, Clock, Scale } from "@lucide/svelte";
+    import { ChevronLeft, Clock, Scale, Link } from "@lucide/svelte";
     import { formatDate } from "$lib/utils/date";
+    import { toast } from "svelte-sonner";
+    import LinkDialog from "../../../permits/components/LinkDialog.svelte";
 
     let { data } = $props();
-    let event = data.event;
+    let event = $derived(data.event);
+    let showLinkDialog = $state(false);
 </script>
 
 <div class="container mx-auto py-6 space-y-6 max-w-5xl">
@@ -23,10 +26,21 @@
                 Детальна інформація про подію
             </p>
         </div>
-        <div
-            class="ml-auto bg-blue-50 dark:bg-blue-950/30 text-blue-700 dark:text-blue-400 px-3 py-1 rounded-full text-xs font-bold border border-blue-200 dark:border-blue-800"
-        >
-            WEIGHT
+        <div class="ml-auto flex items-center gap-2">
+            <Button
+                variant="outline"
+                size="sm"
+                class="gap-2"
+                onclick={() => (showLinkDialog = true)}
+                disabled={data.event.permit_id}
+            >
+                <Link class="h-4 w-4" /> Прив'язати до перепустки
+            </Button>
+            <div
+                class="bg-blue-50 dark:bg-blue-950/30 text-blue-700 dark:text-blue-400 px-3 py-1 rounded-full text-xs font-bold border border-blue-200 dark:border-blue-800"
+            >
+                WEIGHT
+            </div>
         </div>
     </div>
 
@@ -140,4 +154,13 @@
             </Card.Root>
         </div>
     </div>
+    <LinkDialog
+        bind:open={showLinkDialog}
+        eventId={event.ID}
+        eventType="weight"
+        onLink={(p: any) => {
+            event.permit_id = p.ID;
+            toast.success("Перепустку успішно прив'язано");
+        }}
+    />
 </div>

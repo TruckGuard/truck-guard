@@ -2,6 +2,7 @@
   import AccountInfo from "./components/AccountInfo.svelte";
   import ProfileForm from "./components/ProfileForm.svelte";
   import ActiveSessions from "./components/ActiveSessions.svelte";
+  import ChangePasswordForm from "./components/ChangePasswordForm.svelte";
 
   let { data } = $props();
 
@@ -24,6 +25,7 @@
   <div class="space-y-6">
     <AccountInfo username={user?.username || profile?.username} {roleName} />
     <ProfileForm {profile} {posts} />
+    <ChangePasswordForm />
     <ActiveSessions {sessions} />
   </div>
 </div>

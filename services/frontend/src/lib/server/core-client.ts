@@ -180,6 +180,22 @@ export class CoreClient {
         return this.fetchWithAuth<boolean>(`/permits/${id}`, 'DELETE');
     }
 
+    async linkPermit(permitId: number, eventId: number, eventType: 'plate' | 'weight'): Promise<boolean> {
+        return this.fetchWithAuth<boolean>('/permits/link', 'PATCH', {
+            permit_id: permitId,
+            event_id: eventId,
+            event_type: eventType
+        });
+    }
+
+    async unlinkPermit(permitId: number, eventId: number, eventType: 'plate' | 'weight'): Promise<boolean> {
+        return this.fetchWithAuth<boolean>('/permits/unlink', 'PATCH', {
+            permit_id: permitId,
+            event_id: eventId,
+            event_type: eventType
+        });
+    }
+
     // --- Customs Parser ---
 
     async getCustomsDeclaration<T>(number: string): Promise<T> {

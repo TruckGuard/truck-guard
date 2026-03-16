@@ -3,7 +3,15 @@
   import { Button } from "$lib/components/ui/button";
   import { Label } from "$lib/components/ui/label";
   import { Separator } from "$lib/components/ui/separator";
-  import { ChevronLeft, Clock, Camera, CreditCard, Eye } from "@lucide/svelte";
+  import {
+    ChevronLeft,
+    Clock,
+    Camera,
+    CreditCard,
+    Eye,
+    Link,
+  } from "@lucide/svelte";
+  import LinkDialog from "../../../permits/components/LinkDialog.svelte";
   import { can } from "$lib/auth";
   import { toast } from "svelte-sonner";
   import { formatDate } from "$lib/utils/date";
@@ -12,6 +20,7 @@
   // Initialize as state for optimistic updates
   let event = data.event;
   const user = $derived(data.user);
+  let showLinkDialog = $state(false);
 </script>
 
 <div class="container mx-auto py-6 space-y-6 max-w-5xl">
@@ -26,10 +35,21 @@
       </h1>
       <p class="text-muted-foreground text-sm">Детальна інформація про подію</p>
     </div>
-    <div
-      class="ml-auto bg-blue-50 dark:bg-blue-950/30 text-blue-700 dark:text-blue-400 px-3 py-1 rounded-full text-xs font-bold border border-blue-200 dark:border-blue-800"
-    >
-      ANPR
+    <div class="ml-auto flex items-center gap-2">
+      <Button
+        variant="outline"
+        size="sm"
+        class="gap-2"
+        onclick={() => (showLinkDialog = true)}
+        disabled={data.event.permit_id}
+      >
+        <Link class="h-4 w-4" /> Прив'язати до перепустки
+      </Button>
+      <div
+        class="bg-blue-50 dark:bg-blue-950/30 text-blue-700 dark:text-blue-400 px-3 py-1 rounded-full text-xs font-bold border border-blue-200 dark:border-blue-800"
+      >
+        ANPR
+      </div>
     </div>
   </div>
 
@@ -160,4 +180,14 @@
       </Card.Root>
     </div>
   </div>
+  <LinkDialog
+    bind:open={showLinkDialog}
+    eventId={event.ID}
+    eventType="plate"
+    initialSearchQuery={event.plate}
+    onLink={(p: any) => {
+      event.permit_id = p.ID;
+      toast.success("Перепустку успішно прив'язано");
+    }}
+  />
 </div>
