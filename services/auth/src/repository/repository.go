@@ -35,7 +35,8 @@ func InitDB(dsn string) {
 	}
 
 	DB = db
-	DB.AutoMigrate(&models.Permission{}, &models.Role{}, &models.User{}, &models.APIKey{}, &models.PolicyRule{})
+	DB.AutoMigrate(&models.Permission{}, &models.Role{}, &models.User{}, &models.APIKey{}, &models.PolicyRule{}, &models.PermissionHierarchy{})
+	LoadPermissionHierarchy()
 }
 
 func InitRedis(addr string) {

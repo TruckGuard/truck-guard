@@ -12,6 +12,9 @@
 
   let isDeleteOpen = $state(false);
   let userToDelete: any = $state(null);
+  let isResetOpen = $state(false);
+  let userToReset: any = $state(null);
+  let newPassword = $state("");
   let searchQuery = $state("");
 
   let filteredUsers = $derived(
@@ -24,6 +27,12 @@
   function openDelete(user: any) {
     userToDelete = user;
     isDeleteOpen = true;
+  }
+
+  function openReset(user: any) {
+    userToReset = user;
+    newPassword = "";
+    isResetOpen = true;
   }
 </script>
 
@@ -52,6 +61,7 @@
       posts={data.posts} 
       flex={true}
       onDelete={openDelete} 
+      onResetPassword={openReset}
       onEdit={() => {}}
     />
   </div>
@@ -90,6 +100,51 @@
           <Button type="submit" variant="destructive">Видалити</Button>
         </form>
       </Dialog.Footer>
+    </Dialog.Content>
+  </Dialog.Root>
+
+  <Dialog.Root bind:open={isResetOpen}>
+    <Dialog.Content>
+      <Dialog.Header>
+        <Dialog.Title>Скинути пароль</Dialog.Title>
+        <Dialog.Description>
+          Введіть новий пароль для користувача <strong>{userToReset?.username}</strong>.
+        </Dialog.Description>
+      </Dialog.Header>
+      <form
+        action="?/resetPassword"
+        method="POST"
+        use:enhance={() => {
+          isResetOpen = false;
+          toast.loading("Скидання пароля...");
+          return async ({ result, update }) => {
+            if (result.type === "success") {
+              toast.success("Пароль успішно змінено");
+              await update();
+            } else {
+              toast.error("Не вдалося змінити пароль");
+            }
+          };
+        }}
+        class="space-y-4 py-4"
+      >
+        <input type="hidden" name="id" value={userToReset?.id} />
+        <div class="space-y-2">
+          <Input
+            type="password"
+            name="newPassword"
+            placeholder="Новий пароль"
+            bind:value={newPassword}
+            required
+          />
+        </div>
+        <Dialog.Footer>
+          <Button variant="outline" type="button" onclick={() => (isResetOpen = false)}>
+            Скасувати
+          </Button>
+          <Button type="submit">Зберегти</Button>
+        </Dialog.Footer>
+      </form>
     </Dialog.Content>
   </Dialog.Root>
 </div>

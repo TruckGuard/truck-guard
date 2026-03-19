@@ -10,6 +10,24 @@ import (
 
 	"github.com/truckguard/auth/src/models"
 )
+var PermissionHierarchy = make(map[string][]string)
+
+// LoadPermissionHierarchy завантажує ієрархію дозволів з бази даних.
+func LoadPermissionHierarchy() {
+	var relations []models.PermissionHierarchy
+	if err := DB.Find(&relations).Error; err != nil {
+		slog.Error("Failed to load permission hierarchy from DB", "error", err)
+		return
+	}
+
+	newHierarchy := make(map[string][]string)
+	for _, r := range relations {
+		newHierarchy[r.ParentID] = append(newHierarchy[r.ParentID], r.ChildID)
+	}
+
+	PermissionHierarchy = newHierarchy
+	slog.Info("Permission hierarchy loaded from DB", "parents", len(newHierarchy))
+}
 
 // CheckAccess перевіряє доступ, використовуючи регулярні вирази на рівні БД та кешування результатів у Redis.
 func CheckAccess(method, path string) ([]string, bool, error) {
@@ -122,6 +140,15 @@ func HasPermission(userPerms []string, required string) bool {
 			return true
 		}
 
+		// Перевірка через ієрархію (рекурсивно)
+		if deps, ok := PermissionHierarchy[p]; ok {
+			for _, dep := range deps {
+				if HasPermission([]string{dep}, required) {
+					return true
+				}
+			}
+		}
+
 		// Формат: action:resource[:scope] (наприклад, read:cameras:all або update:events)
 		partsUser := strings.Split(p, ":")
 		partsReq := strings.Split(required, ":")
@@ -191,4 +218,64 @@ func HasPermission(userPerms []string, required string) bool {
 		}
 	}
 	return false
+}
+
+// ExpandPermissions розширює список прав користувача, додаючи всі залежні права згідно з ієрархією.
+func ExpandPermissions(userPerms []string) []string {
+	result := make(map[string]bool)
+	var queue []string
+
+	for _, p := range userPerms {
+		p = strings.TrimSpace(p)
+		if p == "" {
+			continue
+		}
+		if !result[p] {
+			result[p] = true
+			queue = append(queue, p)
+		}
+	}
+
+	for i := 0; i < len(queue); i++ {
+		p := queue[i]
+
+		// Додаємо базове право для прав з суфіксом :all (наприклад, manage:users:all -> manage:users)
+		if strings.HasSuffix(p, ":all") {
+			basePerm := strings.TrimSuffix(p, ":all")
+			if !result[basePerm] {
+				result[basePerm] = true
+				queue = append(queue, basePerm)
+			}
+
+			// Якщо база має залежності, то ці залежності також можуть мати версію :all
+			// Наприклад, manage:permits:all -> manage:permits -> read:permits
+			// Отже ми маємо додати і read:permits:all
+			if deps, ok := PermissionHierarchy[basePerm]; ok {
+				for _, dep := range deps {
+					depAll := dep + ":all"
+					// Перевіряємо чи існує таке право взагалі (тільки якщо воно є в ієрархії або як база)
+					// Але в ExpandPermissions ми зазвичай додаємо все що виглядає логічно
+					if !result[depAll] {
+						result[depAll] = true
+						queue = append(queue, depAll)
+					}
+				}
+			}
+		}
+
+		if deps, ok := PermissionHierarchy[p]; ok {
+			for _, dep := range deps {
+				if !result[dep] {
+					result[dep] = true
+					queue = append(queue, dep)
+				}
+			}
+		}
+	}
+
+	final := make([]string, 0, len(result))
+	for p := range result {
+		final = append(final, p)
+	}
+	return final
 }

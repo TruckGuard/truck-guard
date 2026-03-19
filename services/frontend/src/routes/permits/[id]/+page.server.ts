@@ -2,6 +2,7 @@ import { error, redirect } from '@sveltejs/kit';
 import type { PageServerLoad, Actions } from './$types';
 import type { Permit } from '$lib/types/permits';
 import type { Company, CustomsMode, PaymentType, VehicleType } from '$lib/types/data';
+import { can } from '$lib/auth';
 
 export const load: PageServerLoad = async ({ params, url, locals }) => {
     const id = params.id;
@@ -56,17 +57,20 @@ export const load: PageServerLoad = async ({ params, url, locals }) => {
     }
 
     // Pass user permissions for UI toggling
-    const userRole = locals.user?.role || '';
-    const canValidate = typeof userRole === 'string' ? userRole === 'admin' || userRole === 'manager' : (userRole as any)?.name === 'admin' || (userRole as any)?.name === 'manager';
-    const canManageCustoms = true; // Based on earlier seed, operator/manager/admin all have read:customs
+    const canValidate = can(locals.user, 'validate:permits');
+    const canUpdate = can(locals.user, 'update:permits');
+    const canDelete = can(locals.user, 'delete:permits');
+    const canManageCustoms = can(locals.user, 'read:customs');
 
 
     console.log('permit', permit);
     return {
         permit,
         isNew: false,
-        userRole,
+        currentUser: locals.user,
         canValidate,
+        canUpdate,
+        canDelete,
         canManageCustoms,
         ...paramsData
     };

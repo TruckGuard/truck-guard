@@ -46,5 +46,28 @@ export const actions: Actions = {
         }
 
         return { success: true };
+    },
+    resetPassword: async ({ request, locals }) => {
+        if (!can(locals.user, 'manage:users')) {
+            return fail(403, { error: 'You do not have permission to reset passwords' });
+        }
+
+        const data = await request.formData();
+        const id = data.get('id') as string;
+        const newPassword = data.get('newPassword') as string;
+
+        if (!id || !newPassword) {
+            return fail(400, { error: 'User ID and new password are required' });
+        }
+
+        try {
+            const success = await locals.authClient.adminResetPassword(id, newPassword);
+            if (!success) {
+                return fail(500, { error: 'Failed to reset password' });
+            }
+            return { success: true };
+        } catch (err: any) {
+            return fail(500, { error: err.message || 'Failed to reset password' });
+        }
     }
 };

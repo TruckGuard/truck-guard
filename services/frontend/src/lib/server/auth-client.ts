@@ -136,6 +136,10 @@ export class AuthClient {
         return this.fetchWithAuth<boolean>(`/admin/roles/${id}`, 'DELETE');
     }
 
+    async getPermissionHierarchy(): Promise<Record<string, string[]>> {
+        return this.fetchWithAuth<Record<string, string[]>>('/hierarchy');
+    }
+
     // --- Permissions ---
 
     async getPermissions(): Promise<Permission[]> {
@@ -181,6 +185,12 @@ export class AuthClient {
     async changePassword(currentPassword: string, newPassword: string): Promise<boolean> {
         return this.fetchWithAuth<boolean>('/change-password', 'POST', {
             current_password: currentPassword,
+            new_password: newPassword
+        });
+    }
+
+    async adminResetPassword(userId: string, newPassword: string): Promise<boolean> {
+        return this.fetchWithAuth<boolean>(`/admin/users/${userId}/reset-password`, 'POST', {
             new_password: newPassword
         });
     }

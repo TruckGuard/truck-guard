@@ -30,7 +30,6 @@
         title: "Конфігурація",
         url: "#",
         icon: Settings,
-        permissions: ["read:settings"],
         items: [
           {
             title: "Камери",
@@ -62,7 +61,6 @@
         title: "Адміністрування",
         url: "#",
         icon: ShieldCheck,
-        permissions: ["read:users"],
         items: [
           {
             title: "Користувачі",

@@ -131,17 +131,18 @@ func seedData() {
 
 	rules := []models.PolicyRule{
 		// Auth Service
-		{Method: "POST", PathPattern: `^/auth/register$`, RequiredPermission: "manage:users,create:users", Description: "Реєстрація користувачів"},
+		{Method: "POST", PathPattern: `^/auth/register$`, RequiredPermission: "manage:users", Description: "Реєстрація користувачів"},
 		{Method: "GET", PathPattern: `^/auth/admin/users.*`, RequiredPermission: "read:users", Description: "Перегляд користувачів"},
-		{Method: "PUT", PathPattern: `^/auth/admin/users/.*/role$`, RequiredPermission: "manage:users,update:users", Description: "Зміна ролі користувача"},
-		{Method: "DELETE", PathPattern: `^/auth/admin/users/.*`, RequiredPermission: "manage:users,delete:users", Description: "Видалення користувача"},
+		{Method: "PUT", PathPattern: `^/auth/admin/users/.*/role$`, RequiredPermission: "manage:users", Description: "Зміна ролі користувача"},
+		{Method: "DELETE", PathPattern: `^/auth/admin/users/.*`, RequiredPermission: "manage:users", Description: "Видалення користувача"},
+		{Method: "POST", PathPattern: `^/auth/admin/users/.*/reset-password$`, RequiredPermission: "manage:users", Description: "Скидання пароля користувача"},
 		{Method: "GET", PathPattern: `^/auth/admin/roles.*`, RequiredPermission: "read:roles", Description: "Перегляд ролей"},
-		{Method: "POST", PathPattern: `^/auth/admin/roles.*`, RequiredPermission: "manage:roles,create:roles", Description: "Створення ролей"},
+		{Method: "POST", PathPattern: `^/auth/admin/roles.*`, RequiredPermission: "manage:roles", Description: "Створення ролей"},
 		{Method: "CRUD", PathPattern: `^/auth/admin/roles/.*`, RequiredPermission: "roles", Description: "Керування ролями"},
 		{Method: "GET", PathPattern: `^/auth/admin/keys.*`, RequiredPermission: "read:keys", Description: "Перегляд ключів"},
-		{Method: "POST", PathPattern: `^/auth/admin/keys.*`, RequiredPermission: "manage:keys,create:keys", Description: "Створення ключів"},
+		{Method: "POST", PathPattern: `^/auth/admin/keys.*`, RequiredPermission: "manage:keys", Description: "Створення ключів"},
 		{Method: "CRUD", PathPattern: `^/auth/admin/keys/.*`, RequiredPermission: "keys", Description: "Керування ключами"},
-		{Method: "GET", PathPattern: `^/auth/admin/permissions$`, RequiredPermission: "read:roles", Description: "Список всіх дозволів"},
+		{Method: "GET", PathPattern: `^/auth/admin/permissions$`, RequiredPermission: "", Description: "Список всіх дозволів"},
 
 		// Ingestor Service
 		{Method: "POST", PathPattern: `^/ingest/.*`, RequiredPermission: "ingest:events", Description: "Імпорт даних"},
@@ -184,5 +185,66 @@ func seedData() {
 			existing.RequiredPermission = r.RequiredPermission
 			repository.DB.Save(&existing)
 		}
+	}
+
+	// Permission Hierarchy
+	hierarchy := []models.PermissionHierarchy{
+		{ParentID: "manage:users", ChildID: "read:users"},
+		{ParentID: "manage:users", ChildID: "create:users"},
+		{ParentID: "manage:users", ChildID: "update:users"},
+		{ParentID: "manage:users", ChildID: "delete:users"},
+		{ParentID: "manage:users", ChildID: "read:roles"},
+		{ParentID: "manage:users", ChildID: "read:data"},
+
+		{ParentID: "manage:roles", ChildID: "read:roles"},
+		{ParentID: "manage:roles", ChildID: "create:roles"},
+		{ParentID: "manage:roles", ChildID: "update:roles"},
+		{ParentID: "manage:roles", ChildID: "delete:roles"},
+		{ParentID: "manage:roles", ChildID: "read:data"},
+
+		{ParentID: "manage:permits", ChildID: "read:permits"},
+		{ParentID: "manage:permits", ChildID: "create:permits"},
+		{ParentID: "manage:permits", ChildID: "update:permits"},
+		{ParentID: "manage:permits", ChildID: "delete:permits"},
+		{ParentID: "manage:permits", ChildID: "validate:permits"},
+		{ParentID: "manage:permits", ChildID: "read:data"},
+		{ParentID: "manage:permits", ChildID: "read:events"},
+		{ParentID: "manage:permits", ChildID: "read:customs"},
+
+		{ParentID: "read:permits", ChildID: "read:data"},
+		{ParentID: "read:permits", ChildID: "read:events"},
+
+		{ParentID: "manage:events", ChildID: "read:events"},
+		{ParentID: "manage:events", ChildID: "create:events"},
+		{ParentID: "manage:events", ChildID: "update:events"},
+		{ParentID: "manage:events", ChildID: "delete:events"},
+		{ParentID: "manage:events", ChildID: "read:cameras"},
+		{ParentID: "manage:events", ChildID: "read:data"},
+
+		{ParentID: "manage:cameras", ChildID: "read:cameras"},
+		{ParentID: "manage:cameras", ChildID: "create:cameras"},
+		{ParentID: "manage:cameras", ChildID: "update:cameras"},
+		{ParentID: "manage:cameras", ChildID: "delete:cameras"},
+		{ParentID: "manage:cameras", ChildID: "read:data"},
+
+		{ParentID: "read:cameras", ChildID: "read:data"},
+
+		{ParentID: "manage:scales", ChildID: "read:scales"},
+		{ParentID: "manage:scales", ChildID: "create:scales"},
+		{ParentID: "manage:scales", ChildID: "update:scales"},
+		{ParentID: "manage:scales", ChildID: "delete:scales"},
+		{ParentID: "manage:scales", ChildID: "read:data"},
+
+		{ParentID: "read:scales", ChildID: "read:data"},
+
+		{ParentID: "manage:settings", ChildID: "read:settings"},
+		{ParentID: "manage:settings", ChildID: "create:settings"},
+		{ParentID: "manage:settings", ChildID: "update:settings"},
+		{ParentID: "manage:settings", ChildID: "delete:settings"},
+		{ParentID: "manage:settings", ChildID: "read:data"},
+	}
+
+	for _, h := range hierarchy {
+		repository.DB.Where("parent_id = ? AND child_id = ?", h.ParentID, h.ChildID).FirstOrCreate(&h)
 	}
 }

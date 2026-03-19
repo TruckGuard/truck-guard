@@ -251,16 +251,18 @@
     <div
         class="bg-card border rounded-xl shadow-lg p-5 space-y-3 bg-slate-50/50 dark:bg-slate-900/30"
     >
-        <Button
-            onclick={() => handleSave()}
-            disabled={loading}
-            class="w-full gap-2.5 h-12 text-base font-bold shadow-md {data.isNew
-                ? 'bg-indigo-600 hover:bg-indigo-700'
-                : ''}"
-        >
-            <Save class="h-5 w-5 {loading ? 'animate-spin' : ''}" />
-            {!permit.verified_at ? "Зареєструвати заїзд" : "Зберегти зміни"}
-        </Button>
+        {#if data.canUpdate}
+            <Button
+                onclick={() => handleSave()}
+                disabled={loading}
+                class="w-full gap-2.5 h-12 text-base font-bold shadow-md {data.isNew
+                    ? 'bg-indigo-600 hover:bg-indigo-700'
+                    : ''}"
+            >
+                <Save class="h-5 w-5 {loading ? 'animate-spin' : ''}" />
+                {!permit.verified_at ? "Зареєструвати заїзд" : "Зберегти зміни"}
+            </Button>
+        {/if}
 
         {#if !permit.is_closed && !permit.is_void}
             {#if data.canValidate && !permit.verified_at}
@@ -276,88 +278,96 @@
 
             {#if !permit.is_void}
                 <div class="grid grid-cols-2 gap-2">
-                    <AlertDialog.Root>
-                        <AlertDialog.Trigger>
-                            <Button
-                                variant="outline"
-                                disabled={loading}
-                                class="w-full gap-2 h-12 text-sm font-bold border shadow-sm bg-white dark:bg-transparent hover:bg-red-50 dark:hover:bg-red-950/30 hover:text-red-600 dark:hover:text-red-400 hover:border-red-200 dark:hover:border-red-800 transition-all"
-                            >
-                                <Activity class="h-4 w-4" /> Анулювати
-                            </Button>
-                        </AlertDialog.Trigger>
-                        <AlertDialog.Content>
-                            <AlertDialog.Header>
-                                <AlertDialog.Title>Підтвердження анулювання</AlertDialog.Title>
-                                <AlertDialog.Description>
-                                    Ви впевнені, що хочете анулювати цю перепустку? Це зробить її недійсною.
-                                </AlertDialog.Description>
-                            </AlertDialog.Header>
-                            <AlertDialog.Footer>
-                                <AlertDialog.Cancel>Скасувати</AlertDialog.Cancel>
-                                <AlertDialog.Action onclick={handleVoid} class="bg-red-600 hover:bg-red-700">Анулювати</AlertDialog.Action>
-                            </AlertDialog.Footer>
-                        </AlertDialog.Content>
-                    </AlertDialog.Root>
+                    {#if data.canDelete}
+                        <AlertDialog.Root>
+                            <AlertDialog.Trigger>
+                                <Button
+                                    variant="outline"
+                                    disabled={loading}
+                                    class="w-full gap-2 h-12 text-sm font-bold border shadow-sm bg-white dark:bg-transparent hover:bg-red-50 dark:hover:bg-red-950/30 hover:text-red-600 dark:hover:text-red-400 hover:border-red-200 dark:hover:border-red-800 transition-all"
+                                >
+                                    <Activity class="h-4 w-4" /> Анулювати
+                                </Button>
+                            </AlertDialog.Trigger>
+                            <AlertDialog.Content>
+                                <AlertDialog.Header>
+                                    <AlertDialog.Title>Підтвердження анулювання</AlertDialog.Title>
+                                    <AlertDialog.Description>
+                                        Ви впевнені, що хочете анулювати цю перепустку? Це зробить її недійсною.
+                                    </AlertDialog.Description>
+                                </AlertDialog.Header>
+                                <AlertDialog.Footer>
+                                    <AlertDialog.Cancel>Скасувати</AlertDialog.Cancel>
+                                    <AlertDialog.Action onclick={handleVoid} class="bg-red-600 hover:bg-red-700">Анулювати</AlertDialog.Action>
+                                </AlertDialog.Footer>
+                            </AlertDialog.Content>
+                        </AlertDialog.Root>
+                    {/if}
 
-                    <AlertDialog.Root>
-                        <AlertDialog.Trigger>
-                            <Button
-                                variant="secondary"
-                                disabled={loading}
-                                class="w-full gap-2 h-12 text-sm font-bold border shadow-sm bg-white dark:bg-transparent hover:bg-slate-50 dark:hover:bg-slate-950/30 transition-all"
-                            >
-                                <Send class="h-4 w-4" /> Закрити
-                            </Button>
-                        </AlertDialog.Trigger>
-                        <AlertDialog.Content>
-                            <AlertDialog.Header>
-                                <AlertDialog.Title>Підтвердження закриття</AlertDialog.Title>
-                                <AlertDialog.Description>Ви впевнені, що хочете закрити цю перепустку?</AlertDialog.Description>
-                            </AlertDialog.Header>
-                            <AlertDialog.Footer>
-                                <AlertDialog.Cancel>Скасувати</AlertDialog.Cancel>
-                                <AlertDialog.Action onclick={handleClosePermit}>Підтвердити</AlertDialog.Action>
-                            </AlertDialog.Footer>
-                        </AlertDialog.Content>
-                    </AlertDialog.Root>
+                    {#if data.canUpdate}
+                        <AlertDialog.Root>
+                            <AlertDialog.Trigger>
+                                <Button
+                                    variant="secondary"
+                                    disabled={loading}
+                                    class="w-full gap-2 h-12 text-sm font-bold border shadow-sm bg-white dark:bg-transparent hover:bg-slate-50 dark:hover:bg-slate-950/30 transition-all"
+                                >
+                                    <Send class="h-4 w-4" /> Закрити
+                                </Button>
+                            </AlertDialog.Trigger>
+                            <AlertDialog.Content>
+                                <AlertDialog.Header>
+                                    <AlertDialog.Title>Підтвердження закриття</AlertDialog.Title>
+                                    <AlertDialog.Description>Ви впевнені, що хочете закрити цю перепустку?</AlertDialog.Description>
+                                </AlertDialog.Header>
+                                <AlertDialog.Footer>
+                                    <AlertDialog.Cancel>Скасувати</AlertDialog.Cancel>
+                                    <AlertDialog.Action onclick={handleClosePermit}>Підтвердити</AlertDialog.Action>
+                                </AlertDialog.Footer>
+                            </AlertDialog.Content>
+                        </AlertDialog.Root>
+                    {/if}
                 </div>
             {/if}
         {/if}
 
         {#if permit.is_void}
-            <Button
-                variant="outline"
-                onclick={handleRestore}
-                disabled={loading}
-                class="w-full gap-2.5 h-12 text-base font-bold border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/30"
-            >
-                <Activity class="h-5 w-5" /> Відновити перепустку
-            </Button>
+            {#if data.canUpdate}
+                <Button
+                    variant="outline"
+                    onclick={handleRestore}
+                    disabled={loading}
+                    class="w-full gap-2.5 h-12 text-base font-bold border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/30"
+                >
+                    <Activity class="h-5 w-5" /> Відновити перепусту
+                </Button>
+            {/if}
 
-            <AlertDialog.Root>
-                <AlertDialog.Trigger>
-                    <Button
-                        variant="destructive"
-                        disabled={loading}
-                        class="w-full gap-2.5 h-12 text-base font-bold shadow-md"
-                    >
-                        <Activity class="h-5 w-5" /> Видалити остаточно
-                    </Button>
-                </AlertDialog.Trigger>
-                <AlertDialog.Content>
-                    <AlertDialog.Header>
-                        <AlertDialog.Title>Видалення перепустки</AlertDialog.Title>
-                        <AlertDialog.Description>
-                            Ви впевнені, що хочете остаточно видалити цю перепустку зі сховища? Це скасує всі пов'язані записи.
-                        </AlertDialog.Description>
-                    </AlertDialog.Header>
-                    <AlertDialog.Footer>
-                        <AlertDialog.Cancel>Скасувати</AlertDialog.Cancel>
-                        <AlertDialog.Action onclick={handleDelete} class="bg-red-600 hover:bg-red-700">Видалити</AlertDialog.Action>
-                    </AlertDialog.Footer>
-                </AlertDialog.Content>
-            </AlertDialog.Root>
+            {#if data.canDelete}
+                <AlertDialog.Root>
+                    <AlertDialog.Trigger>
+                        <Button
+                            variant="destructive"
+                            disabled={loading}
+                            class="w-full gap-2.5 h-12 text-base font-bold shadow-md"
+                        >
+                            <Activity class="h-5 w-5" /> Видалити остаточно
+                        </Button>
+                    </AlertDialog.Trigger>
+                    <AlertDialog.Content>
+                        <AlertDialog.Header>
+                            <AlertDialog.Title>Видалення перепустки</AlertDialog.Title>
+                            <AlertDialog.Description>
+                                Ви впевнені, що хочете остаточно видалити цю перепустку зі сховища? Це скасує всі пов'язані записи.
+                            </AlertDialog.Description>
+                        </AlertDialog.Header>
+                        <AlertDialog.Footer>
+                            <AlertDialog.Cancel>Скасувати</AlertDialog.Cancel>
+                            <AlertDialog.Action onclick={handleDelete} class="bg-red-600 hover:bg-red-700">Видалити</AlertDialog.Action>
+                        </AlertDialog.Footer>
+                    </AlertDialog.Content>
+                </AlertDialog.Root>
+            {/if}
         {/if}
     </div>
 </div>

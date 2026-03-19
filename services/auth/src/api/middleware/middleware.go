@@ -4,6 +4,7 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
+	"github.com/truckguard/auth/src/repository"
 )
 
 func RequirePermission(requiredPerm string) gin.HandlerFunc {
@@ -15,11 +16,9 @@ func RequirePermission(requiredPerm string) gin.HandlerFunc {
 		}
 
 		perms := strings.Split(permsHeader, ",")
-		for _, p := range perms {
-			if p == requiredPerm {
-				c.Next()
-				return
-			}
+		if repository.HasPermission(perms, requiredPerm) {
+			c.Next()
+			return
 		}
 
 		c.AbortWithStatusJSON(403, gin.H{"error": "Missing permission: " + requiredPerm})

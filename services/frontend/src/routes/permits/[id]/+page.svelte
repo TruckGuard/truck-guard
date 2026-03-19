@@ -505,6 +505,7 @@
   <PermitHeader
     permitCode={permit.code}
     permitId={permit.ID}
+    canUpdate={data.canUpdate}
     onclickLink={() => (showLinkDialog = true)}
   />
 

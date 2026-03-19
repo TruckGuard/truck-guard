@@ -13,14 +13,16 @@ export const load: PageServerLoad = async ({ locals }) => {
     }
 
     try {
-        const [roles, permissions] = await Promise.all([
+        const [roles, permissions, hierarchy] = await Promise.all([
             locals.authClient.getRoles(),
-            locals.authClient.getPermissions()
+            locals.authClient.getPermissions(),
+            locals.authClient.getPermissionHierarchy()
         ]);
 
         return {
             roles,
-            permissions
+            permissions,
+            hierarchy
         };
     } catch (e) {
         console.error('Error fetching roles/permissions:', e);

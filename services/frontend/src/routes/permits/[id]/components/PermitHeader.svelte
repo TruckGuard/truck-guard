@@ -3,10 +3,11 @@
     import { ChevronLeft, RefreshCw, Link } from "@lucide/svelte";
     import { Button } from "$lib/components/ui/button";
 
-    let { permitCode, permitId, onclickLink } = $props<{
+    let { permitCode, permitId, onclickLink, canUpdate = false } = $props<{
         permitCode?: string;
         permitId?: number;
         onclickLink?: () => void;
+        canUpdate?: boolean;
     }>();
 
     let refreshing = $state(false);
@@ -40,7 +41,7 @@
         <RefreshCw class="h-4 w-4 {refreshing ? 'animate-spin' : ''}" />
         Оновити
     </Button>
-    {#if onclickLink}
+    {#if onclickLink && canUpdate}
         <Button
             variant="outline"
             size="sm"

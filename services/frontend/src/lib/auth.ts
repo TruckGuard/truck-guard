@@ -1,42 +1,35 @@
-export type User = {
+export interface User {
+    id: string;
+    username: string;
     permissions: string[];
-};
+    role?: string;
+    hierarchy?: Record<string, string[]>;
+}
 
 export function can(user: User | null | undefined, permission: string): boolean {
     if (!user || !user.permissions) return false;
 
-    // Admin has everything
-    if (user.permissions.includes('admin')) return true;
+    const perms = user.permissions;
+    const hierarchy = user.hierarchy || {};
 
-    for (const p of user.permissions) {
-        if (p === permission) return true;
-
-        // Hierarchical logic for action:resource[:scope]
-        const [actionUser, resourceUser, scopeUser] = p.split(':');
-        const [actionReq, resourceReq, scopeReq] = permission.split(':');
-
-        if (actionUser && resourceUser && actionReq && resourceReq) {
-            // Check resource
-            if (resourceUser !== '*' && resourceUser !== resourceReq) continue;
-
-            // Check scope if present
-            if (scopeUser && scopeReq && scopeUser !== '*' && scopeUser !== scopeReq) continue;
-
-            const levels: Record<string, number> = {
-                'read': 1,
-                'create': 2,
-                'update': 3,
-                'delete': 4,
-                'manage': 5,
-                'admin': 10
-            };
-
-            const userLevel = levels[actionUser] || 0;
-            const reqLevel = levels[actionReq] || 0;
-
-            if (userLevel >= reqLevel) return true;
-        }
+    if (perms.includes(permission) || perms.includes('admin')) {
+        return true;
     }
 
-    return false;
+    // Рекурсивна перевірка ієрархії
+    const check = (p: string, target: string, seen: Set<string>): boolean => {
+        if (p === target) return true;
+        if (seen.has(p)) return false;
+        seen.add(p);
+
+        const deps = hierarchy[p] || [];
+        for (const dep of deps) {
+            if (check(dep, target, seen)) {
+                return true;
+            }
+        }
+        return false;
+    };
+
+    return perms.some(p => check(p, permission, new Set()));
 }

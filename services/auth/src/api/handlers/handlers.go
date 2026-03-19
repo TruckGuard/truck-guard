@@ -176,9 +176,10 @@ func HandleValidate(c *gin.Context) {
 	}
 
 	// 5. Success - Set Headers and Body
-	c.Header("X-Permissions", strings.Join(perms, ","))
+	c.Header("X-Permissions", strings.Join(repository.ExpandPermissions(perms), ","))
 	if userID != "" {
 		c.Header("X-User-ID", userID)
+		c.Header("X-Username", username)
 	}
 	if sourceID != "" {
 		c.Header("X-Source-ID", sourceID)
@@ -644,4 +645,40 @@ func HandleChangePassword(c *gin.Context) {
 
 	slog.Info("Password changed", "user_id", u.ID, "username", u.Username)
 	c.JSON(200, gin.H{"message": "Пароль успішно змінено"})
+}
+
+func HandleAdminResetPassword(c *gin.Context) {
+	targetUserID := c.Param("id")
+	var b struct {
+		NewPass string `json:"new_password" binding:"required"`
+	}
+	if err := c.BindJSON(&b); err != nil {
+		c.JSON(400, gin.H{"error": "Новий пароль обов'язковий"})
+		return
+	}
+
+	h, err := bcrypt.GenerateFromPassword([]byte(b.NewPass), 10)
+	if err != nil {
+		c.JSON(500, gin.H{"error": "Не вдалося згенерувати хеш пароля"})
+		return
+	}
+
+	var u models.User
+	if err := repository.DB.WithContext(c.Request.Context()).Where("id = ?", targetUserID).First(&u).Error; err != nil {
+		c.JSON(404, gin.H{"error": "Користувача не знайдено"})
+		return
+	}
+
+	u.PasswordHash = string(h)
+	if err := repository.DB.WithContext(c.Request.Context()).Save(&u).Error; err != nil {
+		c.JSON(500, gin.H{"error": "Не вдалося оновити пароль"})
+		return
+	}
+
+	slog.Info("Admin reset password", "admin_id", c.GetHeader("X-User-ID"), "target_user_id", u.ID, "username", u.Username)
+	c.JSON(200, gin.H{"message": "Пароль успішно скинуто"})
+}
+func HandleGetPermissionHierarchy(c *gin.Context) {
+	repository.LoadPermissionHierarchy()
+	c.JSON(200, repository.PermissionHierarchy)
 }

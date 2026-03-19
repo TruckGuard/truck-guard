@@ -48,3 +48,10 @@ type PolicyRule struct {
 	RequiredPermission string `gorm:"not null" json:"required_permission"` // Наприклад, read:users
 	Description        string `json:"description"`
 }
+
+type PermissionHierarchy struct {
+	ParentID string     `gorm:"primaryKey;column:parent_id" json:"parent_id"`
+	Parent   Permission `gorm:"foreignKey:ParentID" json:"-"`
+	ChildID  string     `gorm:"primaryKey;column:child_id" json:"child_id"`
+	Child    Permission `gorm:"foreignKey:ChildID" json:"-"`
+}

@@ -8,10 +8,41 @@ import (
 	"github.com/truckguard/core/src/repository"
 )
 
+func HasPermission(userPerms []string, required string) bool {
+	if required == "" {
+		return true
+	}
+
+	for _, p := range userPerms {
+		if p == "admin" || p == required {
+			return true
+		}
+
+		partsUser := strings.Split(p, ":")
+		partsRequired := strings.Split(required, ":")
+
+		// Check for wildcard permissions, e.g., "read:*" allows "read:users", "read:roles"
+		if len(partsUser) == 2 && partsUser[1] == "*" && partsUser[0] == partsRequired[0] {
+			return true
+		}
+	}
+	return false
+}
+
 func RequireCorePermission(required string) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		perms := c.GetHeader("X-Permissions")
-		if perms == "" || !strings.Contains(perms, required) {
+		permsHeader := c.GetHeader("X-Permissions")
+		if permsHeader == "" {
+			c.AbortWithStatusJSON(403, gin.H{"error": "Missing permission: " + required})
+			return
+		}
+
+		userPerms := strings.Split(permsHeader, ",")
+		for i, p := range userPerms {
+			userPerms[i] = strings.TrimSpace(p)
+		}
+
+		if !HasPermission(userPerms, required) {
 			c.AbortWithStatusJSON(403, gin.H{"error": "Missing permission: " + required})
 			return
 		}

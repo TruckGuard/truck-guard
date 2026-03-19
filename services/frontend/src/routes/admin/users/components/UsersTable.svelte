@@ -5,15 +5,16 @@
     import { Button } from "$lib/components/ui/button";
     import { format } from "date-fns";
     import { can } from "$lib/auth";
-    import { Pencil, Trash2, Users } from "@lucide/svelte";
+    import { Pencil, Trash2, Users, Key } from "@lucide/svelte";
 
-    let { users, currentUser, posts, flex = false, onEdit, onDelete } = $props<{
+    let { users, currentUser, posts, flex = false, onEdit, onDelete, onResetPassword } = $props<{
         users: any[];
         currentUser: any;
         posts?: any[];
         flex?: boolean;
         onEdit: (user: any) => void;
         onDelete: (user: any) => void;
+        onResetPassword: (user: any) => void;
     }>();
 </script>
 
@@ -118,6 +119,17 @@
                 title="Змінити"
             >
                 <Pencil class="h-3.5 w-3.5" />
+            </Button>
+        {/if}
+        {#if can(currentUser, "manage:users") && user.id != currentUser.id}
+            <Button
+                variant="ghost"
+                size="icon"
+                class="size-8 text-amber-500 hover:text-amber-600 hover:bg-amber-500/10"
+                onclick={() => onResetPassword(user)}
+                title="Скинути пароль"
+            >
+                <Key class="h-3.5 w-3.5" />
             </Button>
         {/if}
         {#if can(currentUser, "delete:users") && user.id != currentUser.id}

@@ -10,6 +10,9 @@
   import { Input } from "$lib/components/ui/input";
   import { Label } from "$lib/components/ui/label";
   import { Checkbox } from "$lib/components/ui/checkbox";
+  import { Badge } from "$lib/components/ui/badge";
+  import * as Tabs from "$lib/components/ui/tabs";
+  import PermissionHierarchy from "./components/PermissionHierarchy.svelte";
   import type { PageData } from "./$types";
   import type { Role, Permission } from "$lib/server/auth-client";
 
@@ -73,6 +76,45 @@
       selectedPermissions = [...selectedPermissions, id];
     }
   }
+
+  let inheritedPermissions = $derived.by(() => {
+    const inherited = new Set<string>();
+    const check = (id: string, seen: Set<string>) => {
+      if (seen.has(id)) return;
+      seen.add(id);
+      
+      // Автоматично додаємо базове право для прав з суфіксом :all
+      if (id.endsWith(":all")) {
+        const base = id.slice(0, -4);
+        if (!inherited.has(base)) {
+          inherited.add(base);
+          check(base, seen);
+        }
+
+        // Рекурсивно додаємо :all для залежних прав
+        const children = data.hierarchy[base] || [];
+        for (const child of children) {
+          const childAll = child + ":all";
+          if (data.permissions.some((p: { id: string }) => p.id === childAll)) {
+            if (!inherited.has(childAll)) {
+              inherited.add(childAll);
+              check(childAll, seen);
+            }
+          }
+        }
+      }
+
+      const children = data.hierarchy[id] || [];
+      for (const child of children) {
+        inherited.add(child);
+        check(child, seen);
+      }
+    };
+    for (const p of selectedPermissions) {
+      check(p, new Set());
+    }
+    return Array.from(inherited);
+  });
 </script>
 <div class="flex flex-col h-full overflow-hidden space-y-6">
   <div class="shrink-0">
@@ -99,16 +141,38 @@
     {/if}
   </div>
 
-  <div class="flex-1 min-h-0 overflow-hidden flex flex-col">
-    <RolesTable 
-      roles={filteredRoles} 
-      currentUser={data.user} 
-      flex={true}
-      onPerms={openPerms} 
-      onEdit={openEdit} 
-      onDelete={openDelete} 
-    />
-  </div>
+  <Tabs.Root value="roles" class="flex-1 flex flex-col min-h-0 overflow-hidden">
+    <div class="flex items-center justify-between mb-4">
+      <Tabs.List class="bg-muted/50 p-1">
+        <Tabs.Trigger value="roles" class="data-[state=active]:bg-background data-[state=active]:shadow-sm">
+          Список ролей
+        </Tabs.Trigger>
+        <Tabs.Trigger value="hierarchy" class="data-[state=active]:bg-background data-[state=active]:shadow-sm">
+          Ієрархія прав
+        </Tabs.Trigger>
+      </Tabs.List>
+    </div>
+
+    <Tabs.Content value="roles" class="flex-1 min-h-0 overflow-hidden mt-0">
+      <div class="h-full flex flex-col">
+        <RolesTable 
+          roles={filteredRoles} 
+          currentUser={data.user} 
+          flex={true}
+          onPerms={openPerms} 
+          onEdit={openEdit} 
+          onDelete={openDelete} 
+        />
+      </div>
+    </Tabs.Content>
+
+    <Tabs.Content value="hierarchy" class="flex-1 min-h-0 overflow-y-auto mt-0">
+      <PermissionHierarchy 
+        hierarchy={data.hierarchy} 
+        permissions={data.permissions} 
+      />
+    </Tabs.Content>
+  </Tabs.Root>
 
   <!-- Create Role Dialog -->
   <Dialog.Root bind:open={isCreateOpen}>
@@ -260,9 +324,9 @@
                 <Checkbox
                   id="perm-{perm.id}"
                   value={perm.id}
-                  checked={selectedPermissions.includes(perm.id)}
+                  checked={selectedPermissions.includes(perm.id) || inheritedPermissions.includes(perm.id)}
                   onCheckedChange={() => togglePermission(perm.id)}
-                  disabled={!authCan(data.user, perm.id)}
+                  disabled={!authCan(data.user, perm.id) || inheritedPermissions.includes(perm.id)}
                 />
                 <div class="grid gap-1.5 leading-none">
                   <Label
@@ -270,9 +334,14 @@
                     class="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
                   >
                     <div class="flex flex-col">
-                      {perm.name}
-                      <span class="text-xs text-muted-foreground">
+                      <span class={inheritedPermissions.includes(perm.id) ? "text-primary/90 font-semibold" : ""}>
+                        {perm.name}
+                      </span>
+                      <span class="text-xs text-muted-foreground flex items-center gap-1">
                         {perm.id}
+                        {#if inheritedPermissions.includes(perm.id)}
+                          <Badge variant="outline" class="h-4 px-1 text-[9px] uppercase tracking-tighter bg-primary/5 text-primary border-primary/20">успадковано</Badge>
+                        {/if}
                       </span>
                     </div>
                   </Label>

@@ -3,6 +3,8 @@ import { AuthClient } from '$lib/server/auth-client';
 import { redirect } from '@sveltejs/kit';
 import { CoreClient } from '$lib/server/core-client';
 
+let hierarchyCache: Record<string, string[]> | null = null;
+
 export const handle: Handle = async ({ event, resolve }) => {
     const session = event.cookies.get('session');
 
@@ -16,7 +18,18 @@ export const handle: Handle = async ({ event, resolve }) => {
         event.locals.authClient = new AuthClient(session);
         const user = await event.locals.authClient.validate();
         if (user) {
-            event.locals.user = user;
+            if (!hierarchyCache) {
+                try {
+                    hierarchyCache = await event.locals.authClient.getPermissionHierarchy();
+                } catch (e) {
+                    console.error('Failed to fetch permission hierarchy:', e);
+                }
+            }
+            
+            event.locals.user = {
+                ...user,
+                hierarchy: hierarchyCache
+            };
             event.locals.coreClient = new CoreClient(session, user.permissions, user.id);
         } else {
             console.log('Invalid session, clearing cookie');
