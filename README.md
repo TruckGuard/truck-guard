@@ -1,3 +1,51 @@
+# 🚛 TruckGuard: Enterprise Customs Weighing System
+
+**TruckGuard** is a comprehensive, microservices-based system designed for managing customs zones, vehicle tracking, and automated weighing operations. It integrates hardware (ANPR cameras, electronic scales) with a powerful backend to streamline customs procedures.
+
+---
+
+### 1. 🏗️ Technical Architecture
+
+The system is built using a modern microservices architecture, ensuring scalability, reliability, and ease of maintenance.
+
+#### **🧩 Core Components**
+
+- **[Auth Service](./services/auth)** (Go): Central security gatekeeper using JWT and API Keys.
+- **[Core Service](./services/core)** (Go): System configuration, event correlation, and permit management.
+- **[Ingestor](./services/ingestor)** (Go): High-performance entry point for all IoT data.
+- **[Adapter Worker](./services/adapter-worker)** (Python): Orchestrates background processing and data transformation.
+- **[ANPR Service](./services/anpr)** (Python/FastAPI): AI-powered license plate recognition.
+- **[Customs Parser](./services/customs-parser)** (Go): Bridge to the customs "Unified Window" API.
+- **[Frontend](./services/frontend)** (SvelteKit): Role-based dashboard for operators, admins, and accountants.
+
+---
+
+### 2. 🔄 Data Flow
+
+1.  **Ingestion**: Cameras and scales send raw data to the **Ingestor**.
+2.  **Streaming**: Ingestor pushes events to **Redis Streams** (`events:adapter`).
+3.  **Processing**: **Adapter Worker** consumes events, triggers **ANPR** recognition, and transforms data.
+4.  **Correlation**: **Core Service** receives enriched data and correlates events into **Permits**.
+5.  **Storage**: Metadata is stored in **PostgreSQL**, while images and logs are kept in **MinIO**.
+
+---
+
+### 3. 🛠️ Quick Start (Development)
+
+To run the entire stack locally:
+
+1.  **Prerequisites**: Docker & Docker Compose.
+2.  **Start Services**:
+    ```bash
+    docker-compose up -d
+    ```
+3.  **Access Frontend**: `http://localhost:5173` (or your configured port).
+4.  **API Documentation**: `http://localhost/docs` (served via Nginx).
+
+---
+
+### 4. 📋 Бізнес-вимоги (Оригінал)
+
 # TruckGuard: Enterprise Customs Weighing System
 Доступ до робочого місця за логіном і паролем
 Типи користувачів з різними правами доступу до редагування полів БД: адміністратор, оператор,

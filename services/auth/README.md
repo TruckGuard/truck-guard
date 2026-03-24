@@ -13,21 +13,44 @@ The service ensures that only authorized entities can access the system's intern
 - **Nginx Integration:** Works with the Nginx `auth_request` module. Before a request reaches the backend, Nginx makes a sub-request to this service to verify the token or key.
 
 The codebase is organized into modular packages under `src/`:
-
 - `src/api`: Handlers and middleware.
 - `src/models`: Database GORM models.
 - `src/repository`: Database and Redis logic.
 
-### 3. How to Run (Standalone)
+### 3. Tech Stack
+
+- **Language**: [Go 1.23+](https://go.dev/)
+- **ORMs**: [GORM](https://gorm.io/)
+- **Database**: [PostgreSQL](https://www.postgresql.org/)
+- **Cache/Session**: [Redis/Valkey](https://valkey.io/)
+- **Framework**: [Gin Gonic](https://gin-gonic.com/)
+
+### 4. Getting Started
 
 #### **Prerequisites**
 
-- **Go** (version 1.25 or higher)
-- **PostgreSQL**
-- **Redis**
-- **Environment Variables** (see below)
+- Go (v1.23 or higher)
+- PostgreSQL
+- Redis/Valkey
+- Environment Variables (see below)
 
-#### **Configuration**
+#### **Run Commands**
+
+1. **Install dependencies:**
+   ```bash
+   go mod tidy
+   ```
+2. **Start the service:**
+   ```bash
+   go run .
+   ```
+3. **Build:**
+   ```bash
+   go build -o auth-service
+   ./auth-service
+   ```
+
+### 5. Configuration (Environment Variables)
 
 Create a `.env` file or set the following variables:
 
@@ -37,25 +60,4 @@ DATABASE_URL=postgres://user:pass@localhost:5432/truckguard
 REDIS_ADDR=localhost:6379
 JWT_SECRET=your_secret_key
 ADMIN_DEFAULT_PASSWORD=admin123
-```
-
-#### **Run Commands**
-
-1. **Install dependencies:**
-
-```bash
-go mod tidy
-```
-
-2. **Start the service:**
-
-```bash
-go run .
-```
-
-3. **Build (optional):**
-
-```bash
-go build -o auth-service
-./auth-service
 ```

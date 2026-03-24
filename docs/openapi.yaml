@@ -102,6 +102,16 @@ paths:
         403:
           $ref: "#/components/responses/Forbidden"
 
+  /auth/logout:
+    post:
+      tags: [Auth]
+      summary: Logout from the system
+      responses:
+        204:
+          description: Successfully logged out
+        401:
+          $ref: "#/components/responses/Unauthorized"
+
   /auth/validate:
     get:
       tags: [Auth]
@@ -112,6 +122,96 @@ paths:
           description: Token is valid
         401:
           $ref: "#/components/responses/Unauthorized"
+
+  /auth/sessions:
+    get:
+      tags: [Auth]
+      summary: List active sessions
+      description: Retrieve a list of active sessions for the current user.
+      responses:
+        200:
+          description: List of sessions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id: { type: string }
+                    ip: { type: string }
+                    user_agent: { type: string }
+                    created_at: { type: string, format: date-time }
+
+  /auth/sessions/revoke:
+    post:
+      tags: [Auth]
+      summary: Revoke a specific session
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [session_id]
+              properties:
+                session_id: { type: string }
+      responses:
+        204:
+          description: Session revoked
+
+  /auth/sessions/revoke-all:
+    post:
+      tags: [Auth]
+      summary: Revoke all sessions for current user
+      responses:
+        204:
+          description: All sessions revoked
+
+  /auth/hierarchy:
+    get:
+      tags: [Auth]
+      summary: Get permission hierarchy
+      description: Retrieve the full tree of available permissions.
+      responses:
+        200:
+          description: Permission hierarchy
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties:
+                  type: array
+                  items: { type: string }
+
+  /auth/change-password:
+    post:
+      tags: [Auth]
+      summary: Change current user password
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [old_password, new_password]
+              properties:
+                old_password: { type: string }
+                new_password: { type: string }
+      responses:
+        200:
+          description: Password changed
+        400:
+          description: Invalid old password
+
+  /auth/health:
+    get:
+      tags: [Health]
+      summary: Auth service health check
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              example: { status: "ok" }
 
   # --- Core Service Users ---
   /api/users/by-auth-id/{authId}:
@@ -191,6 +291,25 @@ paths:
       responses:
         204:
           description: User deleted
+
+  /auth/admin/users/{id}/reset-password:
+    post:
+      tags: ["Admin: Users"]
+      summary: Reset user password
+      description: |
+        Reset a user's password to the default or a randomly generated one.
+        Permissions: `update:users`
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        200:
+          description: Password reset successful
+          content:
+            application/json:
+              example: { new_password: "..." }
 
   /auth/admin/roles:
     get:
@@ -644,7 +763,7 @@ paths:
         200:
           description: Setting updated
 
-  /api/configs/excluded-plates:
+  /api/data/excluded-plates:
     get:
       tags: ["System: Exclusions"]
       summary: List excluded plates
@@ -673,7 +792,7 @@ paths:
         201:
           description: Plate added
 
-  /api/configs/excluded-plates/{id}:
+  /api/data/excluded-plates/{id}:
     delete:
       tags: ["System: Exclusions"]
       summary: Remove plate from ignore list
@@ -872,7 +991,43 @@ paths:
           schema: { type: integer, default: 10 }
         - name: plate
           in: query
-          description: Filter permits by license plate (exact match on front or back)
+          description: Filter permits by license plate (partial match)
+          schema: { type: string }
+        - name: is_closed
+          in: query
+          schema: { type: boolean }
+        - name: is_void
+          in: query
+          schema: { type: boolean }
+        - name: sort_field
+          in: query
+          schema: { type: string }
+        - name: sort_order
+          in: query
+          schema: { type: string, enum: [asc, desc] }
+        - name: filter_from
+          in: query
+          description: "Start date for filtering (ISO8601)"
+          schema: { type: string, format: date-time }
+        - name: filter_to
+          in: query
+          description: "End date for filtering (ISO8601)"
+          schema: { type: string, format: date-time }
+        - name: filter_post_id
+          in: query
+          schema: { type: integer }
+        - name: filter_vehicle_type
+          in: query
+          schema: { type: integer }
+        - name: filter_payment_type
+          in: query
+          schema: { type: integer }
+        - name: filter_payer
+          in: query
+          schema: { type: integer }
+        - name: search
+          in: query
+          description: Global search across plate and code
           schema: { type: string }
       responses:
         200:
@@ -895,7 +1050,17 @@ paths:
       requestBody:
         content:
           application/json:
-            schema: { $ref: "#/components/schemas/Permit" }
+            schema:
+              allOf:
+                - $ref: "#/components/schemas/Permit"
+                - type: object
+                  properties:
+                    camera_event_id:
+                      type: integer
+                      description: "ID of the plate event to link"
+                    scale_event_id:
+                      type: integer
+                      description: "ID of the weight event to link"
             example:
               code: "PERM-2024-001"
               plate_front: "AA1234BB"
@@ -904,6 +1069,8 @@ paths:
               customs_post_id: 1
               declaration_number: "UA123456/2024/0001"
               notes: "Manual entry by operator"
+              camera_event_id: 452
+              scale_event_id: 89
       responses:
         201:
           description: Permit created
@@ -953,6 +1120,27 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/Permit" }
 
+  /api/permits/{id}/audit:
+    get:
+      tags: ["Operations: Permits"]
+      summary: Get permit audit log
+      description: |
+        Retrieve the chronological history of all changes made to a permit.
+        Permissions: `read:permits`
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        200:
+          description: Audit events
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/PermitAudit" }
+
   /api/permits/{id}/validate:
     post:
       tags: ["Operations: Permits"]
@@ -971,6 +1159,83 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/Permit" }
+
+  /api/permits/{id}/restore:
+    post:
+      tags: ["Operations: Permits"]
+      summary: Restore a voided/closed permit
+      description: |
+        Re-open a permit that was previously marked as void or closed.
+        Permissions: `update:permits`
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        200:
+          description: Permit restored
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Permit" }
+
+  /api/permits/{id}/void:
+    post:
+      tags: ["Operations: Permits"]
+      summary: Void a permit
+      description: |
+        Mark a permit as void (invalid).
+        Permissions: `delete:permits`
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        200:
+          description: Permit voided
+
+  /api/permits/link:
+    patch:
+      tags: ["Operations: Permits"]
+      summary: Link events to permit
+      description: |
+        Manually link raw plate or weight events to a specific permit.
+        Permissions: `update:permits`
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [permit_id, event_type, event_id]
+              properties:
+                permit_id: { type: integer }
+                event_type: { type: string, enum: [plate, weight] }
+                event_id: { type: integer }
+      responses:
+        204:
+          description: Successfully linked
+
+  /api/permits/unlink:
+    patch:
+      tags: ["Operations: Permits"]
+      summary: Unlink events from permit
+      description: |
+        Remove the association between a specific event and a permit.
+        Permissions: `update:permits`
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [permit_id, event_type, event_id]
+              properties:
+                permit_id: { type: integer }
+                event_type: { type: string, enum: [plate, weight] }
+                event_id: { type: integer }
+      responses:
+        204:
+          description: Successfully unlinked
 
   # --- Core: Users ---
   /api/users:
@@ -1119,6 +1384,31 @@ paths:
       responses:
         200:
           description: User and account deleted
+
+  /api/health:
+    get:
+      tags: [Health]
+      summary: Core service health check
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              example: { status: "ok" }
+
+  /api/notifications/stream:
+    get:
+      tags: ["Operations: Permits"]
+      summary: Real-time SSE notification stream
+      description: |
+        Server-Sent Events stream for real-time updates on permits and system events.
+        Used by the frontend dashboard.
+      responses:
+        200:
+          description: SSE Stream
+          content:
+            text/event-stream:
+              schema: { type: string }
 
   # --- Ingestor Service ---
   /ingest/camera:
@@ -1626,6 +1916,17 @@ paths:
           $ref: "#/components/responses/Unauthorized"
         403:
           $ref: "#/components/responses/Forbidden"
+
+  /api/data-parser/health:
+    get:
+      tags: [Health]
+      summary: Customs Parser health check
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              example: { status: "ok" }
 
 components:
   securitySchemes:

@@ -1,38 +1,54 @@
-# sv
+# 🖥️ TruckGuard Frontend
 
-Everything you need to build a Svelte project, powered by [`sv`](https://github.com/sveltejs/cli).
+### 1. What is it?
 
-## Creating a project
+The **TruckGuard Frontend** is a modern, responsive web application built with **SvelteKit** and **Tailwind CSS**. It serves as the primary interface for operators, administrators, and accountants to manage customs weighing operations.
 
-If you're seeing this, you've probably already done this step. Congrats!
+### 2. Purpose & How it Works
 
-```sh
-# create a new project in the current directory
-npx sv create
+It provides a centralized dashboard for system management and real-time monitoring:
 
-# create a new project in my-app
-npx sv create my-app
+- **Live Dashboard**: Real-time overview of active permits and vehicle movements.
+- **Plate Events**: Detailed log of all recognition events with images and metadata.
+- **Permit Management**: Workflow for creating, editing, and closing vehicle passes.
+- **Configuration**: Management of cameras, scales, and system-wide settings.
+- **Role-Based Access**: Specialized interfaces for Operators, Controllers, and Accountants.
+
+### 3. Tech Stack
+
+- **Framework**: [SvelteKit](https://kit.svelte.dev/)
+- **Styling**: [Tailwind CSS](https://tailwindcss.com/)
+- **UI Components**: [Shadcn-Svelte](https://www.shadcn-svelte.com/)
+- **State Management**: Svelte Runes (v5)
+- **Language**: [TypeScript](https://www.typescriptlang.org/)
+
+### 4. Getting Started
+
+#### **Prerequisites**
+
+- Node.js (v20+)
+- Yarn
+
+#### **Run Commands**
+
+1.  **Install dependencies:**
+    ```bash
+    yarn install
+    ```
+2.  **Start the development server:**
+    ```bash
+    yarn dev
+    ```
+3.  **Build for production:**
+    ```bash
+    yarn build
+    ```
+
+### 5. Configuration (Environment Variables)
+
+Ensure you have a `.env` file with the following:
+
+```env
+PUBLIC_CORE_API_URL=http://localhost:8080
+PUBLIC_AUTH_API_URL=http://localhost:8081
 ```
-
-## Developing
-
-Once you've created a project and installed dependencies with `npm install` (or `pnpm install` or `yarn`), start a development server:
-
-```sh
-npm run dev
-
-# or start the server and open the app in a new browser tab
-npm run dev -- --open
-```
-
-## Building
-
-To create a production version of your app:
-
-```sh
-npm run build
-```
-
-You can preview the production build with `npm run preview`.
-
-> To deploy your app, you may need to install an [adapter](https://svelte.dev/docs/kit/adapters) for your target environment.

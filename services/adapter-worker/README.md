@@ -18,26 +18,41 @@ It operates as a background consumer for all hardware events:
 5.  **Finalize**: Sends enriched data to the **Core Service**.
 6.  **Reliability**: Implements a Dead Letter Queue (`events:dlq`) for handling processing failures.
 
-### 3. How to Run (Standalone)
+### 3. Tech Stack
+
+- **Language**: [Python 3.12+](https://www.python.org/)
+- **Stream Processing**: [Redis Streams](https://redis.io/docs/data-types/streams/)
+- **Infrastructure**: [Valkey/Redis](https://valkey.io/), [MinIO Storage](https://min.io/)
+- **Observability**: [OpenTelemetry](https://opentelemetry.io/)
+
+### 4. Getting Started
 
 #### **Prerequisites**
 
-- **Python 3.12+**
-- **Redis**
-- **Access to Core & ANPR APIs**
-- **Access to MinIO Storage**
+- Python 3.12+
+- Redis/Valkey
+- Access to Core & ANPR APIs
+- Access to MinIO Storage
 
-#### **Configuration**
+#### **Run Commands**
+
+1.  **Install dependencies:**
+    ```bash
+    pip install -r requirements.txt
+    ```
+2.  **Start the worker:**
+    ```bash
+    python main.py
+    ```
+
+### 5. Configuration (Environment Variables)
 
 ```env
 VALKEY_ADDR=localhost:6379
 CORE_URL=http://localhost:8081
 ANPR_URL=http://localhost:8000
 STORAGE_ENDPOINT=localhost:9000
-...
+STORAGE_ACCESS_KEY=your_access_key
+STORAGE_SECRET_KEY=your_secret_key
+STORAGE_BUCKET=truckguard-images
 ```
-
-#### **Run Commands**
-
-1.  **Install dependencies:** `pip install -r requirements.txt`
-2.  **Start the worker:** `python main.py`

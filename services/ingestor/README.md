@@ -13,9 +13,38 @@ The **Ingestor Service** is the entry point for all IoT data (cameras, scales, s
 - **Blob Storage**: JPG frames from cameras are stored in **MinIO**.
 - **Self-Describing Events**: Every event includes a `type` field so downstream workers know how to process it.
 
-### 3. How to Run (Standalone)
+### 3. Tech Stack
+
+- **Language**: [Go 1.23+](https://go.dev/)
+- **Infrastructure**: [Redis/Valkey](https://valkey.io/), [MinIO Storage](https://min.io/)
+- **Observability**: [OpenTelemetry](https://opentelemetry.io/)
+
+### 4. Getting Started
+
+#### **Prerequisites**
+
+- Go (v1.23 or higher)
+- Redis/Valkey
+- Access to MinIO (Garage)
 
 #### **Run Commands**
 
-1.  **Install dependencies:** `go mod tidy`
-2.  **Start the service:** `go run .`
+1.  **Install dependencies:**
+    ```bash
+    go mod tidy
+    ```
+2.  **Start the service:**
+    ```bash
+    go run .
+    ```
+
+### 5. Configuration (Environment Variables)
+
+```env
+PORT=8080
+VALKEY_ADDR=localhost:6379
+STORAGE_ENDPOINT=localhost:3900
+STORAGE_ACCESS_KEY=your_access_key
+STORAGE_SECRET_KEY=your_secret_key
+BUCKET_NAME=truckguard-images
+```
