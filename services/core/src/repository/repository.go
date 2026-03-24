@@ -22,6 +22,10 @@ func InitDB(dsn string) {
 		panic(err)
 	}
 
+	// Drop old strict constraints to allow GORM to rebuild them with CASCADE
+	db.Exec(`ALTER TABLE "plate_events" DROP CONSTRAINT IF EXISTS "fk_plate_events_camera"`)
+	db.Exec(`ALTER TABLE "weight_events" DROP CONSTRAINT IF EXISTS "fk_weight_events_scale"`)
+
 	db.AutoMigrate(
 		&models.CustomsPost{},
 		&models.SystemEvent{},

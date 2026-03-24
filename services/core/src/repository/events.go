@@ -6,7 +6,7 @@ import (
 	"github.com/truckguard/core/src/models"
 )
 
-func GetPlateEvents(ctx context.Context, limit, offset int, plate, from, to string, onlyUnlinked bool) ([]models.PlateEvent, int64, error) {
+func GetPlateEvents(ctx context.Context, limit, offset int, plate, from, to, cameraID string, onlyUnlinked bool) ([]models.PlateEvent, int64, error) {
 	var events []models.PlateEvent
 	var total int64
 
@@ -14,6 +14,12 @@ func GetPlateEvents(ctx context.Context, limit, offset int, plate, from, to stri
 
 	if plate != "" {
 		query = query.Where("plate LIKE ?", "%"+plate+"%")
+	}
+	if cameraID != "" {
+		query = query.Where("camera_id = ?", cameraID)
+	}
+	if from != "" {
+		query = query.Where("created_at >= ?", from)
 	}
 	if to != "" {
 		query = query.Where("created_at <= ?", to)
@@ -38,12 +44,18 @@ func GetPlateEventByID(ctx context.Context, id string) (models.PlateEvent, error
 	return event, nil
 }
 
-func GetWeightEvents(ctx context.Context, limit, offset int, from, to string, onlyUnlinked bool) ([]models.WeightEvent, int64, error) {
+func GetWeightEvents(ctx context.Context, limit, offset int, from, to, scaleID string, onlyUnlinked bool) ([]models.WeightEvent, int64, error) {
 	var events []models.WeightEvent
 	var total int64
 
 	query := DB.WithContext(ctx).Model(&models.WeightEvent{}).Scopes(models.ScopeByPost(ctx, models.WeightEvent{}, "read"))
 
+	if scaleID != "" {
+		query = query.Where("scale_id = ?", scaleID)
+	}
+	if from != "" {
+		query = query.Where("created_at >= ?", from)
+	}
 	if to != "" {
 		query = query.Where("created_at <= ?", to)
 	}

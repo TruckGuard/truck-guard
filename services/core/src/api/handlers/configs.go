@@ -52,8 +52,9 @@ func HandleCreateCamera(c *gin.Context) {
 
 func HandleGetCameras(c *gin.Context) {
 	limit, offset, page := utils.GetPagination(c)
+	search := c.Query("search")
 
-	configs, total, err := repository.GetCameras(c.Request.Context(), limit, offset)
+	configs, total, err := repository.GetCameras(c.Request.Context(), limit, offset, search)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch cameras"})
 		return
@@ -64,7 +65,7 @@ func HandleGetCameras(c *gin.Context) {
 
 func HandleGetConfigByID(c *gin.Context) {
 	sourceID := c.Param("id")
-	config, err := repository.GetCameraByID(c.Request.Context(), sourceID)
+	config, err := repository.GetCameraByIdentifier(c.Request.Context(), sourceID)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			c.JSON(http.StatusNotFound, gin.H{"error": "Конфігурацію камери не знайдено"})
@@ -78,7 +79,7 @@ func HandleGetConfigByID(c *gin.Context) {
 
 func HandleGetConfigByCameraID(c *gin.Context) {
 	sourceID := c.Param("camera_id")
-	config, err := repository.GetCameraBySourceID(c.Request.Context(), sourceID)
+	config, err := repository.GetCameraByIdentifier(c.Request.Context(), sourceID)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			c.JSON(http.StatusNotFound, gin.H{"error": "Конфігурацію камери за ID джерела не знайдено"})
@@ -92,7 +93,7 @@ func HandleGetConfigByCameraID(c *gin.Context) {
 
 func HandleUpdateCamera(c *gin.Context) {
 	id := c.Param("id")
-	config, err := repository.GetCameraByID(c.Request.Context(), id)
+	config, err := repository.GetCameraByIdentifier(c.Request.Context(), id)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			c.JSON(http.StatusNotFound, gin.H{"error": "Конфігурацію камери не знайдено"})
@@ -117,7 +118,7 @@ func HandleUpdateCamera(c *gin.Context) {
 
 func HandleDeleteCamera(c *gin.Context) {
 	id := c.Param("id")
-	config, err := repository.GetCameraByID(c.Request.Context(), id)
+	config, err := repository.GetCameraByIdentifier(c.Request.Context(), id)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			c.JSON(http.StatusNotFound, gin.H{"error": "Конфігурацію камери не знайдено"})
@@ -143,8 +144,10 @@ func HandleDeleteCamera(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete camera configuration"})
 		return
 	}
+
 	c.JSON(http.StatusOK, gin.H{"status": "deleted"})
 }
+
 
 func HandleCreateScale(c *gin.Context) {
 	var config models.ScaleConfig
@@ -183,8 +186,9 @@ func HandleCreateScale(c *gin.Context) {
 
 func HandleGetScales(c *gin.Context) {
 	limit, offset, page := utils.GetPagination(c)
+	search := c.Query("search")
 
-	configs, total, err := repository.GetScales(c.Request.Context(), limit, offset)
+	configs, total, err := repository.GetScales(c.Request.Context(), limit, offset, search)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch scales"})
 		return
@@ -195,7 +199,7 @@ func HandleGetScales(c *gin.Context) {
 
 func HandleGetScaleConfigByID(c *gin.Context) {
 	id := c.Param("id")
-	config, err := repository.GetScaleByID(c.Request.Context(), id)
+	config, err := repository.GetScaleByIdentifier(c.Request.Context(), id)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			c.JSON(http.StatusNotFound, gin.H{"error": "Конфігурацію ваг не знайдено"})
@@ -209,7 +213,7 @@ func HandleGetScaleConfigByID(c *gin.Context) {
 
 func HandleGetConfigByScaleID(c *gin.Context) {
 	scaleID := c.Param("scale_id")
-	config, err := repository.GetScaleBySourceID(c.Request.Context(), scaleID)
+	config, err := repository.GetScaleByIdentifier(c.Request.Context(), scaleID)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			c.JSON(http.StatusNotFound, gin.H{"error": "Конфігурацію ваг за ID джерела не знайдено"})
@@ -223,7 +227,7 @@ func HandleGetConfigByScaleID(c *gin.Context) {
 
 func HandleUpdateScale(c *gin.Context) {
 	id := c.Param("id")
-	config, err := repository.GetScaleByID(c.Request.Context(), id)
+	config, err := repository.GetScaleByIdentifier(c.Request.Context(), id)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			c.JSON(http.StatusNotFound, gin.H{"error": "Конфігурацію ваг не знайдено"})
@@ -248,7 +252,7 @@ func HandleUpdateScale(c *gin.Context) {
 
 func HandleDeleteScale(c *gin.Context) {
 	id := c.Param("id")
-	config, err := repository.GetScaleByID(c.Request.Context(), id)
+	config, err := repository.GetScaleByIdentifier(c.Request.Context(), id)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			c.JSON(http.StatusNotFound, gin.H{"error": "Конфігурацію ваг не знайдено"})
@@ -277,4 +281,6 @@ func HandleDeleteScale(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"status": "deleted"})
 }
+
+
  

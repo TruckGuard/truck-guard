@@ -186,13 +186,13 @@ type PlateEvent struct {
 	gorm.Model
 	CameraSourceID   string         `gorm:"column:camera_source_id" json:"camera_source_id"`
 	CameraSourceName string         `gorm:"column:camera_source_name" json:"camera_source_name"`
-	CameraID         string         `gorm:"column:camera_id" json:"camera_id"`
+	CameraID         *string        `gorm:"column:camera_id" json:"camera_id"`
 	Plate            string         `json:"plate"`
 	ImageKey         string         `json:"image_key"`
 	Timestamp        time.Time      `json:"timestamp"`
 	Suggestions      datatypes.JSON `gorm:"type:jsonb" json:"suggestions"`
 
-	Camera CameraConfig `gorm:"foreignKey:CameraID;references:SourceID" json:"-"`
+	Camera *CameraConfig `gorm:"foreignKey:CameraID;references:SourceID;constraint:OnUpdate:CASCADE,OnDelete:SET NULL;" json:"-"`
 
 	SystemEventID uint         `json:"system_event_id"`
 	SystemEvent   *SystemEvent `gorm:"foreignKey:SystemEventID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;" json:"-"`
@@ -205,11 +205,11 @@ type WeightEvent struct {
 	gorm.Model
 	ScaleSourceID   string    `json:"scale_source_id"`
 	ScaleSourceName string    `gorm:"column:scale_source_name" json:"scale_source_name"`
-	ScaleID         string    `gorm:"column:scale_id" json:"scale_id"`
+	ScaleID         *string   `gorm:"column:scale_id" json:"scale_id"`
 	Weight          float64   `json:"weight"`
 	Timestamp       time.Time `json:"timestamp"`
 
-	Scale ScaleConfig `gorm:"foreignKey:ScaleID;references:SourceID" json:"-"`
+	Scale *ScaleConfig `gorm:"foreignKey:ScaleID;references:SourceID;constraint:OnUpdate:CASCADE,OnDelete:SET NULL;" json:"-"`
 
 	SystemEventID uint         `json:"system_event_id"`
 	SystemEvent   *SystemEvent `gorm:"foreignKey:SystemEventID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;" json:"-"`

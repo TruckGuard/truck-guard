@@ -32,8 +32,8 @@ func HandlePlateEvent(c *gin.Context) {
 	}
 
 	// Populate camera name if missing
-	if event.CameraSourceName == "" && event.CameraID != "" {
-		if cam, err := repository.GetCameraBySourceID(c.Request.Context(), event.CameraID); err == nil {
+	if event.CameraSourceName == "" && event.CameraID != nil && *event.CameraID != "" {
+		if cam, err := repository.GetCameraByIdentifier(c.Request.Context(), *event.CameraID); err == nil {
 			event.CameraSourceName = cam.Name
 		}
 	}
@@ -64,8 +64,9 @@ func HandleGetPlateEvents(c *gin.Context) {
 	from := c.Query("from")
 	to := c.Query("to")
 	onlyUnlinked := c.Query("unlinked") == "true"
+	cameraID := c.Query("camera_id")
 
-	events, total, err := repository.GetPlateEvents(c.Request.Context(), limit, offset, plate, from, to, onlyUnlinked)
+	events, total, err := repository.GetPlateEvents(c.Request.Context(), limit, offset, plate, from, to, cameraID, onlyUnlinked)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch events"})
 		return
@@ -102,8 +103,8 @@ func HandleWeightEvent(c *gin.Context) {
 	}
 
 	// Populate scale name if missing
-	if event.ScaleSourceName == "" && event.ScaleID != "" {
-		if scale, err := repository.GetScaleBySourceID(c.Request.Context(), event.ScaleID); err == nil {
+	if event.ScaleSourceName == "" && event.ScaleID != nil && *event.ScaleID != "" {
+		if scale, err := repository.GetScaleByIdentifier(c.Request.Context(), *event.ScaleID); err == nil {
 			event.ScaleSourceName = scale.Name
 		}
 	}
@@ -126,8 +127,9 @@ func HandleGetWeightEvents(c *gin.Context) {
 	from := c.Query("from")
 	to := c.Query("to")
 	onlyUnlinked := c.Query("unlinked") == "true"
+	scaleID := c.Query("scale_id")
 
-	events, total, err := repository.GetWeightEvents(c.Request.Context(), limit, offset, from, to, onlyUnlinked)
+	events, total, err := repository.GetWeightEvents(c.Request.Context(), limit, offset, from, to, scaleID, onlyUnlinked)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch weight events"})
 		return

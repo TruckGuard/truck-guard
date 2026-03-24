@@ -141,7 +141,13 @@ func MatchPlateEvent(ctx context.Context, event *models.PlateEvent) {
 		span.RecordError(err)
 		return
 	}
-	slog.Info("MatchPlateEvent: event loaded", "camera_id", event.CameraID, "match_permit", event.Camera.MatchPermit)
+	slog.Info("MatchPlateEvent: event loaded", "camera_id", event.CameraID)
+
+	// Camera may have been deleted (FK SET NULL)
+	if event.Camera == nil {
+		slog.Warn("Camera was deleted, skipping permit matching", "camera_id", event.CameraID)
+		return
+	}
 
 	if !event.Camera.MatchPermit {
 		slog.Debug("Camera not configured to match permits", "camera_id", event.CameraID)
@@ -154,7 +160,12 @@ func MatchPlateEvent(ctx context.Context, event *models.PlateEvent) {
 	}
 	customsPostID := *event.Camera.CustomsPostID
 
-	processEvent(ctx, customsPostID, event.CameraID, event, func(permit *models.Permit) {
+	sourceID := ""
+	if event.CameraID != nil {
+		sourceID = *event.CameraID
+	}
+
+	processEvent(ctx, customsPostID, sourceID, event, func(permit *models.Permit) {
 		plate := event.Plate
 
 		switch event.Camera.Type {
@@ -189,6 +200,12 @@ func MatchWeightEvent(ctx context.Context, event *models.WeightEvent) {
 		return
 	}
 
+	// Scale may have been deleted (FK SET NULL)
+	if event.Scale == nil {
+		slog.Warn("Scale was deleted, skipping permit matching", "scale_id", event.ScaleID)
+		return
+	}
+
 	if !event.Scale.MatchPermit {
 		slog.Debug("Scale not configured to match permits", "scale_id", event.ScaleID)
 		return
@@ -200,7 +217,12 @@ func MatchWeightEvent(ctx context.Context, event *models.WeightEvent) {
 	}
 	customsPostID := *event.Scale.CustomsPostID
 
-	processEvent(ctx, customsPostID, event.ScaleID, event, func(permit *models.Permit) {
+	sourceID := ""
+	if event.ScaleID != nil {
+		sourceID = *event.ScaleID
+	}
+
+	processEvent(ctx, customsPostID, sourceID, event, func(permit *models.Permit) {
 		if event.Weight > 0 {
 			permit.TotalWeight = event.Weight
 		}

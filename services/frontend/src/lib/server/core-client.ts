@@ -11,6 +11,34 @@ export interface CoreUser {
     role: string | { id: number; name: string; description: string };
 }
 
+export interface CameraConfig {
+    ID: number;
+    camera_id: string;
+    name: string;
+    description: string;
+    type: 'front' | 'back';
+    match_permit: boolean;
+    format: string;
+    run_anpr: boolean;
+    customs_post_id?: number;
+}
+
+export interface ScaleConfig {
+    ID: number;
+    scale_id: string;
+    name: string;
+    description: string;
+    match_permit: boolean;
+    format: string;
+    customs_post_id?: number;
+}
+
+export interface ApiResponseWithKey<T> {
+    camera?: T;
+    scale?: T;
+    api_key: string;
+}
+
 export class CoreClient {
     private baseUrl: string;
     private sessionId?: string;
@@ -211,6 +239,58 @@ export class CoreClient {
 
     async updateSetting(key: string, value: string): Promise<boolean> {
         return this.fetchWithAuth<boolean>('/configs/settings', 'POST', { key, value });
+    }
+
+    // --- Camera & Scale Configurations ---
+
+    async listCameras(page: number = 1, limit: number = 10, search: string = ''): Promise<{ data: CameraConfig[], metadata: any }> {
+        const query = new URLSearchParams({
+            page: page.toString(),
+            limit: limit.toString(),
+        });
+        if (search) query.set('search', search);
+        return this.fetchWithAuth<{ data: CameraConfig[], metadata: any }>(`/configs/cameras?${query.toString()}`);
+    }
+
+    async getCamera(id: number | string): Promise<CameraConfig> {
+        return this.fetchWithAuth<CameraConfig>(`/cameras/by-id/${id}`);
+    }
+
+    async createCamera(data: Partial<CameraConfig>): Promise<ApiResponseWithKey<CameraConfig>> {
+        return this.fetchWithAuth<ApiResponseWithKey<CameraConfig>>('/configs/cameras', 'POST', data);
+    }
+
+    async updateCamera(id: number | string, data: Partial<CameraConfig>): Promise<CameraConfig> {
+        return this.fetchWithAuth<CameraConfig>(`/configs/cameras/${id}`, 'PUT', data);
+    }
+
+    async deleteCamera(id: number | string): Promise<boolean> {
+        return this.fetchWithAuth<boolean>(`/configs/cameras/${id}`, 'DELETE');
+    }
+
+    async listScales(page: number = 1, limit: number = 10, search: string = ''): Promise<{ data: ScaleConfig[], metadata: any }> {
+        const query = new URLSearchParams({
+            page: page.toString(),
+            limit: limit.toString(),
+        });
+        if (search) query.set('search', search);
+        return this.fetchWithAuth<{ data: ScaleConfig[], metadata: any }>(`/configs/scales?${query.toString()}`);
+    }
+
+    async getScale(id: number | string): Promise<ScaleConfig> {
+        return this.fetchWithAuth<ScaleConfig>(`/configs/scales/${id}`);
+    }
+
+    async createScale(data: Partial<ScaleConfig>): Promise<ApiResponseWithKey<ScaleConfig>> {
+        return this.fetchWithAuth<ApiResponseWithKey<ScaleConfig>>('/configs/scales', 'POST', data);
+    }
+
+    async updateScale(id: number | string, data: Partial<ScaleConfig>): Promise<ScaleConfig> {
+        return this.fetchWithAuth<ScaleConfig>(`/configs/scales/${id}`, 'PUT', data);
+    }
+
+    async deleteScale(id: number | string): Promise<boolean> {
+        return this.fetchWithAuth<boolean>(`/configs/scales/${id}`, 'DELETE');
     }
 
     private async fetchWithAuth<T>(endpoint: string, method: string = 'GET', body?: any): Promise<T> {

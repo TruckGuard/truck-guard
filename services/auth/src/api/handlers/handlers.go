@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"log/slog"
+	"net/url"
 
 	"github.com/gin-gonic/gin"
 	"github.com/truckguard/auth/src/models"
@@ -116,6 +117,23 @@ func HandleValidate(c *gin.Context) {
 
 	// 1. Check API Key
 	k := c.GetHeader("X-API-Key")
+
+	// 1.1 Support API Key in Query Param (from X-Original-URI)
+	if k == "" && origURI != "" {
+		if u, err := url.Parse(origURI); err == nil {
+			k = u.Query().Get("key")
+		}
+	}
+
+	// 1.2 Support API Key in Basic Auth Username
+	if k == "" {
+		if authHeader := c.GetHeader("Authorization"); strings.HasPrefix(authHeader, "Basic ") {
+			if user, _, ok := c.Request.BasicAuth(); ok {
+				k = user
+			}
+		}
+	}
+
 	if k != "" {
 		if meta, valid := repository.ValidateKeyAndGetMetadata(k); valid {
 			sourceID = meta.ID

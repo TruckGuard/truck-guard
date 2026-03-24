@@ -87,7 +87,7 @@
                             >
                             <div class="flex items-center gap-2 font-medium">
                                 <Button
-                                    href={`/scales/${event.scale_id}`}
+                                    href={`/config/scales/${event.scale_id}`}
                                     variant="link"
                                 >
                                     <Scale

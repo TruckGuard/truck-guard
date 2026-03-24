@@ -124,7 +124,7 @@
                   class="text-xs text-muted-foreground uppercase tracking-wider"
                   >Камера</Label
                 >
-                <Button href={`/cameras/${event.camera_id}`} variant="link">
+                <Button href={`/config/cameras/${event.camera_id}`} variant="link">
                   <Camera class="h-4 w-4 text-muted-foreground" />
                   {event.camera_source_name || event.camera_id}
                 </Button>
