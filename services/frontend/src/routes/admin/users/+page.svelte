@@ -3,10 +3,13 @@
   import { Button } from "$lib/components/ui/button";
   import { Input } from "$lib/components/ui/input";
   import { can } from "$lib/auth";
-  import { Plus, Search } from "@lucide/svelte";
+  import { Plus } from "@lucide/svelte";
   import * as Dialog from "$lib/components/ui/dialog";
   import { enhance } from "$app/forms";
   import { toast } from "svelte-sonner";
+  import PageHeader from "$lib/components/common/PageHeader.svelte";
+  import SearchToolbar from "$lib/components/common/SearchToolbar.svelte";
+  import PageLayout from "$lib/components/common/PageLayout.svelte";
 
   let { data } = $props();
 
@@ -18,7 +21,7 @@
   let searchQuery = $state("");
 
   let filteredUsers = $derived(
-    data.users.filter((u: any) => 
+    data.users.filter((u: any) =>
       u.username.toLowerCase().includes(searchQuery.toLowerCase()) ||
       u.role.toLowerCase().includes(searchQuery.toLowerCase())
     )
@@ -36,31 +39,34 @@
   }
 </script>
 
-<div class="flex flex-col h-full overflow-hidden space-y-6">
-  <div class="flex items-center justify-between gap-4 shrink-0">
-    <div class="relative max-w-sm w-full group">
-      <Search class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
-      <Input
-        placeholder="Пошук за логіном або роллю..."
-        class="pl-9 h-10 bg-muted/50 border-none focus-visible:ring-1 focus-visible:ring-primary/20"
-        bind:value={searchQuery}
-      />
-    </div>
-    {#if can(data.user, "create:users")}
-      <Button size="sm" class="h-10 shadow-sm" href="/admin/users/create">
-        <Plus class="mr-2 h-4 w-4" />
-        Створити користувача
-      </Button>
-    {/if}
-  </div>
+<PageLayout>
+  <PageHeader
+    title="Користувачі"
+    description="Керування обліковими записами та ролями персоналу."
+  >
+    {#snippet actions()}
+      {#if can(data.user, "create:users")}
+        <Button size="sm" class="h-10 shadow-sm" href="/admin/users/create">
+          <Plus class="mr-2 h-4 w-4" />
+          Створити користувача
+        </Button>
+      {/if}
+    {/snippet}
+  </PageHeader>
+
+  <SearchToolbar
+    placeholder="Пошук за логіном або роллю..."
+    bind:searchQuery
+    onInput={() => {}}
+  />
 
   <div class="flex-1 min-h-0 overflow-hidden flex flex-col">
-    <UsersTable 
-      users={filteredUsers} 
-      currentUser={data.user} 
-      posts={data.posts} 
+    <UsersTable
+      users={filteredUsers}
+      currentUser={data.user}
+      posts={data.posts}
       flex={true}
-      onDelete={openDelete} 
+      onDelete={openDelete}
       onResetPassword={openReset}
       onEdit={() => {}}
     />
@@ -147,4 +153,4 @@
       </form>
     </Dialog.Content>
   </Dialog.Root>
-</div>
+</PageLayout>

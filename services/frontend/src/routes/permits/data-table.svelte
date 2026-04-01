@@ -224,7 +224,7 @@
             ? 'cursor-pointer hover:bg-muted/50'
             : ''} {dragOverColumnId === header.column.id
             ? 'bg-primary/5 border-l-2 border-primary'
-            : ''} align-middle h-12 px-4 py-2 text-muted-foreground font-bold border-b text-xs uppercase tracking-wider bg-card"
+            : ''} align-middle h-12 px-4 py-2 text-muted-foreground font-bold border-b text-xs uppercase tracking-wider bg-transparent"
         onclick={() =>
             handleSortClick(header.column.id, header.column.getCanSort())}
         draggable="true"
@@ -268,7 +268,7 @@
 
     <DataTable maxHeight="75vh" class="flex-1">
         <Table.Root class="w-full">
-            <Table.Header class="sticky-table-header z-30 bg-accent">
+            <Table.Header class="sticky top-0 z-30 bg-muted/80 backdrop-blur-md">
                 {#each table.getHeaderGroups() as headerGroup, i (headerGroup.id)}
                     <Table.Row class="hover:bg-transparent">
                         {#each headerGroup.headers as header, j (header.id)}
@@ -299,7 +299,7 @@
                                         class="h-10 border-b border-r last:border-r-0 text-center bg-transparent"
                                     >
                                         <span
-                                            class="font-black text-[10px] tracking-[0.2em] uppercase text-muted-foreground whitespace-nowrap"
+                                            class="font-bold text-xs tracking-wider uppercase text-muted-foreground whitespace-nowrap"
                                         >
                                             {typeof header.column.columnDef
                                                 .header === "string"
@@ -379,11 +379,12 @@
         </Table.Root>
     </DataTable>
 
-    {#if metadata && metadata.total_pages > 1}
+    {#if metadata}
         <div class="pt-4">
             <SimplePagination
                 currentPage={metadata.current_page}
                 totalPages={metadata.total_pages}
+                itemsPerPage={metadata.limit || 10}
                 onPageChange={(p) => {
                     const query = new URLSearchParams(
                         page.url.searchParams.toString(),
@@ -392,6 +393,19 @@
                     goto(`?${query.toString()}`, {
                         keepFocus: true,
                         noScroll: true,
+                        replaceState: true,
+                    });
+                }}
+                onLimitChange={(l) => {
+                    const query = new URLSearchParams(
+                        page.url.searchParams.toString(),
+                    );
+                    query.set("limit", l.toString());
+                    query.set("page", "1");
+                    goto(`?${query.toString()}`, {
+                        keepFocus: true,
+                        noScroll: true,
+                        replaceState: true,
                     });
                 }}
             />

@@ -2,7 +2,7 @@
   import RolesTable from "./components/RolesTable.svelte";
   import { Button } from "$lib/components/ui/button";
   import { can as authCan } from "$lib/auth";
-  import Plus from "@lucide/svelte/icons/plus";
+  import { Plus, Users, GitBranch } from "@lucide/svelte";
   import Search from "@lucide/svelte/icons/search";
   import * as Dialog from "$lib/components/ui/dialog";
   import { enhance } from "$app/forms";
@@ -15,6 +15,9 @@
   import PermissionHierarchy from "./components/PermissionHierarchy.svelte";
   import type { PageData } from "./$types";
   import type { Role, Permission } from "$lib/server/auth-client";
+  import PageLayout from "$lib/components/common/PageLayout.svelte";
+  import PageHeader from "$lib/components/common/PageHeader.svelte";
+  import SearchToolbar from "$lib/components/common/SearchToolbar.svelte";
 
   let { data }: { data: PageData } = $props();
 
@@ -116,39 +119,35 @@
     return Array.from(inherited);
   });
 </script>
-<div class="flex flex-col h-full overflow-hidden space-y-6">
-  <div class="shrink-0">
-    <h1 class="text-3xl md:text-4xl font-bold tracking-tight text-foreground mb-2">Ролі та права</h1>
-    <p class="text-muted-foreground text-sm mb-0">
-      Керування ролями користувачів та їх доступом до функцій системи
-    </p>
-  </div>
+<PageLayout>
+  <PageHeader
+    title="Ролі та права"
+    description="Керування ролями користувачів та їх доступом до функцій системи."
+  >
+    {#snippet actions()}
+      {#if authCan(data.user, "create:roles")}
+        <Button size="sm" class="h-10 shadow-sm" onclick={openCreate}>
+          <Plus class="mr-2 h-4 w-4" />
+          Створити роль
+        </Button>
+      {/if}
+    {/snippet}
+  </PageHeader>
 
-  <div class="flex items-center justify-between gap-4 shrink-0">
-    <div class="relative max-w-sm w-full group">
-      <Search class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
-      <Input
-        placeholder="Пошук ролей..."
-        class="pl-9 h-10 bg-muted/50 border-none focus-visible:ring-1 focus-visible:ring-primary/20"
-        bind:value={roleSearch}
-      />
-    </div>
-    {#if authCan(data.user, "create:roles")}
-      <Button size="sm" class="h-10 shadow-sm" onclick={openCreate}>
-        <Plus class="mr-2 h-4 w-4" />
-        Створити роль
-      </Button>
-    {/if}
-  </div>
+  <SearchToolbar
+    placeholder="Пошук за назвою або описом..."
+    bind:searchQuery={roleSearch}
+    debounce={false}
+  />
 
   <Tabs.Root value="roles" class="flex-1 flex flex-col min-h-0 overflow-hidden">
-    <div class="flex items-center justify-between mb-4">
-      <Tabs.List class="bg-muted/50 p-1">
-        <Tabs.Trigger value="roles" class="data-[state=active]:bg-background data-[state=active]:shadow-sm">
-          Список ролей
+    <div class="flex items-center justify-between mb-4 shrink-0">
+      <Tabs.List class="w-full justify-start grid-cols-2 lg:w-[400px] grid">
+        <Tabs.Trigger value="roles">
+          <Users class="mr-2 h-4 w-4" /> Список ролей
         </Tabs.Trigger>
-        <Tabs.Trigger value="hierarchy" class="data-[state=active]:bg-background data-[state=active]:shadow-sm">
-          Ієрархія прав
+        <Tabs.Trigger value="hierarchy">
+          <GitBranch class="mr-2 h-4 w-4" /> Ієрархія прав
         </Tabs.Trigger>
       </Tabs.List>
     </div>
@@ -400,4 +399,4 @@
       </Dialog.Footer>
     </Dialog.Content>
   </Dialog.Root>
-</div>
+</PageLayout>

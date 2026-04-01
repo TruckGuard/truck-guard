@@ -16,6 +16,7 @@
 
     let selectedType = $state("");
     let selectedPostId = $state("");
+    let selectedFormat = $state("json");
     let copied = $state(false);
     let isConfigOpen = $state(false);
     let generatedKey = $state("");
@@ -23,6 +24,7 @@
 
     const typeLabel = $derived(selectedType === 'front' ? 'Передня (Front)' : selectedType === 'back' ? 'Задня (Back)' : 'Виберіть тип');
     const postLabel = $derived(posts.find((p: any) => p.ID.toString() === selectedPostId)?.name || 'Виберіть пост');
+    const formatLabel = $derived(selectedFormat === 'json' ? 'JSON' : selectedFormat === 'xml' ? 'XML' : 'Виберіть формат');
 
     const getEndpointUrl = (key: string) => {
         const host = typeof window !== 'undefined' ? window.location.origin : 'http://truckguard.local';
@@ -98,6 +100,30 @@
                     </Select.Root>
                 </div>
             </div>
+            <div class="grid grid-cols-2 gap-4">
+                <div class="space-y-2">
+                    <Label class="text-xs font-semibold uppercase tracking-wider text-muted-foreground ml-1">Формат пейлоаду</Label>
+                    <Select.Root name="format" type="single" bind:value={selectedFormat}>
+                        <Select.Trigger class="h-11 bg-muted/20 border-none rounded-lg">
+                            <span class={!selectedFormat ? 'text-muted-foreground' : ''}>{formatLabel}</span>
+                        </Select.Trigger>
+                        <Select.Content class="bg-background/95 backdrop-blur-xl">
+                            <Select.Item value="json">JSON</Select.Item>
+                            <Select.Item value="xml">XML</Select.Item>
+                        </Select.Content>
+                    </Select.Root>
+                </div>
+            </div>
+            <div class="space-y-2">
+                <Label for="cam-field_mapping" class="text-xs font-semibold uppercase tracking-wider text-muted-foreground ml-1">Field Mapping (JSON)</Label>
+                <textarea 
+                    id="cam-field_mapping" 
+                    name="field_mapping" 
+                    rows="2"
+                    placeholder={`{"plate": "root/data/PlateNumber"}`}
+                    class="w-full bg-muted/20 border-none rounded-lg px-3 py-2 font-mono text-xs resize-none focus:outline-none focus:ring-1 focus:ring-primary/20"
+                ></textarea>
+            </div>
             <div class="flex items-center gap-3 p-4 bg-primary/5 rounded-xl border border-primary/10">
                 <input type="checkbox" id="cam-match_permit" name="match_permit" class="h-5 w-5 rounded border-gray-300 text-primary focus:ring-primary bg-muted/30 cursor-pointer" checked />
                 <div class="cursor-pointer">
@@ -105,7 +131,7 @@
                     <p class="text-[10px] text-muted-foreground mt-0.5">Автоматично шукати активні перепустки за розпізнаним номером.</p>
                 </div>
             </div>
-            <Dialog.Footer class="pt-4">
+            <Dialog.Footer class="pt-2">
                 <Button type="button" variant="ghost" class="rounded-lg h-11" onclick={() => (open = false)}>Скасувати</Button>
                 <Button type="submit" class="rounded-lg h-11 px-8 font-bold shadow-lg shadow-primary/20">Зберегти та отримати ключ</Button>
             </Dialog.Footer>

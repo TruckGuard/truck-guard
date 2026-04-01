@@ -15,27 +15,27 @@
 {#snippet header()}
     <Table.Row class="hover:bg-transparent">
         <Table.Head
-            class="h-12 px-4 py-2 font-bold text-sm uppercase tracking-wider text-muted-foreground border-b"
+            class="h-12 px-4 py-2 font-bold text-xs uppercase tracking-wider text-muted-foreground border-b"
             >ID</Table.Head
         >
         <Table.Head
-            class="h-12 px-4 py-2 font-bold text-sm uppercase tracking-wider text-muted-foreground border-b"
+            class="h-12 px-4 py-2 font-bold text-xs uppercase tracking-wider text-muted-foreground border-b"
             >Час</Table.Head
         >
         <Table.Head
-            class="h-12 px-4 py-2 font-bold text-sm uppercase tracking-wider text-muted-foreground border-b"
+            class="h-12 px-4 py-2 font-bold text-xs uppercase tracking-wider text-muted-foreground border-b"
             >Джерело</Table.Head
         >
         <Table.Head
-            class="h-12 px-4 py-2 font-bold text-sm uppercase tracking-wider text-muted-foreground border-b"
+            class="h-12 px-4 py-2 font-bold text-xs uppercase tracking-wider text-muted-foreground border-b"
             >Номер</Table.Head
         >
         <Table.Head
-            class="h-12 px-4 py-2 font-bold text-sm uppercase tracking-wider text-muted-foreground border-b"
+            class="h-12 px-4 py-2 font-bold text-xs uppercase tracking-wider text-muted-foreground border-b"
             >Метод</Table.Head
         >
         <Table.Head
-            class="h-12 px-4 py-2 font-bold text-sm uppercase tracking-wider text-muted-foreground border-b text-right"
+            class="h-12 px-4 py-2 font-bold text-xs uppercase tracking-wider text-muted-foreground border-b text-right"
             >Фото</Table.Head
         >
     </Table.Row>

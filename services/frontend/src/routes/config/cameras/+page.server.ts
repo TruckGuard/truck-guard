@@ -25,7 +25,6 @@ export const load: PageServerLoad = async ({ url, locals }) => {
         };
     }
 };
-
 export const actions: Actions = {
     create: async ({ request, locals }) => {
         const formData = await request.formData();
@@ -33,6 +32,9 @@ export const actions: Actions = {
         const description = formData.get('description') as string;
         const type = formData.get('type') as 'front' | 'back';
         const match_permit = formData.get('match_permit') === 'on';
+        const format = formData.get('format') as string || 'json';
+        const run_anpr = formData.get('run_anpr') === 'on';
+        const field_mapping = formData.get('field_mapping') as string || '';
         const customs_post_id = formData.get('customs_post_id') ? parseInt(formData.get('customs_post_id') as string) : undefined;
 
         try {
@@ -41,6 +43,9 @@ export const actions: Actions = {
                 description,
                 type,
                 match_permit,
+                format,
+                run_anpr,
+                field_mapping,
                 customs_post_id
             });
             return { success: true, api_key: result.api_key, camera: result.camera };
@@ -55,6 +60,9 @@ export const actions: Actions = {
         const description = formData.get('description') as string;
         const type = formData.get('type') as 'front' | 'back';
         const match_permit = formData.get('match_permit') === 'on';
+        const format = formData.get('format') as string;
+        const run_anpr = formData.get('run_anpr') === 'on';
+        const field_mapping = formData.get('field_mapping') as string;
         const customs_post_id = formData.get('customs_post_id') ? parseInt(formData.get('customs_post_id') as string) : undefined;
 
         try {
@@ -63,6 +71,9 @@ export const actions: Actions = {
                 description,
                 type,
                 match_permit,
+                format,
+                run_anpr,
+                field_mapping,
                 customs_post_id
             });
             return { success: true };
@@ -77,17 +88,6 @@ export const actions: Actions = {
         try {
             await locals.coreClient.deleteCamera(id);
             return { success: true };
-        } catch (error: any) {
-            return fail(500, { error: error.message });
-        }
-    },
-    regenerate: async ({ request, locals }) => {
-        const formData = await request.formData();
-        const id = formData.get('id') as string;
-
-        try {
-            const result = await locals.coreClient.regenerateCameraKey(id);
-            return { success: true, api_key: result.api_key, camera: result.camera };
         } catch (error: any) {
             return fail(500, { error: error.message });
         }

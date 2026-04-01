@@ -15,12 +15,14 @@
     }>();
 
     let selectedPostId = $state("");
+    let selectedFormat = $state("json");
     let copied = $state(false);
     let isConfigOpen = $state(false);
     let generatedKey = $state("");
     let createdScale = $state<any>(null);
 
     const postLabel = $derived(posts.find((p: any) => p.ID.toString() === selectedPostId)?.name || 'Виберіть пост');
+    const formatLabel = $derived(selectedFormat === 'json' ? 'JSON' : selectedFormat === 'xml' ? 'XML' : 'Виберіть формат');
 
     const getEndpointUrl = (key: string) => {
         const host = typeof window !== 'undefined' ? window.location.origin : 'http://truckguard.local';
@@ -49,7 +51,7 @@
             use:enhance={() => {
                 return async ({ result, update }) => {
                     if (result.type === 'success' && result.data?.api_key) {
-                        generatedKey = result.data.api_key;
+                        generatedKey = `${result.data.api_key}`;
                         createdScale = result.data.scale;
                         open = false;
                         isConfigOpen = true;
@@ -69,18 +71,42 @@
                 <Label for="scale-description" class="text-xs font-semibold uppercase tracking-wider text-muted-foreground ml-1">Опис</Label>
                 <Input id="scale-description" name="description" placeholder="Додаткова інформація" class="h-11 bg-muted/20 border-none rounded-lg" />
             </div>
+            <div class="grid grid-cols-2 gap-4">
+                <div class="space-y-2">
+                    <Label class="text-xs font-semibold uppercase tracking-wider text-muted-foreground ml-1">Митний пост</Label>
+                    <Select.Root name="customs_post_id" type="single" bind:value={selectedPostId}>
+                        <Select.Trigger class="h-11 bg-muted/20 border-none rounded-lg text-left">
+                            <span class={!selectedPostId ? 'text-muted-foreground' : ''}>{postLabel}</span>
+                        </Select.Trigger>
+                        <Select.Content class="bg-background/95 backdrop-blur-xl">
+                            {#each posts as post}
+                                <Select.Item value={post.ID.toString()}>{post.name}</Select.Item>
+                            {/each}
+                        </Select.Content>
+                    </Select.Root>
+                </div>
+                <div class="space-y-2">
+                    <Label class="text-xs font-semibold uppercase tracking-wider text-muted-foreground ml-1">Формат пейлоаду</Label>
+                    <Select.Root name="format" type="single" bind:value={selectedFormat}>
+                        <Select.Trigger class="h-11 bg-muted/20 border-none rounded-lg">
+                            <span class={!selectedFormat ? 'text-muted-foreground' : ''}>{formatLabel}</span>
+                        </Select.Trigger>
+                        <Select.Content class="bg-background/95 backdrop-blur-xl">
+                            <Select.Item value="json">JSON</Select.Item>
+                            <Select.Item value="xml">XML</Select.Item>
+                        </Select.Content>
+                    </Select.Root>
+                </div>
+            </div>
             <div class="space-y-2">
-                <Label class="text-xs font-semibold uppercase tracking-wider text-muted-foreground ml-1">Митний пост</Label>
-                <Select.Root name="customs_post_id" type="single" bind:value={selectedPostId}>
-                    <Select.Trigger class="h-11 bg-muted/20 border-none rounded-lg text-left">
-                        <span class={!selectedPostId ? 'text-muted-foreground' : ''}>{postLabel}</span>
-                    </Select.Trigger>
-                    <Select.Content class="bg-background/95 backdrop-blur-xl">
-                        {#each posts as post}
-                            <Select.Item value={post.ID.toString()}>{post.name}</Select.Item>
-                        {/each}
-                    </Select.Content>
-                </Select.Root>
+                <Label for="scale-field_mapping" class="text-xs font-semibold uppercase tracking-wider text-muted-foreground ml-1">Field Mapping (JSON)</Label>
+                <textarea 
+                    id="scale-field_mapping" 
+                    name="field_mapping" 
+                    rows="2"
+                    placeholder={`{"weight": "root/data/Weight"}`}
+                    class="w-full bg-muted/20 border-none rounded-lg px-3 py-2 font-mono text-xs resize-none focus:outline-none focus:ring-1 focus:ring-amber-500/20"
+                ></textarea>
             </div>
             <div class="flex items-center gap-3 p-4 bg-amber-500/5 rounded-xl border border-amber-500/10">
                 <input type="checkbox" id="scale-match_permit" name="match_permit" class="h-5 w-5 rounded border-gray-300 text-amber-600 focus:ring-amber-500 bg-muted/30 cursor-pointer" checked />

@@ -30,39 +30,39 @@
 </script>
 
 <div
-    class="rounded-xl border bg-card shadow-md animate-in fade-in duration-500 w-full overflow-auto scrollbar-thin {className} {flex ? 'flex flex-col' : ''}"
+    class="rounded-xl border bg-card shadow-sm animate-in fade-in duration-500 w-full overflow-auto scrollbar-thin {className} {flex ? 'flex flex-col' : ''}"
     style={containerStyle}
 >
     <Table.Root class="border-separate border-spacing-0 min-w-[800px] w-full">
         {#if children}
             {@render children()}
         {:else}
-            <Table.Header class="sticky-table-header z-30 bg-accent">
+            <Table.Header class="sticky top-0 z-30 bg-muted/80 backdrop-blur-md">
                 {@render headerSnippet?.()}
             </Table.Header>
             <Table.Body>
                 {#if items && items.length > 0}
                     {#each items as item (item.ID || item.id || JSON.stringify(item))}
                         <Table.Row
-                            class="hover:bg-primary/5 transition-colors border-b last:border-b-0 group"
+                            class="hover:bg-primary/3 transition-colors border-b last:border-b-0 group"
                         >
                             {@render rowSnippet?.(item)}
                         </Table.Row>
                     {/each}
                 {:else}
                     <Table.Row>
-                        <Table.Cell colspan={columns} class="h-64 text-center bg-muted/5">
+                        <Table.Cell colspan={columns} class="p-0">
                             <div
-                                class="flex flex-col items-center justify-center gap-3 text-muted-foreground/60"
+                                class="flex flex-col items-center justify-center py-20 gap-4 text-muted-foreground/60"
                             >
                                 {#if EmptyIcon}
-                                    <div class="p-4 rounded-full bg-muted/30">
-                                        <EmptyIcon class="h-10 w-10 opacity-30" />
+                                    <div class="p-6 rounded-full bg-muted/20 border border-muted/30">
+                                        <EmptyIcon class="h-12 w-12 opacity-20" />
                                     </div>
                                 {/if}
-                                <div class="space-y-1">
-                                    <p class="text-lg font-medium text-foreground/70">{emptyStateText}</p>
-                                    <p class="text-sm">Спробуйте змінити фільтри пошуку чи параметри запиту</p>
+                                <div class="text-center space-y-1 px-4">
+                                    <p class="text-xl font-semibold text-foreground/80 tracking-tight">{emptyStateText}</p>
+                                    <p class="text-sm max-w-[280px] mx-auto opacity-70">Ми не знайшли записів, що відповідають вашим критеріям пошуку</p>
                                 </div>
                             </div>
                         </Table.Cell>
@@ -72,3 +72,12 @@
         {/if}
     </Table.Root>
 </div>
+
+<style>
+    /* Custom styles for the DataTable */
+    :global(.sticky-table-header) {
+        position: sticky;
+        top: 0;
+        z-index: 10;
+    }
+</style>

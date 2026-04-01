@@ -76,6 +76,15 @@
     }
   }
 
+  function handleLimitChange(newLimit: number) {
+    loading = true;
+    const query = new URLSearchParams(page.url.searchParams);
+    query.set("limit", newLimit.toString());
+    query.set("page", "1");
+    query.set("tab", activeTab);
+    goto(`?${query.toString()}`).then(() => (loading = false));
+  }
+
   function refresh() {
     loading = true;
     goto(page.url, { invalidateAll: true }).then(() => (loading = false));
@@ -163,10 +172,12 @@
 
     <div class="shrink-0">
       <SimplePagination
-        currentPage={data.events.metadata?.current_page || data.page}
+        currentPage={metadata.current_page || data.page}
         {totalPages}
+        itemsPerPage={metadata.limit || 10}
         {loading}
         onPageChange={handlePageChange}
+        onLimitChange={handleLimitChange}
       />
     </div>
   </Tabs.Root>

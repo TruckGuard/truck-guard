@@ -113,12 +113,12 @@
                 <Tabs.Content value="plate" class="mt-6 border rounded-xl overflow-hidden bg-card/40">
                     <div class="h-[450px] overflow-y-auto overflow-x-auto custom-scrollbar">
                         <Table.Root class="w-full">
-                            <Table.Header class="bg-muted/70 sticky top-0 z-20 border-b">
+                            <Table.Header class="bg-muted/80 backdrop-blur-md sticky top-0 z-20 border-b">
                                 <Table.Row class="hover:bg-transparent">
-                                    <Table.Head class="font-bold text-[11px] uppercase tracking-wider text-muted-foreground w-[180px] px-4 py-3">Час</Table.Head>
-                                    <Table.Head class="font-bold text-[11px] uppercase tracking-wider text-muted-foreground px-4 py-3">Номер</Table.Head>
-                                    <Table.Head class="font-bold text-[11px] uppercase tracking-wider text-muted-foreground px-4 py-3">Джерело</Table.Head>
-                                    <Table.Head class="text-right font-bold text-[11px] uppercase tracking-wider text-muted-foreground px-4 py-3">Дії</Table.Head>
+                                    <Table.Head class="font-bold text-xs uppercase tracking-wider text-muted-foreground w-40 px-4 py-2 h-12">Час</Table.Head>
+                                    <Table.Head class="font-bold text-xs uppercase tracking-wider text-muted-foreground px-4 py-2 h-12">Номер</Table.Head>
+                                    <Table.Head class="font-bold text-xs uppercase tracking-wider text-muted-foreground px-4 py-2 h-12">Джерело</Table.Head>
+                                    <Table.Head class="text-right font-bold text-xs uppercase tracking-wider text-muted-foreground px-4 py-2 h-12">Дії</Table.Head>
                                 </Table.Row>
                             </Table.Header>
                             <Table.Body>
@@ -193,12 +193,12 @@
                 <Tabs.Content value="weight" class="mt-6 border rounded-xl overflow-hidden bg-card/40">
                     <div class="h-[450px] overflow-y-auto overflow-x-auto custom-scrollbar">
                         <Table.Root class="w-full">
-                            <Table.Header class="bg-muted/70 sticky top-0 z-20 border-b">
+                            <Table.Header class="bg-muted/80 backdrop-blur-md sticky top-0 z-20 border-b">
                                 <Table.Row class="hover:bg-transparent">
-                                    <Table.Head class="font-bold text-[11px] uppercase tracking-wider text-muted-foreground w-[180px] px-4 py-3">Час</Table.Head>
-                                    <Table.Head class="font-bold text-[11px] uppercase tracking-wider text-muted-foreground px-4 py-3">Вага</Table.Head>
-                                    <Table.Head class="font-bold text-[11px] uppercase tracking-wider text-muted-foreground px-4 py-3">Джерело</Table.Head>
-                                    <Table.Head class="text-right font-bold text-[11px] uppercase tracking-wider text-muted-foreground px-4 py-3">Дії</Table.Head>
+                                    <Table.Head class="font-bold text-xs uppercase tracking-wider text-muted-foreground w-40 px-4 py-2 h-12">Час</Table.Head>
+                                    <Table.Head class="font-bold text-xs uppercase tracking-wider text-muted-foreground px-4 py-2 h-12">Вага</Table.Head>
+                                    <Table.Head class="font-bold text-xs uppercase tracking-wider text-muted-foreground px-4 py-2 h-12">Джерело</Table.Head>
+                                    <Table.Head class="text-right font-bold text-xs uppercase tracking-wider text-muted-foreground px-4 py-2 h-12">Дії</Table.Head>
                                 </Table.Row>
                             </Table.Header>
                             <Table.Body>
@@ -289,13 +289,13 @@
                 <div class="border rounded-xl overflow-hidden bg-card/40">
                     <div class="h-[450px] overflow-y-auto overflow-x-auto custom-scrollbar">
                         <Table.Root class="w-full">
-                            <Table.Header class="bg-muted/70 sticky top-0 z-20 border-b">
+                            <Table.Header class="bg-muted/80 backdrop-blur-md sticky top-0 z-20 border-b">
                                 <Table.Row class="hover:bg-transparent">
-                                    <Table.Head class="font-bold text-[11px] uppercase tracking-wider text-muted-foreground px-4 py-3">Код</Table.Head>
-                                    <Table.Head class="font-bold text-[11px] uppercase tracking-wider text-muted-foreground px-4 py-3">Передній №</Table.Head>
-                                    <Table.Head class="font-bold text-[11px] uppercase tracking-wider text-muted-foreground px-4 py-3">Задній №</Table.Head>
-                                    <Table.Head class="font-bold text-[11px] uppercase tracking-wider text-muted-foreground px-4 py-3 whitespace-nowrap">Дата заїзду</Table.Head>
-                                    <Table.Head class="text-right font-bold text-[11px] uppercase tracking-wider text-muted-foreground px-4 py-3">Дії</Table.Head>
+                                    <Table.Head class="font-bold text-xs uppercase tracking-wider text-muted-foreground px-4 py-2 h-12">Код</Table.Head>
+                                    <Table.Head class="font-bold text-xs uppercase tracking-wider text-muted-foreground px-4 py-2 h-12">Передній №</Table.Head>
+                                    <Table.Head class="font-bold text-xs uppercase tracking-wider text-muted-foreground px-4 py-2 h-12">Задній №</Table.Head>
+                                    <Table.Head class="font-bold text-xs uppercase tracking-wider text-muted-foreground px-4 py-2 h-12 whitespace-nowrap">Дата заїзду</Table.Head>
+                                    <Table.Head class="text-right font-bold text-xs uppercase tracking-wider text-muted-foreground px-4 py-2 h-12">Дії</Table.Head>
                                 </Table.Row>
                             </Table.Header>
                             <Table.Body>

@@ -73,40 +73,20 @@
                                 <div
                                     class="mt-4 text-sm border rounded-lg overflow-hidden bg-background shadow-inner"
                                 >
-                                    <table class="w-full text-left">
-                                        <thead
-                                            class="bg-muted/70 text-muted-foreground"
-                                        >
+                                    <table class="w-full text-left border-separate border-spacing-0">
+                                        <thead class="bg-muted/50 text-muted-foreground">
                                             <tr>
-                                                <th
-                                                    class="px-4 py-2.5 font-bold border-b w-1/4 uppercase tracking-tighter text-[11px]"
-                                                    >Поле</th
-                                                >
-                                                <th
-                                                    class="px-4 py-2.5 font-bold border-b w-3/4 uppercase tracking-tighter text-[11px]"
-                                                    >Зміни</th
-                                                >
+                                                <th class="h-10 px-4 py-2 font-bold text-xs uppercase tracking-wider border-b w-1/4">Поле</th>
+                                                <th class="h-10 px-4 py-2 font-bold text-xs uppercase tracking-wider border-b w-3/4">Зміни</th>
                                             </tr>
                                         </thead>
-                                        <tbody class="divide-y">
+                                        <tbody class="divide-y bg-card/30">
                                             {#each Object.entries(audit.changes) as [key, val]}
-                                                <tr>
-                                                    <td
-                                                        class="px-4 py-3 font-mono text-muted-foreground border-r font-bold bg-slate-50/30 dark:bg-slate-900/30"
-                                                        >{key}</td
-                                                    >
-                                                    <td
-                                                        class="px-4 py-3 font-mono text-sm"
-                                                    >
-                                                        <span
-                                                            class="font-black inline-block text-slate-700 dark:text-slate-300"
-                                                        >
-                                                            {typeof val ===
-                                                            "object"
-                                                                ? JSON.stringify(
-                                                                      val,
-                                                                  )
-                                                                : val}
+                                                <tr class="group hover:bg-muted/30 transition-colors">
+                                                    <td class="px-4 py-2 text-xs font-mono text-muted-foreground border-r bg-muted/10 font-medium">{key}</td>
+                                                    <td class="px-4 py-2 text-xs font-mono break-all leading-relaxed">
+                                                        <span class="text-foreground/90">
+                                                            {typeof val === "object" ? JSON.stringify(val) : val}
                                                         </span>
                                                     </td>
                                                 </tr>

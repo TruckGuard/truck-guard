@@ -21,35 +21,35 @@
 {#snippet header()}
     <Table.Row class="hover:bg-transparent">
         <Table.Head
-            class="h-12 px-4 py-2 font-bold text-sm uppercase tracking-wider text-muted-foreground border-b"
+            class="h-12 px-4 py-2 font-bold text-xs uppercase tracking-wider text-muted-foreground border-b"
             >Username</Table.Head
         >
         <Table.Head
-            class="h-12 px-4 py-2 font-bold text-sm uppercase tracking-wider text-muted-foreground border-b"
+            class="h-12 px-4 py-2 font-bold text-xs uppercase tracking-wider text-muted-foreground border-b"
             >Роль</Table.Head
         >
         <Table.Head
-            class="h-12 px-4 py-2 font-bold text-sm uppercase tracking-wider text-muted-foreground border-b"
+            class="h-12 px-4 py-2 font-bold text-xs uppercase tracking-wider text-muted-foreground border-b"
             >ПІБ</Table.Head
         >
         <Table.Head
-            class="h-12 px-4 py-2 font-bold text-sm uppercase tracking-wider text-muted-foreground border-b"
+            class="h-12 px-4 py-2 font-bold text-xs uppercase tracking-wider text-muted-foreground border-b"
             >Email</Table.Head
         >
         <Table.Head
-            class="h-12 px-4 py-2 font-bold text-sm uppercase tracking-wider text-muted-foreground border-b"
+            class="h-12 px-4 py-2 font-bold text-xs uppercase tracking-wider text-muted-foreground border-b"
             >Телефон</Table.Head
         >
         <Table.Head
-            class="h-12 px-4 py-2 font-bold text-sm uppercase tracking-wider text-muted-foreground border-b"
+            class="h-12 px-4 py-2 font-bold text-xs uppercase tracking-wider text-muted-foreground border-b"
             >Пост</Table.Head
         >
         <Table.Head
-            class="h-12 px-4 py-2 font-bold text-sm uppercase tracking-wider text-muted-foreground border-b"
-            >Останній вхід</Table.Head
+            class="h-12 px-4 py-2 font-bold text-xs uppercase tracking-wider text-muted-foreground border-b"
+            >Вхід</Table.Head
         >
         <Table.Head
-            class="h-12 px-4 py-2 font-bold text-sm uppercase tracking-wider text-muted-foreground border-b text-right"
+            class="h-12 px-4 py-2 font-bold text-xs uppercase tracking-wider text-muted-foreground border-b text-right"
             >Дії</Table.Head
         >
     </Table.Row>

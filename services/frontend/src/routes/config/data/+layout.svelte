@@ -8,7 +8,7 @@
   const tabs = [
     { id: "companies", label: "Компанії", path: "/config/data/companies" },
     { id: "posts", label: "Митні пости", path: "/config/data/posts" },
-    { id: "modes", label: "Режими митниці", path: "/config/data/modes" },
+    { id: "modes", label: "Режими", path: "/config/data/modes" },
     {
       id: "vehicle-types",
       label: "Типи ТЗ",
@@ -21,7 +21,7 @@
     },
     {
       id: "excluded-plates",
-      label: "Ігноровані номери",
+      label: "Ігнорування",
       path: "/config/data/excluded-plates",
     },
   ];
@@ -38,20 +38,21 @@
   }
 </script>
 
-<div class="flex flex-col  overflow-auto gap-6">
-  <div class="flex flex-col gap-1">
-    <h1 class="text-3xl font-bold tracking-tight">Довідники</h1>
-    <p class="text-muted-foreground">Керування основними даними системи.</p>
-  </div>
-
-  <Tabs.Root value={activeTab} onValueChange={handleTabChange} class="w-full">
-    <Tabs.List class="grid w-full max-w-5xl grid-cols-6">
+<div class="flex flex-col h-full gap-8 overflow-hidden">
+  <Tabs.Root value={activeTab} onValueChange={handleTabChange} class="w-full shrink-0">
+    <Tabs.List class="flex w-full items-center justify-start border-b bg-transparent h-auto p-0 gap-8 rounded-none border-muted/60">
       {#each tabs as tab}
-        <Tabs.Trigger value={tab.id}>{tab.label}</Tabs.Trigger>
+        <Tabs.Trigger
+          value={tab.id}
+          class="relative h-12 px-1 bg-transparent text-sm font-medium transition-all text-muted-foreground hover:text-foreground data-[state=active]:text-primary data-[state=active]:after:absolute data-[state=active]:after:-bottom-px data-[state=active]:after:left-0 data-[state=active]:after:right-0 data-[state=active]:after:h-[2px] data-[state=active]:after:bg-primary shadow-none border-none rounded-none"
+        >
+          {tab.label}
+        </Tabs.Trigger>
       {/each}
     </Tabs.List>
-    <div class="mt-6">
-      {@render children()}
-    </div>
   </Tabs.Root>
+
+  <div class="flex-1 min-h-0 overflow-hidden">
+    {@render children()}
+  </div>
 </div>

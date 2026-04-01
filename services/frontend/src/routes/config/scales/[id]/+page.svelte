@@ -21,7 +21,14 @@
   function handlePageChange(newPage: number) {
     const url = new URL(window.location.href);
     url.searchParams.set("page", newPage.toString());
-    goto(url.toString(), { keepFocus: true });
+    goto(url.toString(), { keepFocus: true, noScroll: true, replaceState: true });
+  }
+
+  function handleLimitChange(newLimit: number) {
+    const url = new URL(window.location.href);
+    url.searchParams.set("limit", newLimit.toString());
+    url.searchParams.set("page", "1");
+    goto(url.toString(), { keepFocus: true, noScroll: true, replaceState: true });
   }
 </script>
 
@@ -72,7 +79,9 @@
         <SimplePagination
           currentPage={data.page}
           totalPages={data.events.metadata?.total_pages || 1}
+          itemsPerPage={data.events.metadata?.limit || 10}
           onPageChange={handlePageChange}
+          onLimitChange={handleLimitChange}
         />
       </div>
     </Tabs.Content>

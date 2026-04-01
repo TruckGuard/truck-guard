@@ -1,8 +1,7 @@
 <script lang="ts">
   import { Button } from "$lib/components/ui/button";
-  import { Input } from "$lib/components/ui/input";
   import * as Alert from "$lib/components/ui/alert";
-  import { Plus, Search, CircleAlert } from "@lucide/svelte";
+  import { Plus, CircleAlert } from "@lucide/svelte";
   import { page } from "$app/state";
   import { goto } from "$app/navigation";
   import type { PageData } from "./$types";
@@ -13,6 +12,9 @@
   import PostEditSheet from "./components/PostEditSheet.svelte";
   import DeleteConfirmationDialog from "$lib/components/common/DeleteConfirmationDialog.svelte";
   import SimplePagination from "$lib/components/common/SimplePagination.svelte";
+  import PageHeader from "$lib/components/common/PageHeader.svelte";
+  import SearchToolbar from "$lib/components/common/SearchToolbar.svelte";
+  import PageLayout from "$lib/components/common/PageLayout.svelte";
 
   let { data }: { data: PageData & { error?: string | null } } = $props();
 
@@ -22,15 +24,6 @@
   let selectedPost = $state<any>(null);
 
   let searchQuery = $state(page.url.searchParams.get("name") || "");
-
-  function handleSearch() {
-    const url = new URL(page.url);
-    if (searchQuery) url.searchParams.set("name", searchQuery);
-    else url.searchParams.delete("name");
-
-    url.searchParams.set("page", "1");
-    goto(url);
-  }
 
   function openEdit(post: any) {
     selectedPost = { ...post };
@@ -45,11 +38,18 @@
   function handlePageChange(newPage: number) {
     const url = new URL(page.url);
     url.searchParams.set("page", newPage.toString());
-    goto(url);
+    goto(url.toString(), { keepFocus: true, noScroll: true, replaceState: true });
+  }
+
+  function handleLimitChange(newLimit: number) {
+    const url = new URL(page.url);
+    url.searchParams.set("limit", newLimit.toString());
+    url.searchParams.set("page", "1");
+    goto(url.toString(), { keepFocus: true, noScroll: true, replaceState: true });
   }
 </script>
 
-<div class="flex flex-col h-full overflow-hidden space-y-6">
+<PageLayout>
   {#if data.error}
     <Alert.Root variant="destructive" class="shrink-0">
       <CircleAlert class="h-4 w-4" />
@@ -58,19 +58,11 @@
     </Alert.Root>
   {/if}
 
-  <div class="flex items-center justify-between gap-4 shrink-0">
-    <div class="relative max-w-sm w-full group shrink-0">
-      <Search
-        class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors"
-      />
-      <Input
-        placeholder="Пошук за назвою..."
-        class="pl-9 h-10 bg-muted/50 border-none focus-visible:ring-1 focus-visible:ring-primary/20"
-        bind:value={searchQuery}
-        onkeydown={(e) => e.key === "Enter" && handleSearch()}
-      />
-    </div>
-    <div class="flex items-center justify-between shrink-0">
+  <PageHeader
+    title="Митні пости"
+    description="Керування списком митних постів та пунктів пропуску."
+  >
+    {#snippet actions()}
       <Button
         size="sm"
         class="h-10 shadow-sm"
@@ -79,10 +71,16 @@
         <Plus class="mr-2 h-4 w-4" />
         Додати пост
       </Button>
-    </div>
-  </div>
+    {/snippet}
+  </PageHeader>
 
-  <div class="flex-1 min-h-0 overflow-hidden flex flex-col mb-4">
+  <SearchToolbar
+    placeholder="Пошук за назвою..."
+    bind:searchQuery
+    paramName="name"
+  />
+
+  <div class="flex-1 min-h-0 overflow-hidden flex flex-col">
     <PostsTable
       posts={data.posts}
       flex={true}
@@ -96,21 +94,23 @@
       <SimplePagination
         currentPage={data.pagination.current_page}
         totalPages={data.pagination.total_pages}
+        itemsPerPage={data.pagination.limit}
         onPageChange={handlePageChange}
+        onLimitChange={handleLimitChange}
       />
     </div>
   {/if}
+</PageLayout>
 
-  <PostCreateDialog bind:open={isCreateOpen} />
+<PostCreateDialog bind:open={isCreateOpen} />
 
-  <PostEditSheet bind:open={isEditOpen} post={selectedPost} />
+<PostEditSheet bind:open={isEditOpen} post={selectedPost} />
 
-  <DeleteConfirmationDialog
-    bind:open={isDeleteOpen}
-    title="Видалити пост?"
-    itemName={selectedPost?.name}
-    action="?/delete"
-    id={selectedPost?.ID}
-    successMessage="Пост видалено"
-  />
-</div>
+<DeleteConfirmationDialog
+  bind:open={isDeleteOpen}
+  title="Видалити пост?"
+  itemName={selectedPost?.name}
+  action="?/delete"
+  id={selectedPost?.ID}
+  successMessage="Пост видалено"
+/>

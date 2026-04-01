@@ -1,10 +1,12 @@
 <script lang="ts">
   import { Button } from "$lib/components/ui/button";
-  import { Input } from "$lib/components/ui/input";
-  import { Plus, Search } from "@lucide/svelte";
+  import { Plus } from "@lucide/svelte";
   import type { PageData } from "./$types";
   import type { APIKey } from "$lib/server/auth-client";
   import { can } from "$lib/auth";
+  import PageHeader from "$lib/components/common/PageHeader.svelte";
+  import SearchToolbar from "$lib/components/common/SearchToolbar.svelte";
+  import PageLayout from "$lib/components/common/PageLayout.svelte";
 
   // Component Imports
   import KeysTable from "./components/KeysTable.svelte";
@@ -62,30 +64,26 @@
   }
 </script>
 
-<div class="flex flex-col h-full overflow-hidden space-y-6">
-  <div class="shrink-0">
-    <h1 class="text-3xl md:text-4xl font-bold tracking-tight text-foreground mb-2">Ключі API</h1>
-    <p class="text-muted-foreground text-sm mb-0">
-      Системні ідентифікатори для інтеграції з обладнанням
-    </p>
-  </div>
+<PageLayout>
+  <PageHeader
+    title="Ключі API"
+    description="Системні ідентифікатори для інтеграції з обладнанням."
+  >
+    {#snippet actions()}
+      {#if canAccessPermission("create:keys")}
+        <Button size="sm" class="h-10 shadow-sm" onclick={openCreate}>
+          <Plus class="mr-2 h-4 w-4" />
+          Створити ключ
+        </Button>
+      {/if}
+    {/snippet}
+  </PageHeader>
 
-  <div class="flex items-center justify-between gap-4 shrink-0">
-    <div class="relative max-w-sm w-full group">
-      <Search class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
-      <Input
-        placeholder="Пошук власників ключів..."
-        class="pl-9 h-10 bg-muted/50 border-none focus-visible:ring-1 focus-visible:ring-primary/20"
-        bind:value={searchQuery}
-      />
-    </div>
-    {#if canAccessPermission("create:keys")}
-      <Button size="sm" class="h-10 shadow-sm" onclick={openCreate}>
-        <Plus class="mr-2 h-4 w-4" />
-        Створити ключ
-      </Button>
-    {/if}
-  </div>
+  <SearchToolbar 
+    placeholder="Пошук власників ключів..." 
+    bind:searchQuery 
+    onInput={() => {}} 
+  />
 
   <div class="flex-1 min-h-0 overflow-hidden flex flex-col">
     <KeysTable
@@ -96,33 +94,33 @@
       onPermissions={openPerms}
     />
   </div>
+</PageLayout>
 
-  <KeysCreateDialog
-    bind:open={isCreateOpen}
-    permissions={data.permissions}
-    canAccess={canAccessPermission}
-    onSuccess={handleCreateSuccess}
-  />
+<KeysCreateDialog
+  bind:open={isCreateOpen}
+  permissions={data.permissions}
+  canAccess={canAccessPermission}
+  onSuccess={handleCreateSuccess}
+/>
 
-  <KeysEditDialog
-    bind:open={isEditOpen}
-    key={currentKey}
-  />
+<KeysEditDialog
+  bind:open={isEditOpen}
+  key={currentKey}
+/>
 
-  <KeysPermissionsDialog
-    bind:open={isPermsOpen}
-    key={currentKey}
-    permissions={data.permissions}
-    canAccess={canAccessPermission}
-  />
+<KeysPermissionsDialog
+  bind:open={isPermsOpen}
+  key={currentKey}
+  permissions={data.permissions}
+  canAccess={canAccessPermission}
+/>
 
-  <KeysDeleteDialog
-    bind:open={isDeleteOpen}
-    key={currentKey}
-  />
+<KeysDeleteDialog
+  bind:open={isDeleteOpen}
+  key={currentKey}
+/>
 
-  <KeysSecretDialog
-    bind:open={isSecretOpen}
-    secret={generatedSecret}
-  />
-</div>
+<KeysSecretDialog
+  bind:open={isSecretOpen}
+  secret={generatedSecret}
+/>
