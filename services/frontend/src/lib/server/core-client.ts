@@ -208,6 +208,10 @@ export class CoreClient {
         return this.fetchWithAuth<boolean>(`/permits/${id}`, 'DELETE');
     }
 
+    async logPrintPermit(id: string | number): Promise<boolean> {
+        return this.fetchWithAuth<boolean>(`/permits/${id}/print`, 'POST');
+    }
+
     async linkPermit(permitId: number, eventId: number, eventType: 'plate' | 'weight'): Promise<boolean> {
         return this.fetchWithAuth<boolean>('/permits/link', 'PATCH', {
             permit_id: permitId,

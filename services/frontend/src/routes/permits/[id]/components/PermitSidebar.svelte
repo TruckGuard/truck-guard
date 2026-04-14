@@ -21,6 +21,7 @@
         handleRestore,
         handleVoid,
         handleDelete,
+        handlePrint,
         validationItems,
     } = $props<{
         permit: any;
@@ -32,6 +33,7 @@
         handleRestore: () => Promise<void>;
         handleVoid: () => Promise<void>;
         handleDelete: () => Promise<void>;
+        handlePrint: () => void;
         validationItems: {
             label: string;
             isValid: boolean;
@@ -53,8 +55,10 @@
         }
         if (days < 1) days = 1;
 
-        const entryFee = permit.entry_fee || (permit.vehicle_type?.entry_price || 0);
-        const dailyPrice = permit.daily_fee || (permit.vehicle_type?.daily_price || 0);
+        const entryFee =
+            permit.entry_fee || permit.vehicle_type?.entry_price || 0;
+        const dailyPrice =
+            permit.daily_fee || permit.vehicle_type?.daily_price || 0;
 
         return entryFee + days * dailyPrice;
     });
@@ -129,10 +133,15 @@
                     </div>
 
                     {#if permit.creator}
-                        <div class="flex items-center justify-between text-[11px] pt-1 border-t border-muted/20 mt-1">
-                            <span class="text-muted-foreground italic">Реєстрація:</span>
+                        <div
+                            class="flex items-center justify-between text-[11px] pt-1 border-t border-muted/20 mt-1"
+                        >
+                            <span class="text-muted-foreground italic"
+                                >Реєстрація:</span
+                            >
                             <span class="font-medium">
-                                {permit.creator.first_name} {permit.creator.last_name}
+                                {permit.creator.first_name}
+                                {permit.creator.last_name}
                             </span>
                         </div>
                     {/if}
@@ -149,30 +158,51 @@
                             >
                         </div>
                         {#if permit.closed_by}
-                            <div class="flex items-center justify-between text-xs pt-1">
-                                <span class="text-muted-foreground italic">Закрив:</span>
-                                <span class="font-medium">{permit.closed_by.first_name} {permit.closed_by.last_name}</span>
+                            <div
+                                class="flex items-center justify-between text-xs pt-1"
+                            >
+                                <span class="text-muted-foreground italic"
+                                    >Закрив:</span
+                                >
+                                <span class="font-medium"
+                                    >{permit.closed_by.first_name}
+                                    {permit.closed_by.last_name}</span
+                                >
                             </div>
                         {/if}
                     {/if}
 
                     {#if permit.is_void}
-                        <div class="p-3 bg-red-50 dark:bg-red-950/30 rounded-lg border border-red-100 dark:border-red-800 flex items-center gap-3">
-                            <div class="h-8 w-8 rounded-full bg-red-100 dark:bg-red-900/50 flex items-center justify-center shrink-0">
+                        <div
+                            class="p-3 bg-red-50 dark:bg-red-950/30 rounded-lg border border-red-100 dark:border-red-800 flex items-center gap-3"
+                        >
+                            <div
+                                class="h-8 w-8 rounded-full bg-red-100 dark:bg-red-900/50 flex items-center justify-center shrink-0"
+                            >
                                 <Activity class="h-4 w-4 text-red-600" />
                             </div>
                             <div>
-                                <div class="text-[10px] font-black uppercase text-red-600 dark:text-red-400">Анульовано</div>
-                                <div class="text-[11px] text-red-700/70 dark:text-red-400/70">Ця перепустка більше не є дійсною</div>
+                                <div
+                                    class="text-[10px] font-black uppercase text-red-600 dark:text-red-400"
+                                >
+                                    Анульовано
+                                </div>
+                                <div
+                                    class="text-[11px] text-red-700/70 dark:text-red-400/70"
+                                >
+                                    Ця перепустка більше не є дійсною
+                                </div>
                                 {#if permit.voided_by}
-                                    <div class="text-[10px] mt-1 italic text-red-600/80 dark:text-red-400/80">
-                                        Анулював: {permit.voided_by.first_name} {permit.voided_by.last_name}
+                                    <div
+                                        class="text-[10px] mt-1 italic text-red-600/80 dark:text-red-400/80"
+                                    >
+                                        Анулював: {permit.voided_by.first_name}
+                                        {permit.voided_by.last_name}
                                     </div>
                                 {/if}
                             </div>
                         </div>
                     {/if}
-
 
                     {#if permit.is_closed && permit.total_sum !== undefined}
                         <div class="pt-3 border-t border-dashed">
@@ -189,7 +219,9 @@
                             </div>
                         </div>
                     {:else if !permit.is_closed && estimatedSum !== null}
-                        <div class="pt-3 border-t border-dashed animate-in fade-in slide-in-from-top-2 duration-300">
+                        <div
+                            class="pt-3 border-t border-dashed animate-in fade-in slide-in-from-top-2 duration-300"
+                        >
                             <div class="flex items-center justify-between">
                                 <div class="flex flex-col">
                                     <span
@@ -197,7 +229,9 @@
                                     >
                                         <Coins class="h-3 w-3" /> Приблизна оплата
                                     </span>
-                                    <span class="text-[9px] text-muted-foreground font-medium italic mt-0.5">
+                                    <span
+                                        class="text-[9px] text-muted-foreground font-medium italic mt-0.5"
+                                    >
                                         (без урахування знижок)
                                     </span>
                                 </div>
@@ -276,6 +310,17 @@
                 </Button>
             {/if}
 
+            {#if permit.verified_at}
+                <Button
+                    variant="outline"
+                    onclick={handlePrint}
+                    disabled={loading}
+                    class="w-full gap-2.5 h-12 text-base font-bold shadow-sm text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-700 hover:bg-blue-100 dark:hover:bg-blue-900/50 bg-white dark:bg-transparent"
+                >
+                    <Save class="h-5 w-5" /> Друкувати перепустку
+                </Button>
+            {/if}
+
             {#if !permit.is_void}
                 <div class="grid grid-cols-2 gap-2">
                     {#if data.canDelete}
@@ -291,14 +336,23 @@
                             </AlertDialog.Trigger>
                             <AlertDialog.Content>
                                 <AlertDialog.Header>
-                                    <AlertDialog.Title>Підтвердження анулювання</AlertDialog.Title>
+                                    <AlertDialog.Title
+                                        >Підтвердження анулювання</AlertDialog.Title
+                                    >
                                     <AlertDialog.Description>
-                                        Ви впевнені, що хочете анулювати цю перепустку? Це зробить її недійсною.
+                                        Ви впевнені, що хочете анулювати цю
+                                        перепустку? Це зробить її недійсною.
                                     </AlertDialog.Description>
                                 </AlertDialog.Header>
                                 <AlertDialog.Footer>
-                                    <AlertDialog.Cancel>Скасувати</AlertDialog.Cancel>
-                                    <AlertDialog.Action onclick={handleVoid} class="bg-red-600 hover:bg-red-700">Анулювати</AlertDialog.Action>
+                                    <AlertDialog.Cancel
+                                        >Скасувати</AlertDialog.Cancel
+                                    >
+                                    <AlertDialog.Action
+                                        onclick={handleVoid}
+                                        class="bg-red-600 hover:bg-red-700"
+                                        >Анулювати</AlertDialog.Action
+                                    >
                                 </AlertDialog.Footer>
                             </AlertDialog.Content>
                         </AlertDialog.Root>
@@ -317,12 +371,22 @@
                             </AlertDialog.Trigger>
                             <AlertDialog.Content>
                                 <AlertDialog.Header>
-                                    <AlertDialog.Title>Підтвердження закриття</AlertDialog.Title>
-                                    <AlertDialog.Description>Ви впевнені, що хочете закрити цю перепустку?</AlertDialog.Description>
+                                    <AlertDialog.Title
+                                        >Підтвердження закриття</AlertDialog.Title
+                                    >
+                                    <AlertDialog.Description
+                                        >Ви впевнені, що хочете закрити цю
+                                        перепустку?</AlertDialog.Description
+                                    >
                                 </AlertDialog.Header>
                                 <AlertDialog.Footer>
-                                    <AlertDialog.Cancel>Скасувати</AlertDialog.Cancel>
-                                    <AlertDialog.Action onclick={handleClosePermit}>Підтвердити</AlertDialog.Action>
+                                    <AlertDialog.Cancel
+                                        >Скасувати</AlertDialog.Cancel
+                                    >
+                                    <AlertDialog.Action
+                                        onclick={handleClosePermit}
+                                        >Підтвердити</AlertDialog.Action
+                                    >
                                 </AlertDialog.Footer>
                             </AlertDialog.Content>
                         </AlertDialog.Root>
@@ -356,14 +420,22 @@
                     </AlertDialog.Trigger>
                     <AlertDialog.Content>
                         <AlertDialog.Header>
-                            <AlertDialog.Title>Видалення перепустки</AlertDialog.Title>
+                            <AlertDialog.Title
+                                >Видалення перепустки</AlertDialog.Title
+                            >
                             <AlertDialog.Description>
-                                Ви впевнені, що хочете остаточно видалити цю перепустку зі сховища? Це скасує всі пов'язані записи.
+                                Ви впевнені, що хочете остаточно видалити цю
+                                перепустку зі сховища? Це скасує всі пов'язані
+                                записи.
                             </AlertDialog.Description>
                         </AlertDialog.Header>
                         <AlertDialog.Footer>
                             <AlertDialog.Cancel>Скасувати</AlertDialog.Cancel>
-                            <AlertDialog.Action onclick={handleDelete} class="bg-red-600 hover:bg-red-700">Видалити</AlertDialog.Action>
+                            <AlertDialog.Action
+                                onclick={handleDelete}
+                                class="bg-red-600 hover:bg-red-700"
+                                >Видалити</AlertDialog.Action
+                            >
                         </AlertDialog.Footer>
                     </AlertDialog.Content>
                 </AlertDialog.Root>

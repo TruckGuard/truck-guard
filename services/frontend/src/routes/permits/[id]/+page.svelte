@@ -21,6 +21,7 @@
   import { onMount } from "svelte";
     import CustomsModeBanner from "./components/CustomsModeBanner.svelte";
     import LinkDialog from "../components/LinkDialog.svelte";
+    import PassTemplate from "./components/PassTemplate.svelte";
 
   interface PayerState {
     company_id: number;
@@ -174,7 +175,6 @@
   onMount(() => {
     permit = { ...data.permit };
 
-    // Sync payers from permit data
     if (permit.payers?.length) {
       payers = permit.payers.map((p) => ({
         company_id: p.company_id,
@@ -352,7 +352,7 @@
       const result = await res.json();
       if (result.type === "success") {
         toast.success("Перепустку закрито.");
-        goto("/permits");
+        window.location.reload();
       } else {
         toast.error("Помилка закриття.", {
           description: result.error?.message,
@@ -499,6 +499,29 @@
       fetchAuditLogs();
     }
   });
+
+  async function handlePrintPass() {
+    // Trigger browser print
+    window.print();
+
+    // Notify backend about print event for logging
+    try {
+      const form = new FormData();
+      const res = await fetch(`?/print`, {
+        method: "POST",
+        body: form,
+      });
+      const result = await res.json();
+      if (result.type === "success") {
+        // If the audit tab is currently open, refresh the logs
+        if (activeTab === "audit") {
+          await fetchAuditLogs();
+        }
+      }
+    } catch (e) {
+      console.error("Failed to log print event", e);
+    }
+  }
 </script>
 
 <div class="container mx-auto py-8 max-w-7xl">
@@ -541,6 +564,7 @@
       handleRestore={handleRestorePermit}
       handleVoid={handleVoidPermit}
       handleDelete={handleDeletePermit}
+      handlePrint={handlePrintPass}
       {validationItems}
     />
   </div>
@@ -582,4 +606,6 @@
     permitId={permit.ID} 
     onLink={handleLinked}
   />
+
+  <PassTemplate {permit} />
 </div>

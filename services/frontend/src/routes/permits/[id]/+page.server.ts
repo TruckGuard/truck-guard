@@ -164,6 +164,18 @@ export const actions: Actions = {
         }
     },
 
+    print: async ({ locals, params }) => {
+        if (!locals.coreClient || params.id === 'new') return { type: 'error', error: { message: 'Invalid operation' } };
+
+        try {
+            await locals.coreClient.logPrintPermit(params.id);
+            return { type: 'success' };
+        } catch (e: any) {
+            console.error('Print permit error:', e);
+            return { type: 'error', error: { message: e.message || 'Error logging print' } };
+        }
+    },
+
     createCompany: async ({ request, locals }) => {
         if (!locals.coreClient) return { type: 'error', error: { message: 'Unauthorized' } };
 

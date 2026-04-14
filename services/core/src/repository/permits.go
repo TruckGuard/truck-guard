@@ -864,3 +864,19 @@ func UnlinkPermitEvent(ctx context.Context, permitID uint, eventID uint, eventTy
 		return nil
 	})
 }
+
+// LogPrintPermit records a pass printing event.
+func LogPrintPermit(ctx context.Context, id string, authID string) error {
+	var user models.User
+	if err := DB.WithContext(ctx).Where("auth_id = ?", authID).First(&user).Error; err != nil {
+		return err
+	}
+
+	permitID, err := strconv.ParseUint(id, 10, 64)
+	if err != nil {
+		return err
+	}
+
+	LogPermitAudit(ctx, uint(permitID), user.ID, "print", nil, "Перепустку роздруковано")
+	return nil
+}

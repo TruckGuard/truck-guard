@@ -248,3 +248,13 @@ func HandleUnlinkPermit(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"status": "unlinked"})
 }
+
+func HandleLogPrintPermit(c *gin.Context) {
+	id := c.Param("id")
+	authID := c.GetHeader("X-User-ID")
+	if err := repository.LogPrintPermit(c.Request.Context(), id, authID); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to log print event: " + err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"status": "printed"})
+}
