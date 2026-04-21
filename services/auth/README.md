@@ -55,9 +55,10 @@ The codebase is organized into modular packages under `src/`:
 Create a `.env` file or set the following variables:
 
 ```env
-PORT=8081
+PORT=8080
 DATABASE_URL=postgres://user:pass@localhost:5432/truckguard
-REDIS_ADDR=localhost:6379
+VALKEY_ADDR=localhost:6379
 JWT_SECRET=your_secret_key
 ADMIN_DEFAULT_PASSWORD=admin123
+OTEL_EXPORTER_OTLP_ENDPOINT=localhost:4317
 ```

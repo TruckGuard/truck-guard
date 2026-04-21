@@ -59,6 +59,13 @@ python main.py
 ```
 
 
+### 4. Configuration (Environment Variables)
+
+```env
+PORT=8000
+OTEL_EXPORTER_OTLP_ENDPOINT=localhost:4317
+```
+
 #### **Testing the API**
 
 You can test the service using `curl`:

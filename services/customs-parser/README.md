@@ -46,4 +46,5 @@ In its current implementation, this service serves as a high-fidelity **Mock** o
 
 ```env
 PORT=8085
+OTEL_EXPORTER_OTLP_ENDPOINT=localhost:4317
 ```

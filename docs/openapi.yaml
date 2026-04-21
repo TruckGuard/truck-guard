@@ -1195,6 +1195,22 @@ paths:
         200:
           description: Permit voided
 
+  /api/permits/{id}/print:
+    post:
+      tags: ["Operations: Permits"]
+      summary: Log permit printing
+      description: |
+        Create a system event log entry when a permit is printed.
+        Permissions: `read:permits`
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        200:
+          description: Print event logged
+
   /api/permits/link:
     patch:
       tags: ["Operations: Permits"]

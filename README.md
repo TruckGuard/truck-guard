@@ -23,10 +23,10 @@ The system is built using a modern microservices architecture, ensuring scalabil
 ### 2. 🔄 Data Flow
 
 1.  **Ingestion**: Cameras and scales send raw data to the **Ingestor**.
-2.  **Streaming**: Ingestor pushes events to **Redis Streams** (`events:adapter`).
+2.  **Streaming**: Ingestor pushes events to **Valkey/Redis Streams** (`events:adapter`).
 3.  **Processing**: **Adapter Worker** consumes events, triggers **ANPR** recognition, and transforms data.
 4.  **Correlation**: **Core Service** receives enriched data and correlates events into **Permits**.
-5.  **Storage**: Metadata is stored in **PostgreSQL**, while images and logs are kept in **MinIO**.
+5.  **Storage**: Metadata is stored in **PostgreSQL**, while images and logs are kept in **Garage** (S3-compatible).
 
 ---
 

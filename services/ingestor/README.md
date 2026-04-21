@@ -10,13 +10,13 @@ The **Ingestor Service** is the entry point for all IoT data (cameras, scales, s
   - `/ingest/camera`: Images + metadata ingestion.
   - `/ingest/weight`: Weight sensor data ingestion.
 - **Async Streaming**: All events are pushed into a single Redis Stream: `events:adapter`.
-- **Blob Storage**: JPG frames from cameras are stored in **MinIO**.
+- **Blob Storage**: JPG frames from cameras are stored in **Garage** (S3-compatible).
 - **Self-Describing Events**: Every event includes a `type` field so downstream workers know how to process it.
 
 ### 3. Tech Stack
 
 - **Language**: [Go 1.23+](https://go.dev/)
-- **Infrastructure**: [Redis/Valkey](https://valkey.io/), [MinIO Storage](https://min.io/)
+- **Infrastructure**: [Valkey/Redis](https://valkey.io/), [Garage Storage](https://garagehq.deuxfleurs.fr/)
 - **Observability**: [OpenTelemetry](https://opentelemetry.io/)
 
 ### 4. Getting Started
@@ -25,7 +25,7 @@ The **Ingestor Service** is the entry point for all IoT data (cameras, scales, s
 
 - Go (v1.23 or higher)
 - Redis/Valkey
-- Access to MinIO (Garage)
+- Access to Garage Storage
 
 #### **Run Commands**
 
@@ -47,4 +47,5 @@ STORAGE_ENDPOINT=localhost:3900
 STORAGE_ACCESS_KEY=your_access_key
 STORAGE_SECRET_KEY=your_secret_key
 BUCKET_NAME=truckguard-images
+OTEL_EXPORTER_OTLP_ENDPOINT=localhost:4317
 ```

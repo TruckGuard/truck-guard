@@ -2,7 +2,7 @@
 
 ### 1. What is it?
 
-The **TruckGuard Frontend** is a modern, responsive web application built with **SvelteKit** and **Tailwind CSS**. It serves as the primary interface for operators, administrators, and accountants to manage customs weighing operations.
+The **TruckGuard Frontend** is a modern, responsive web application built with **SvelteKit** (Svelte 5) and **Tailwind CSS v4**. It serves as the primary interface for operators, administrators, and accountants to manage customs weighing operations.
 
 ### 2. Purpose & How it Works
 
@@ -16,8 +16,8 @@ It provides a centralized dashboard for system management and real-time monitori
 
 ### 3. Tech Stack
 
-- **Framework**: [SvelteKit](https://kit.svelte.dev/)
-- **Styling**: [Tailwind CSS](https://tailwindcss.com/)
+- **Framework**: [SvelteKit](https://kit.svelte.dev/) (with **Svelte 5**)
+- **Styling**: [Tailwind CSS v4](https://tailwindcss.com/)
 - **UI Components**: [Shadcn-Svelte](https://www.shadcn-svelte.com/)
 - **State Management**: Svelte Runes (v5)
 - **Language**: [TypeScript](https://www.typescriptlang.org/)
@@ -49,6 +49,6 @@ It provides a centralized dashboard for system management and real-time monitori
 Ensure you have a `.env` file with the following:
 
 ```env
-PUBLIC_CORE_API_URL=http://localhost:8080
-PUBLIC_AUTH_API_URL=http://localhost:8081
+PUBLIC_CORE_API_URL=http://localhost/api
+PUBLIC_AUTH_API_URL=http://localhost/auth
 ```

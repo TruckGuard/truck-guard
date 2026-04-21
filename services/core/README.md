@@ -12,6 +12,7 @@ It manages the persistence layer for the entire system's configuration and histo
 - **Event Orchestrator & Correlation:** Receives processed data from cameras and scales (via Adapters/Ingestor), correlates them into unified **Permits** (passes), and handles multi-plate vehicle detection.
 - **Ignore List Management:** Maintains a list of excluded license plates.
 - **Integration:** Communicates with the **Auth Service** to automatically provision API keys for new cameras and scales.
+- **Background Tasks:** Runs an automatic cleanup worker for old events and temporary data.
 
 The project follows a modular Go structure:
 - `src/api`: REST handlers and validation middleware.
@@ -54,4 +55,7 @@ The project follows a modular Go structure:
 ```env
 PORT=8080
 DATABASE_URL=postgres://user:pass@localhost:5432/truckguard
+VALKEY_ADDR=localhost:6379
+AUTH_SERVICE_URL=http://auth-service:8080
+OTEL_EXPORTER_OTLP_ENDPOINT=localhost:4317
 ```

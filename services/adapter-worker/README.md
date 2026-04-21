@@ -22,7 +22,7 @@ It operates as a background consumer for all hardware events:
 
 - **Language**: [Python 3.12+](https://www.python.org/)
 - **Stream Processing**: [Redis Streams](https://redis.io/docs/data-types/streams/)
-- **Infrastructure**: [Valkey/Redis](https://valkey.io/), [MinIO Storage](https://min.io/)
+- **Infrastructure**: [Valkey/Redis](https://valkey.io/), [Garage Storage](https://garagehq.deuxfleurs.fr/)
 - **Observability**: [OpenTelemetry](https://opentelemetry.io/)
 
 ### 4. Getting Started
@@ -32,7 +32,7 @@ It operates as a background consumer for all hardware events:
 - Python 3.12+
 - Redis/Valkey
 - Access to Core & ANPR APIs
-- Access to MinIO Storage
+- Access to Garage Storage
 
 #### **Run Commands**
 
@@ -51,8 +51,9 @@ It operates as a background consumer for all hardware events:
 VALKEY_ADDR=localhost:6379
 CORE_URL=http://localhost:8081
 ANPR_URL=http://localhost:8000
-STORAGE_ENDPOINT=localhost:9000
+STORAGE_ENDPOINT=localhost:3900
 STORAGE_ACCESS_KEY=your_access_key
 STORAGE_SECRET_KEY=your_secret_key
 STORAGE_BUCKET=truckguard-images
+OTEL_EXPORTER_OTLP_ENDPOINT=localhost:4317
 ```
