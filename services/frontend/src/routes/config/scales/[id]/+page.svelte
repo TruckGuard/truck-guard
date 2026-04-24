@@ -32,7 +32,7 @@
   }
 </script>
 
-<div class="flex flex-col h-full space-y-6 overflow-hidden" in:fade={{ duration: 300 }}>
+<div class="flex flex-col space-y-4" in:fade={{ duration: 300 }}>
   <!-- Header -->
   <div class="shrink-0">
     <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -59,7 +59,7 @@
     </div>
   </div>
 
-  <Tabs.Root value="settings" class="flex-1 flex flex-col min-h-0 w-full overflow-hidden">
+  <Tabs.Root value="settings" class="w-full">
     <div class="flex items-center justify-between mb-4 shrink-0">
       <Tabs.List class="w-full justify-start grid-cols-2 lg:w-[400px] grid h-11 bg-muted/50 p-1">
         <Tabs.Trigger value="settings" class="data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all rounded-md">
@@ -71,22 +71,22 @@
       </Tabs.List>
     </div>
 
-    <Tabs.Content value="monitoring" class="flex-1 min-h-0 overflow-hidden flex flex-col m-0 p-0 focus-visible:ring-0">
-      <div class="flex-1 overflow-auto rounded-xl border bg-background/50 backdrop-blur-sm">
-        <WeightEventsTable items={data.events.data || []} flex={true} />
-      </div>
-      <div class="mt-4 shrink-0">
-        <SimplePagination
-          currentPage={data.page}
-          totalPages={data.events.metadata?.total_pages || 1}
-          itemsPerPage={data.events.metadata?.limit || 10}
-          onPageChange={handlePageChange}
-          onLimitChange={handleLimitChange}
-        />
-      </div>
+    <Tabs.Content value="monitoring" class="m-0 p-0 focus-visible:ring-0">
+      <WeightEventsTable items={data.events.data || []} />
+      {#if (data.events.metadata?.total_pages || 1) > 1}
+        <div class="mt-3">
+          <SimplePagination
+            currentPage={data.page}
+            totalPages={data.events.metadata?.total_pages || 1}
+            itemsPerPage={data.events.metadata?.limit || 10}
+            onPageChange={handlePageChange}
+            onLimitChange={handleLimitChange}
+          />
+        </div>
+      {/if}
     </Tabs.Content>
 
-    <Tabs.Content value="settings" class="flex-1 min-h-0 overflow-y-auto m-0 p-0 focus-visible:ring-0">
+    <Tabs.Content value="settings" class="m-0 p-0 focus-visible:ring-0">
       <ScaleSettings {data} {form} />
     </Tabs.Content>
   </Tabs.Root>

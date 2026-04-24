@@ -49,61 +49,89 @@ func getPermitTimeout(ctx context.Context) time.Duration {
 func GetOrCreatePermit(ctx context.Context, customsPostID uint, currentSourceID string) (*models.Permit, bool) {
 	db := repository.DB.WithContext(ctx)
 	key := fmt.Sprintf("active_permit:customs_post:%d", customsPostID)
+	lockKey := fmt.Sprintf("lock:active_permit:customs_post:%d", customsPostID)
 
-	permitID, _ := repository.RDB.Get(ctx, key).Uint64()
-	var permit models.Permit
-
-	if permitID > 0 {
-		if err := db.Preload("PlateEvents").Preload("WeightEvents").First(&permit, permitID).Error; err == nil {
-			if !permit.IsClosed && !permit.IsVoid && permit.VerifiedBy == nil {
-
-				alreadySentSources := make(map[string]bool)
-				for _, pe := range permit.PlateEvents {
-					alreadySentSources[pe.CameraSourceID] = true
-				}
-				for _, we := range permit.WeightEvents {
-					alreadySentSources[we.ScaleSourceID] = true
-				}
-
-				var totalCams int64
-				db.Model(&models.CameraConfig{}).Where("customs_post_id = ?", customsPostID).Count(&totalCams)
-				var totalScales int64
-				db.Model(&models.ScaleConfig{}).Where("customs_post_id = ?", customsPostID).Count(&totalScales)
-				totalEvents := int64(len(permit.PlateEvents) + len(permit.WeightEvents))
-
-				slog.Debug("Checking permit reuse",
-					"permit_id", permit.ID,
-					"source", currentSourceID,
-					"already_sent", alreadySentSources[currentSourceID],
-					"count", totalEvents,
-					"limit", totalCams+totalScales,
-				)
-
-				// Decision Logic:
-				// 1. If SAME SOURCE sent an event again -> New Permit
-				// 2. If permit is ALREADY TRIGGERED and a NEW TRIGGER arrives -> New Permit
-				// 3. If PERMIT IS FULL (all equipment reported) -> New Permit
-
-				shouldCreateNew := false
-				if alreadySentSources[currentSourceID] {
-					shouldCreateNew = true
-					slog.Info("Same source sent duplicate event, starting new permit", "permit_id", permit.ID, "source", currentSourceID)
-				} else if totalEvents >= (totalCams + totalScales) {
-					shouldCreateNew = true
-					slog.Info("Permit is physically full, starting new", "permit_id", permit.ID, "events", totalEvents, "limit", totalCams+totalScales)
-				}
-
-				if !shouldCreateNew {
-					slog.Debug("Reusing active permit", "permit_id", permit.ID)
-					return &permit, false
-				}
-			}
+	// checkExisting returns (permit, shouldReuse) — reuse=true means caller should return &permit, false
+	checkExisting := func() (*models.Permit, bool) {
+		permitID, _ := repository.RDB.Get(ctx, key).Uint64()
+		if permitID == 0 {
+			return nil, false
 		}
+		var p models.Permit
+		if err := db.Preload("PlateEvents").Preload("WeightEvents").First(&p, permitID).Error; err != nil {
+			return nil, false
+		}
+		if p.IsClosed || p.IsVoid || p.VerifiedBy != nil {
+			return nil, false
+		}
+
+		alreadySentSources := make(map[string]bool)
+		for _, pe := range p.PlateEvents {
+			alreadySentSources[pe.CameraSourceID] = true
+		}
+		for _, we := range p.WeightEvents {
+			alreadySentSources[we.ScaleSourceID] = true
+		}
+
+		var totalCams, totalScales int64
+		db.Model(&models.CameraConfig{}).Where("customs_post_id = ?", customsPostID).Count(&totalCams)
+		db.Model(&models.ScaleConfig{}).Where("customs_post_id = ?", customsPostID).Count(&totalScales)
+		totalEvents := int64(len(p.PlateEvents) + len(p.WeightEvents))
+
+		slog.Debug("Checking permit reuse",
+			"permit_id", p.ID,
+			"source", currentSourceID,
+			"already_sent", alreadySentSources[currentSourceID],
+			"count", totalEvents,
+			"limit", totalCams+totalScales,
+		)
+
+		if alreadySentSources[currentSourceID] {
+			slog.Info("Same source sent duplicate event, starting new permit", "permit_id", p.ID, "source", currentSourceID)
+			return nil, false
+		}
+		if totalEvents >= (totalCams + totalScales) {
+			slog.Info("Permit is physically full, starting new", "permit_id", p.ID, "events", totalEvents, "limit", totalCams+totalScales)
+			return nil, false
+		}
+
+		slog.Debug("Reusing active permit", "permit_id", p.ID)
+		return &p, true
 	}
 
-	permit = models.Permit{
+	// Fast path: check without lock first
+	if p, reuse := checkExisting(); reuse {
+		return p, false
+	}
+
+	// Need to create a new permit — acquire a short-lived distributed lock to prevent
+	// duplicate creation when two events arrive simultaneously for the same post.
+	const lockTTL = 10 * time.Second
+	acquired, err := repository.RDB.SetNX(ctx, lockKey, 1, lockTTL).Result()
+	if err != nil {
+		slog.Error("Failed to acquire permit creation lock", "error", err)
+		// Proceed anyway — worst case we create a duplicate, which is recoverable.
+	}
+	if !acquired {
+		// Another goroutine is creating; wait briefly then re-check.
+		time.Sleep(150 * time.Millisecond)
+		if p, reuse := checkExisting(); reuse {
+			return p, false
+		}
+		// Still no reusable permit — fall through to create (lock may have expired).
+	} else {
+		defer repository.RDB.Del(ctx, lockKey)
+	}
+
+	// Re-check under lock: between our fast-path check and acquiring the lock,
+	// another goroutine may have already created a permit.
+	if p, reuse := checkExisting(); reuse {
+		return p, false
+	}
+
+	permit := models.Permit{
 		CustomsPostID:  &customsPostID,
-		Code:           fmt.Sprintf("%02d%06d", customsPostID, 0), // Note: ID is 0 before db.Create; consider updating after creation
+		Code:           fmt.Sprintf("%02d%06d", customsPostID, 0),
 		EntryTime:      time.Now(),
 		LastActivityAt: time.Now(),
 	}
@@ -119,7 +147,8 @@ func GetOrCreatePermit(ctx context.Context, customsPostID uint, currentSourceID 
 		return nil, false
 	}
 
-	// Set in Redis with timeout
+	// Publish the new permit to Redis before releasing the lock so any concurrent
+	// goroutine that wakes after our sleep sees it.
 	timeout := getPermitTimeout(ctx)
 	repository.RDB.Set(ctx, key, permit.ID, timeout)
 

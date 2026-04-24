@@ -373,7 +373,6 @@ func UpdatePermit(ctx context.Context, id string, input map[string]interface{}, 
 
 	// Handle nested CustomsData in the input map by flattening it for GORM
 	if cdMap, ok := input["customs_data"].(map[string]interface{}); ok {
-		// Only flatten fields that exist in the PermitCustomsData struct
 		allowedFields := map[string]bool{
 			"declarant":  true,
 			"goods":      true,
@@ -389,53 +388,59 @@ func UpdatePermit(ctx context.Context, id string, input map[string]interface{}, 
 		delete(input, "customs_data")
 	}
 
-	// Financials are already calculated above if needed
-	// Handle Payers association explicitly before Updates()
+	// Extract payers before entering the transaction so we can handle them inside it.
+	var inputPayers []models.PermitPayer
+	hasPayers := false
 	if payersVal, ok := input["payers"]; ok {
-		var inputPayers []models.PermitPayer
-		// Convert from interface to specific slice
 		payerBytes, _ := json.Marshal(payersVal)
 		if err := json.Unmarshal(payerBytes, &inputPayers); err == nil {
-			// Start transaction for atomic replacement
-			tx := DB.WithContext(ctx).Begin()
-
-			// We MUST use Unscoped() here because PermitPayer has a uniqueIndex on (permit_id, slot_index).
-			// Regular Delete() only soft-deletes (sets deleted_at), which causes the uniqueIndex to collide
-			// when we try to Create() new records with the same slot indices.
-			if err := tx.Unscoped().Where("permit_id = ?", permit.ID).Delete(&models.PermitPayer{}).Error; err != nil {
-				tx.Rollback()
-				return permit, err
-			}
-
-			for i := range inputPayers {
-				inputPayers[i].ID = 0 // Ensure it's treated as a new record
-				inputPayers[i].PermitID = permit.ID
-				if err := tx.Create(&inputPayers[i]).Error; err != nil {
-					tx.Rollback()
-					return permit, err
-				}
-			}
-
-			if err := tx.Commit().Error; err != nil {
-				return permit, err
-			}
+			hasPayers = true
 		}
 		delete(input, "payers")
 	}
 
-	if len(input) > 0 {
-		if err := DB.WithContext(ctx).Model(&permit).Updates(input).Error; err != nil {
-			return permit, err
+	// Wrap payer replacement + permit update in a single transaction so they
+	// cannot diverge (e.g. payers replaced but permit field update fails).
+	err := DB.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		if hasPayers {
+			// We MUST use Unscoped() here because PermitPayer has a uniqueIndex on
+			// (permit_id, slot_index). Regular Delete() only soft-deletes (sets deleted_at),
+			// which causes the uniqueIndex to collide when we Create() with the same indices.
+			if err := tx.Unscoped().Where("permit_id = ?", permit.ID).Delete(&models.PermitPayer{}).Error; err != nil {
+				return err
+			}
+			for i := range inputPayers {
+				inputPayers[i].ID = 0
+				inputPayers[i].PermitID = permit.ID
+				if err := tx.Create(&inputPayers[i]).Error; err != nil {
+					return err
+				}
+			}
 		}
-	}
 
-	if val, ok := input["verified_by"]; ok && val != nil {
-		now := time.Now()
-		DB.WithContext(ctx).Model(&permit).Update("verified_at", now)
-	}
+		if len(input) > 0 {
+			if err := tx.Model(&permit).Updates(input).Error; err != nil {
+				return err
+			}
+		}
 
-	if input["responsible_user_id"] != nil {
-		DB.WithContext(ctx).Model(&permit).Update("responsible_user_id", input["responsible_user_id"])
+		if val, ok := input["verified_by"]; ok && val != nil {
+			now := time.Now()
+			if err := tx.Model(&permit).Update("verified_at", now).Error; err != nil {
+				return err
+			}
+		}
+
+		if input["responsible_user_id"] != nil {
+			if err := tx.Model(&permit).Update("responsible_user_id", input["responsible_user_id"]).Error; err != nil {
+				return err
+			}
+		}
+
+		return nil
+	})
+	if err != nil {
+		return permit, err
 	}
 
 	LogPermitAudit(ctx, permit.ID, user.ID, action, auditChanges, comment)
@@ -596,6 +601,52 @@ func GetPermitAuditEvents(ctx context.Context, permitID string) ([]models.Permit
 	return audits, err
 }
 
+// AuditQueryParams holds optional filter parameters for the global audit log.
+type AuditQueryParams struct {
+	Action    string
+	UserID    string
+	FilterFrom string
+	FilterTo   string
+}
+
+func GetAllAuditEvents(ctx context.Context, limit, offset int, params AuditQueryParams) ([]models.PermitAudit, int64, error) {
+	var audits []models.PermitAudit
+	var total int64
+
+	q := DB.WithContext(ctx).Model(&models.PermitAudit{})
+
+	if params.Action != "" {
+		q = q.Where("action = ?", params.Action)
+	}
+	if params.UserID != "" {
+		q = q.Where("user_id = ?", params.UserID)
+	}
+	if params.FilterFrom != "" {
+		if t, err := time.Parse(time.RFC3339, params.FilterFrom); err == nil {
+			q = q.Where("permit_audits.created_at >= ?", t)
+		}
+	}
+	if params.FilterTo != "" {
+		if t, err := time.Parse(time.RFC3339, params.FilterTo); err == nil {
+			q = q.Where("permit_audits.created_at <= ?", t)
+		}
+	}
+
+	if err := q.Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+
+	err := q.
+		Preload("User").
+		Preload("Permit").
+		Order("permit_audits.created_at desc").
+		Limit(limit).
+		Offset(offset).
+		Find(&audits).Error
+
+	return audits, total, err
+}
+
 // VoidUnverifiedPermits voids non-verified permits older than specified hours.
 func VoidUnverifiedPermits(ctx context.Context, hours int) (int64, error) {
 	if hours <= 0 {
@@ -742,10 +793,18 @@ func CleanupVoidedPermits(ctx context.Context, days int) (int64, error) {
 	}
 
 	err := DB.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		tx.Unscoped().Where("permit_id IN ?", ids).Delete(&models.PermitAudit{})
-		tx.Unscoped().Where("permit_id IN ?", ids).Delete(&models.PermitPayer{})
-		tx.Unscoped().Where("permit_id IN ?", ids).Delete(&models.PlateEvent{})
-		tx.Unscoped().Where("permit_id IN ?", ids).Delete(&models.WeightEvent{})
+		if err := tx.Unscoped().Where("permit_id IN ?", ids).Delete(&models.PermitAudit{}).Error; err != nil {
+			return err
+		}
+		if err := tx.Unscoped().Where("permit_id IN ?", ids).Delete(&models.PermitPayer{}).Error; err != nil {
+			return err
+		}
+		if err := tx.Unscoped().Where("permit_id IN ?", ids).Delete(&models.PlateEvent{}).Error; err != nil {
+			return err
+		}
+		if err := tx.Unscoped().Where("permit_id IN ?", ids).Delete(&models.WeightEvent{}).Error; err != nil {
+			return err
+		}
 		return tx.Unscoped().Where("id IN ?", ids).Delete(&models.Permit{}).Error
 	})
 

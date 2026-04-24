@@ -3,6 +3,7 @@
   import { page } from "$app/state";
   import { RefreshCcw, Plus } from "@lucide/svelte";
   import { Button } from "$lib/components/ui/button";
+  import { can } from "$lib/auth";
   import type { Permit } from "$lib/types/permits";
   import type { CustomsPost, VehicleType } from "$lib/types/data";
   import type { ApiResponse } from "$lib/types/events";
@@ -51,26 +52,22 @@
   let creating = $state(false);
 </script>
 
-<div
-  class="flex flex-col h-full overflow-hidden space-y-6"
->
-  <div class="flex items-center justify-between shrink-0">
+<div class="flex flex-col h-full overflow-hidden">
+  <div class="flex items-center justify-between shrink-0 pb-4 border-b border-border mb-3">
     <div>
-      <h1 class="text-3xl md:text-4xl font-bold tracking-tight text-foreground mb-2">
-        Панель оператора перепусток
-      </h1>
-      <p class="text-muted-foreground text-sm mb-0">
-        Моніторинг живих подій та керування активними перепустками в зоні
-      </p>
+      <h1 class="text-lg font-semibold tracking-tight text-foreground">Перепустки</h1>
+      <p class="mt-0.5 text-xs text-muted-foreground">Активні перепустки та моніторинг зони</p>
     </div>
-    <div class="flex items-center gap-3">
-      <Button variant="outline" size="sm" class="h-10 px-4 shadow-sm" onclick={refresh} disabled={loading}>
-        <RefreshCcw class="mr-2 h-4 w-4 {loading ? 'animate-spin' : ''}" />
-        Оновити дані
+    <div class="flex items-center gap-2">
+      <Button variant="outline" size="sm" class="h-8 px-3 text-xs gap-1.5" onclick={refresh} disabled={loading}>
+        <RefreshCcw class="h-3.5 w-3.5 {loading ? 'animate-spin' : ''}" />
+        Оновити
       </Button>
-      <Button size="sm" class="h-10 px-4 shadow-sm" onclick={() => startCreatePermit()}>
-        <Plus class="mr-2 h-4 w-4" /> Створити вручну
-      </Button>
+      {#if can(data.user, "create:permits")}
+        <Button size="sm" class="h-8 px-3 text-xs gap-1.5" onclick={() => startCreatePermit()}>
+          <Plus class="h-3.5 w-3.5" /> Створити
+        </Button>
+      {/if}
     </div>
   </div>
 

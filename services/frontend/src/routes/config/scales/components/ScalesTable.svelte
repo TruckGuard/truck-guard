@@ -1,12 +1,13 @@
 <script lang="ts">
     import * as Table from "$lib/components/ui/table";
-    import { Badge } from "$lib/components/ui/badge";
     import { Button } from "$lib/components/ui/button";
     import { Scale, Settings2, MapPin, Trash2 } from "@lucide/svelte";
     import DataTable from "$lib/components/common/DataTable.svelte";
+    import { can } from "$lib/auth";
 
-    let { data, openDelete } = $props<{
+    let { data, currentUser = null, openDelete } = $props<{
         data: any;
+        currentUser?: any;
         openDelete: (scale: any) => void;
     }>();
 </script>
@@ -19,87 +20,68 @@
 >
     {#snippet headerSnippet()}
         <Table.Row>
-            <Table.Head
-                class="font-bold text-[10px] uppercase tracking-[0.2em] text-muted-foreground w-[300px]"
-                >Назва та ID</Table.Head
-            >
-            <Table.Head
-                class="font-bold text-[10px] uppercase tracking-[0.2em] text-muted-foreground"
-                >Розташування</Table.Head
-            >
-            <Table.Head
-                class="font-bold text-[10px] uppercase tracking-[0.2em] text-muted-foreground"
-                >Контроль</Table.Head
-            >
-            <Table.Head
-                class="font-bold text-[10px] uppercase tracking-[0.2em] text-muted-foreground"
-                >Статус</Table.Head
-            >
-            <Table.Head
-                class="text-right font-bold text-[10px] uppercase tracking-[0.2em] text-muted-foreground"
-                >Дії</Table.Head
-            >
+            <Table.Head class="h-[var(--row-h)] px-3 py-0 font-medium text-xs uppercase tracking-wider text-muted-foreground border-b w-[280px]">Назва та ID</Table.Head>
+            <Table.Head class="h-[var(--row-h)] px-3 py-0 font-medium text-xs uppercase tracking-wider text-muted-foreground border-b">Розташування</Table.Head>
+            <Table.Head class="h-[var(--row-h)] px-3 py-0 font-medium text-xs uppercase tracking-wider text-muted-foreground border-b">Контроль</Table.Head>
+            <Table.Head class="h-[var(--row-h)] px-3 py-0 font-medium text-xs uppercase tracking-wider text-muted-foreground border-b">Статус</Table.Head>
+            <Table.Head class="h-[var(--row-h)] px-3 py-0 font-medium text-xs uppercase tracking-wider text-muted-foreground border-b text-right">Дії</Table.Head>
         </Table.Row>
     {/snippet}
     {#snippet rowSnippet(scale)}
-        <Table.Cell>
-            <div class="flex flex-col">
-                <span class="font-semibold text-foreground"
-                    >{scale.name}</span
-                >
-                <span
-                    class="text-[10px] text-muted-foreground font-mono bg-muted/60 px-1.5 py-0.5 rounded w-fit mt-1"
-                >
-                    ID: {scale.scale_id}
-                </span>
+        <Table.Cell class="px-3 py-0" style="height: var(--row-h);">
+            <div class="flex flex-col gap-0.5">
+                <span class="font-medium text-sm text-foreground leading-snug">{scale.name}</span>
+                <span class="text-[10px] text-muted-foreground font-mono">{scale.scale_id}</span>
             </div>
         </Table.Cell>
-        <Table.Cell>
-            <div class="flex items-center gap-1.5 text-sm text-muted-foreground">
-                <MapPin class="h-3.5 w-3.5" />
+        <Table.Cell class="px-3 py-0">
+            <div class="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <MapPin class="h-3 w-3 shrink-0" />
                 {scale.customs_post?.name || "Не вказано"}
             </div>
         </Table.Cell>
-        <Table.Cell>
+        <Table.Cell class="px-3 py-0">
             {#if scale.match_permit}
-                <Badge
-                    variant="outline"
-                    class="border-amber-500/20 bg-amber-500/5 text-amber-600 rounded-md px-2 py-0.5 text-[10px] uppercase tracking-wider font-bold"
-                >
+                <span class="badge-info inline-flex items-center h-5 px-1.5 rounded text-[10px] font-medium uppercase tracking-wide border border-transparent">
                     Перепустки
-                </Badge>
+                </span>
             {:else}
-                <span class="text-xs text-muted-foreground">—</span>
+                <span class="text-xs text-muted-foreground/50">—</span>
             {/if}
         </Table.Cell>
-        <Table.Cell>
-            <div class="flex items-center gap-2">
-                <div
-                    class="h-1.5 w-1.5 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.4)]"
-                ></div>
-                <span class="text-xs font-medium text-foreground"
-                    >Активний</span
-                >
+        <Table.Cell class="px-3 py-0">
+            <div class="flex items-center gap-1.5">
+                <span class="relative flex h-1.5 w-1.5 shrink-0">
+                    <span class="absolute inline-flex h-full w-full animate-ping rounded-full opacity-60" style="background: var(--status-success)"></span>
+                    <span class="relative inline-flex h-1.5 w-1.5 rounded-full" style="background: var(--status-success)"></span>
+                </span>
+                <span class="text-xs font-medium" style="color: var(--status-success)">Активний</span>
             </div>
         </Table.Cell>
-        <Table.Cell class="text-right">
-            <div class="flex items-center justify-end gap-1">
-                <Button
-                    variant="ghost"
-                    size="icon"
-                    class="h-9 w-9 rounded-xl transition-opacity hover:bg-amber-500/10 hover:text-amber-600"
-                    href="/config/scales/{scale.scale_id}"
-                >
-                    <Settings2 class="h-4 w-4" />
-                </Button>
-                <Button
-                    variant="ghost"
-                    size="icon"
-                    class="h-9 w-9 rounded-xl transition-opacity text-destructive hover:bg-destructive/10 hover:text-destructive"
-                    onclick={() => openDelete(scale)}
-                >
-                    <Trash2 class="h-4 w-4" />
-                </Button>
+        <Table.Cell class="px-3 py-0 text-right">
+            <div class="flex items-center justify-end gap-0.5">
+                {#if can(currentUser, "update:scales")}
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        class="size-7 hover:bg-primary/8 hover:text-primary"
+                        href="/config/scales/{scale.scale_id}"
+                        title="Налаштування"
+                    >
+                        <Settings2 class="h-3.5 w-3.5" />
+                    </Button>
+                {/if}
+                {#if can(currentUser, "delete:scales")}
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        class="size-7 text-destructive hover:bg-destructive/8 hover:text-destructive"
+                        onclick={() => openDelete(scale)}
+                        title="Видалити"
+                    >
+                        <Trash2 class="h-3.5 w-3.5" />
+                    </Button>
+                {/if}
             </div>
         </Table.Cell>
     {/snippet}

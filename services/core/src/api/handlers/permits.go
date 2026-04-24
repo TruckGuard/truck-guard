@@ -175,6 +175,25 @@ func HandleGetPermitAuditEvents(c *gin.Context) {
 	c.JSON(http.StatusOK, audits)
 }
 
+func HandleListAuditEvents(c *gin.Context) {
+	limit, offset, page := utils.GetPagination(c)
+
+	params := repository.AuditQueryParams{
+		Action:     c.Query("action"),
+		UserID:     c.Query("user_id"),
+		FilterFrom: c.Query("filter_from"),
+		FilterTo:   c.Query("filter_to"),
+	}
+
+	audits, total, err := repository.GetAllAuditEvents(c.Request.Context(), limit, offset, params)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch audit events"})
+		return
+	}
+
+	utils.SendPaginatedResponse(c, audits, total, page, limit)
+}
+
 func HandleRestorePermit(c *gin.Context) {
 	id := c.Param("id")
 	authID := c.GetHeader("X-User-ID")

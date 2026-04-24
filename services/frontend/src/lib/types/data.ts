@@ -22,7 +22,10 @@ export interface CustomsMode extends GormModel {
 export interface Company extends GormModel {
     name: string;
     edrpou: string;
+    discount_percentage: number;
+    discount_fixed: number;
     details: Record<string, any>;
+    notes: string;
     last_synced_at: string | null;
 }
 

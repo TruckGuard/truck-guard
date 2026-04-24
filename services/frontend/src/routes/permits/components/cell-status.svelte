@@ -2,24 +2,18 @@
     let { isClosed = false, isVoid = false } = $props<{ isClosed: boolean, isVoid?: boolean }>();
 </script>
 
-<div class="flex items-center gap-2">
+<div class="inline-flex items-center gap-1.5">
     {#if isVoid}
-        <span class="relative flex h-2 w-2">
-            <span class="absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-            <span class="relative inline-flex h-2 w-2 rounded-full bg-red-500"></span>
-        </span>
-        <span class="text-xs font-bold text-red-600 dark:text-red-400 leading-none uppercase tracking-wider">Анульовано</span>
+        <span class="h-1.5 w-1.5 rounded-full bg-danger shrink-0"></span>
+        <span class="badge-danger inline-flex items-center rounded px-1.5 py-0.5 text-xs font-medium uppercase tracking-wide">Анульовано</span>
     {:else if isClosed}
-        <span class="relative flex h-2 w-2">
-            <span class="absolute inline-flex h-full w-full rounded-full bg-slate-300 dark:bg-slate-700 opacity-75"></span>
-            <span class="relative inline-flex h-2 w-2 rounded-full bg-slate-400 dark:bg-slate-500"></span>
-        </span>
-        <span class="text-xs font-medium text-slate-500 dark:text-slate-400 leading-none">Виїхав</span>
+        <span class="h-1.5 w-1.5 rounded-full bg-muted-foreground/50 shrink-0"></span>
+        <span class="text-xs text-muted-foreground font-medium">Виїхав</span>
     {:else}
-        <span class="relative flex h-2 w-2">
-            <span class="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75"></span>
-            <span class="relative inline-flex h-2 w-2 animate-pulse rounded-full bg-emerald-500"></span>
+        <span class="relative flex h-1.5 w-1.5 shrink-0">
+            <span class="absolute inline-flex h-full w-full animate-ping rounded-full bg-success opacity-75"></span>
+            <span class="relative inline-flex h-1.5 w-1.5 rounded-full bg-success"></span>
         </span>
-        <span class="text-xs font-bold text-emerald-700 dark:text-emerald-400 leading-none">В зоні</span>
+        <span class="text-xs font-medium" style="color: var(--status-success)">В зоні</span>
     {/if}
 </div>

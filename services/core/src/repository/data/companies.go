@@ -56,6 +56,12 @@ func UpdateCompany(ctx context.Context, id string, input *models.Company) (model
 	company.Name = input.Name
 	company.EDRPOU = input.EDRPOU
 	company.Details = input.Details
+	company.Notes = input.Notes
+	company.DiscountPercentage = input.DiscountPercentage
+	company.DiscountFixed = input.DiscountFixed
+	if input.LastSyncedAt != nil {
+		company.LastSyncedAt = input.LastSyncedAt
+	}
 	if err := repository.DB.WithContext(ctx).Save(&company).Error; err != nil {
 		return company, err
 	}

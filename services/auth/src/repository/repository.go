@@ -40,7 +40,12 @@ func InitDB(dsn string) {
 }
 
 func InitRedis(addr string) {
-	RDB = redis.NewClient(&redis.Options{Addr: addr})
+	RDB = redis.NewClient(&redis.Options{
+		Addr:         addr,
+		DialTimeout:  5 * time.Second,
+		ReadTimeout:  3 * time.Second,
+		WriteTimeout: 3 * time.Second,
+	})
 }
 
 func HashKey(key string) string {
@@ -90,17 +95,39 @@ func ListSessions(userID uint) ([]map[string]interface{}, error) {
 	if err != nil {
 		return nil, err
 	}
+	if len(sessionIDs) == 0 {
+		return nil, nil
+	}
 
+	// Batch-fetch all session values in one round-trip instead of N individual GETs.
+	redisKeys := make([]string, len(sessionIDs))
+	for i, sid := range sessionIDs {
+		redisKeys[i] = "session:" + sid
+	}
+	vals, err := RDB.MGet(ctx, redisKeys...).Result()
+	if err != nil {
+		return nil, err
+	}
+
+	var expired []interface{}
 	var activeSessions []map[string]interface{}
-	for _, sid := range sessionIDs {
-		data, err := GetSession(sid)
-		if err != nil {
-			// Session expired or doesn't exist, remove from set
-			RDB.SRem(ctx, key, sid)
+	for i, v := range vals {
+		if v == nil {
+			// Session expired — schedule removal from the set.
+			expired = append(expired, sessionIDs[i])
 			continue
 		}
-		data["session_id"] = sid
+		var data map[string]interface{}
+		if err := json.Unmarshal([]byte(v.(string)), &data); err != nil {
+			expired = append(expired, sessionIDs[i])
+			continue
+		}
+		data["session_id"] = sessionIDs[i]
 		activeSessions = append(activeSessions, data)
+	}
+
+	if len(expired) > 0 {
+		RDB.SRem(ctx, key, expired...)
 	}
 
 	return activeSessions, nil

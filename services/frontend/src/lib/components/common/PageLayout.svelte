@@ -6,8 +6,8 @@
 </script>
 
 <div
-    class="flex flex-col h-full space-y-6 overflow-hidden"
-    in:fade={{ duration: 300 }}
+    class="flex flex-col gap-0"
+    in:fade={{ duration: 200 }}
 >
     {@render children()}
 </div>

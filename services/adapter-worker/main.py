@@ -32,12 +32,23 @@ def main():
 
             for _, messages in streams:
                 for msg_id, data in messages:
+                    raw = data.get("data", "")
                     try:
-                        processor.process(data["data"]) 
+                        processor.process(raw)
                     except Exception as e:
                         logger.error(f"Failed to process message {msg_id}: {e}")
-                        redis.xadd(cfg.STREAM_DLQ, {"data": data["data"], "error": str(e)})
-                    
+                        try:
+                            redis.xadd(cfg.STREAM_DLQ, {
+                                "msg_id": msg_id,
+                                "stream": cfg.STREAM_RAW,
+                                "data": raw,
+                                "error": str(e),
+                            })
+                        except Exception as dlq_err:
+                            logger.critical(f"Failed to write message {msg_id} to DLQ: {dlq_err}")
+                            # Do not advance last_id — the message will be retried on next startup.
+                            continue
+
                     last_id = msg_id
 
         except Exception as e:

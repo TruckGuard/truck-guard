@@ -39,6 +39,16 @@ export interface ApiResponseWithKey<T> {
     api_key: string;
 }
 
+export interface DashboardStats {
+    permits_in_zone: number;
+    permits_today: number;
+    permits_today_closed: number;
+    plate_events_today: number;
+    weight_events_today: number;
+    permits_void_today: number;
+    avg_days_in_zone: number;
+}
+
 export class CoreClient {
     private baseUrl: string;
     private sessionId?: string;
@@ -228,11 +238,40 @@ export class CoreClient {
         });
     }
 
+    // --- Global Audit Log ---
+
+    async getAuditEvents(page: number = 1, limit: number = 20, filters?: Record<string, string | undefined>): Promise<{ data: any[], metadata: any }> {
+        const query = new URLSearchParams({
+            page: page.toString(),
+            limit: limit.toString(),
+        });
+        if (filters) {
+            Object.entries(filters).forEach(([key, value]) => {
+                if (value) query.append(key, value);
+            });
+        }
+        return this.fetchWithAuth<{ data: any[], metadata: any }>(`/audit?${query.toString()}`);
+    }
+
     // --- Customs Parser ---
 
     async getCustomsDeclaration<T>(number: string): Promise<T> {
         // We use the data-parser route exposed via Nginx
         return this.fetchWithAuth<T>(`/data-parser/customs/declaration/${number}`);
+    }
+
+    async getCompanyByEdrpou(edrpou: string): Promise<{
+        edrpou: string; name: string; short_name: string; boss: string;
+        address: string; registration_date: string; kved: string; state: string;
+        phone: string; email: string; iban: string; bank: string; mfo: string;
+    }> {
+        return this.fetchWithAuth(`/data-parser/companies/edrpou/${encodeURIComponent(edrpou)}`);
+    }
+
+    // --- Dashboard Stats ---
+
+    async getStats(): Promise<DashboardStats> {
+        return this.fetchWithAuth<DashboardStats>('/stats');
     }
 
     // --- System Settings ---

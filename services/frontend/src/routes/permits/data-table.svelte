@@ -221,10 +221,11 @@
         class="whitespace-nowrap transition-colors {isGroupEnd && rowspan === 1
             ? 'border-r'
             : ''} last:border-r-0 {header.column.getCanSort()
-            ? 'cursor-pointer hover:bg-muted/50'
+            ? 'cursor-pointer hover:bg-muted/30'
             : ''} {dragOverColumnId === header.column.id
-            ? 'bg-primary/5 border-l-2 border-primary'
-            : ''} align-middle h-12 px-4 py-2 text-muted-foreground font-bold border-b text-xs uppercase tracking-wider bg-transparent"
+            ? 'border-l-2 border-primary'
+            : ''} align-middle px-3 py-0 text-muted-foreground font-medium border-b text-xs uppercase tracking-wider bg-transparent"
+        style="height: var(--row-h);"
         onclick={() =>
             handleSortClick(header.column.id, header.column.getCanSort())}
         draggable="true"
@@ -254,7 +255,7 @@
 {/snippet}
 
 <div
-    class="space-y-4 flex flex-col h-full bg-card rounded-2xl shadow-md w-full"
+    class="flex flex-col h-full w-full gap-3"
 >
     <DataTableToolbar
         table={table as any}
@@ -266,9 +267,9 @@
         {hasAllPermitsAccess}
     />
 
-    <DataTable maxHeight="75vh" class="flex-1">
+    <DataTable maxHeight="75vh" class="flex-1" flex={true}>
         <Table.Root class="w-full">
-            <Table.Header class="sticky top-0 z-30 bg-muted/80 backdrop-blur-md">
+            <Table.Header class="sticky top-0 z-30" style="background: var(--table-header); backdrop-filter: blur(4px);">
                 {#each table.getHeaderGroups() as headerGroup, i (headerGroup.id)}
                     <Table.Row class="hover:bg-transparent">
                         {#each headerGroup.headers as header, j (header.id)}
@@ -296,10 +297,11 @@
                                     <!-- Group header -->
                                     <Table.Head
                                         colspan={header.colSpan}
-                                        class="h-10 border-b border-r last:border-r-0 text-center bg-transparent"
+                                        class="border-b border-r last:border-r-0 text-center bg-transparent px-3"
+                                        style="height: calc(var(--row-h) - 4px);"
                                     >
                                         <span
-                                            class="font-bold text-xs tracking-wider uppercase text-muted-foreground whitespace-nowrap"
+                                            class="font-medium text-xs tracking-wider uppercase text-muted-foreground/70 whitespace-nowrap"
                                         >
                                             {typeof header.column.columnDef
                                                 .header === "string"
@@ -336,7 +338,8 @@
                 {:else}
                     {#each table.getRowModel().rows as row (row.id)}
                         <Table.Row
-                            class="group hover:bg-primary/5 cursor-pointer transition-colors border-b last:border-0"
+                            class="group cursor-pointer transition-colors border-b last:border-0"
+                            style="height: var(--row-h);"
                             onclick={() =>
                                 goto(`/permits/${(row.original as Permit).ID}`)}
                         >
@@ -350,7 +353,7 @@
                                     cell.column.id === "days_in_zone"}
 
                                 <Table.Cell
-                                    class="py-2.5 px-4 transition-colors {align} text-sm {isSeparatorCol
+                                    class="px-3 py-0 transition-colors {align} text-sm {isSeparatorCol
                                         ? 'border-r'
                                         : ''}"
                                 >

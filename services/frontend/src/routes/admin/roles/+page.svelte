@@ -126,8 +126,8 @@
   >
     {#snippet actions()}
       {#if authCan(data.user, "create:roles")}
-        <Button size="sm" class="h-10 shadow-sm" onclick={openCreate}>
-          <Plus class="mr-2 h-4 w-4" />
+        <Button size="sm" class="h-8 px-3 text-xs gap-1.5" onclick={openCreate}>
+          <Plus class="h-3.5 w-3.5" />
           Створити роль
         </Button>
       {/if}
@@ -140,8 +140,8 @@
     debounce={false}
   />
 
-  <Tabs.Root value="roles" class="flex-1 flex flex-col min-h-0 overflow-hidden">
-    <div class="flex items-center justify-between mb-4 shrink-0">
+  <Tabs.Root value="roles">
+    <div class="flex items-center justify-between mb-3">
       <Tabs.List class="w-full justify-start grid-cols-2 lg:w-[400px] grid">
         <Tabs.Trigger value="roles">
           <Users class="mr-2 h-4 w-4" /> Список ролей
@@ -152,23 +152,20 @@
       </Tabs.List>
     </div>
 
-    <Tabs.Content value="roles" class="flex-1 min-h-0 overflow-hidden mt-0">
-      <div class="h-full flex flex-col">
-        <RolesTable 
-          roles={filteredRoles} 
-          currentUser={data.user} 
-          flex={true}
-          onPerms={openPerms} 
-          onEdit={openEdit} 
-          onDelete={openDelete} 
-        />
-      </div>
+    <Tabs.Content value="roles" class="mt-0">
+      <RolesTable
+        roles={filteredRoles}
+        currentUser={data.user}
+        onPerms={openPerms}
+        onEdit={openEdit}
+        onDelete={openDelete}
+      />
     </Tabs.Content>
 
-    <Tabs.Content value="hierarchy" class="flex-1 min-h-0 overflow-y-auto mt-0">
-      <PermissionHierarchy 
-        hierarchy={data.hierarchy} 
-        permissions={data.permissions} 
+    <Tabs.Content value="hierarchy" class="mt-0 overflow-y-auto max-h-[65vh]">
+      <PermissionHierarchy
+        hierarchy={data.hierarchy}
+        permissions={data.permissions}
       />
     </Tabs.Content>
   </Tabs.Root>

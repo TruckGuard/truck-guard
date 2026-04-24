@@ -1,5 +1,11 @@
 import json
+import time
 from src.utils.logging_utils import logger
+
+# Camera configs are cached for 5 minutes. This covers rapid bursts from the same
+# camera without hitting the core service on every event, while still picking up
+# config changes made via the UI within a reasonable time.
+_CONFIG_CACHE_TTL = 300  # seconds
 
 class CameraProcessor:
     def __init__(self, core_client, parser, minio_client, anpr_client):
@@ -7,14 +13,18 @@ class CameraProcessor:
         self.parser = parser
         self.minio = minio_client
         self.anpr = anpr_client
-        self.config_cache = {}
+        # {source_id: (config, expires_at)}
+        self._config_cache: dict = {}
 
     def _get_cached_config(self, source_id: str):
-        if source_id in self.config_cache:
-            return self.config_cache[source_id]
+        entry = self._config_cache.get(source_id)
+        if entry is not None:
+            config, expires_at = entry
+            if time.monotonic() < expires_at:
+                return config
         config = self.core.get_camera_config(source_id)
         if config:
-            self.config_cache[source_id] = config
+            self._config_cache[source_id] = (config, time.monotonic() + _CONFIG_CACHE_TTL)
         return config
 
     def process(self, data: dict):

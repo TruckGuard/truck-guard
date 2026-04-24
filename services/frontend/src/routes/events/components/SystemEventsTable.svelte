@@ -22,57 +22,38 @@
 
 {#snippet header()}
     <Table.Row class="hover:bg-transparent">
-        <Table.Head
-            class="h-12 px-4 py-2 font-bold text-xs uppercase tracking-wider text-muted-foreground border-b"
-            >ID</Table.Head
-        >
-        <Table.Head
-            class="h-12 px-4 py-2 font-bold text-xs uppercase tracking-wider text-muted-foreground border-b"
-            >Час</Table.Head
-        >
-        <Table.Head
-            class="h-12 px-4 py-2 font-bold text-xs uppercase tracking-wider text-muted-foreground border-b"
-            >Категорія</Table.Head
-        >
-        <Table.Head
-            class="h-12 px-4 py-2 font-bold text-xs uppercase tracking-wider text-muted-foreground border-b"
-            >Дані</Table.Head
-        >
+        <Table.Head class="h-[var(--row-h)] px-3 py-0 text-xs font-medium uppercase tracking-wider text-muted-foreground border-b">ID</Table.Head>
+        <Table.Head class="h-[var(--row-h)] px-3 py-0 text-xs font-medium uppercase tracking-wider text-muted-foreground border-b">Час</Table.Head>
+        <Table.Head class="h-[var(--row-h)] px-3 py-0 text-xs font-medium uppercase tracking-wider text-muted-foreground border-b">Категорія</Table.Head>
+        <Table.Head class="h-[var(--row-h)] px-3 py-0 text-xs font-medium uppercase tracking-wider text-muted-foreground border-b">Дані</Table.Head>
     </Table.Row>
 {/snippet}
 
 {#snippet row(item: any)}
     {@const data = parsePayload(item.payload)}
-    <Table.Cell class="py-2.5 px-4 font-mono">
+    <Table.Cell class="px-3 font-mono text-xs text-muted-foreground">
         <a
             href="/events/system/{item.ID}"
-            class="text-primary hover:underline font-bold decoration-primary/30 underline-offset-4"
+            class="text-primary hover:underline font-medium underline-offset-4"
         >
             #{item.ID}
         </a>
     </Table.Cell>
-    <Table.Cell class="py-2.5 px-4 tabular-nums"
-        >{formatDate(item.timestamp)}</Table.Cell
-    >
-    <Table.Cell class="py-2.5 px-4">
-        <div class="flex items-center gap-2">
-            <Activity class="h-3.5 w-3.5 text-muted-foreground/60" />
-            <span class="font-medium text-foreground/80"
-                >{item.type || "Системна подія"}</span
-            >
+    <Table.Cell class="px-3 text-xs tabular-nums text-muted-foreground">{formatDate(item.timestamp)}</Table.Cell>
+    <Table.Cell class="px-3">
+        <div class="flex items-center gap-1.5">
+            <Activity class="h-3 w-3 text-muted-foreground/50" />
+            <span class="text-xs text-foreground/80">{item.type || "Системна подія"}</span>
         </div>
     </Table.Cell>
-    <Table.Cell class="py-2.5 px-4">
+    <Table.Cell class="px-3">
         <div class="max-w-[400px]">
             {#if data && typeof data === "object"}
-                <code
-                    class="text-xs bg-muted px-2 py-1.5 rounded text-muted-foreground block line-clamp-3 break-all leading-relaxed"
-                    title={JSON.stringify(data)}
-                >
+                <code class="text-xs font-mono bg-muted/50 px-1.5 py-0.5 rounded text-muted-foreground block truncate" title={JSON.stringify(data)}>
                     {JSON.stringify(data)}
                 </code>
             {:else}
-                <span class="text-muted-foreground/50 italic">-</span>
+                <span class="text-muted-foreground/40">—</span>
             {/if}
         </div>
     </Table.Cell>

@@ -3,7 +3,11 @@ package main
 import (
 	"context"
 	"log/slog"
+	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/truckguard/core/src/api/handlers"
@@ -35,7 +39,9 @@ func main() {
 		valkeyAddr = os.Getenv("REDIS_ADDR")
 	}
 	repository.InitRedis(valkeyAddr)
-	notify.Init(repository.RDB)
+
+	bgCtx, bgCancel := context.WithCancel(context.Background())
+	notify.Init(bgCtx, repository.RDB)
 
 	r := gin.New()
 	r.Use(gin.Recovery())
@@ -157,6 +163,12 @@ func main() {
 			permits.DELETE("/:id", handlers.HandleDeletePermit)
 		}
 
+		// Global audit log
+		api.GET("/audit", middleware.RequireCorePermission("read:audit"), handlers.HandleListAuditEvents)
+
+		// Dashboard statistics
+		api.GET("/stats", handlers.HandleGetStats)
+
 		// Real-time SSE notifications for operators
 		api.GET("/notifications/stream", handlers.HandleSSENotifications)
 
@@ -175,11 +187,30 @@ func main() {
 
 	repository.DB.FirstOrCreate(&models.SystemSetting{Key: "match_window_seconds", Value: "120"})
 
-	go logic.RunCleanupBackground(context.Background())
+	go logic.RunCleanupBackground(bgCtx)
 
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8080"
 	}
-	r.Run(":" + port)
+
+	srv := &http.Server{Addr: ":" + port, Handler: r}
+	go func() {
+		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			slog.Error("server error", "error", err)
+		}
+	}()
+
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+	<-quit
+	slog.Info("shutting down server...")
+
+	bgCancel()
+
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+	if err := srv.Shutdown(shutdownCtx); err != nil {
+		slog.Error("server forced to shutdown", "error", err)
+	}
 }

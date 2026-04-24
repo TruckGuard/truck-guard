@@ -5,6 +5,7 @@
   import { Plus, CircleAlert } from "@lucide/svelte";
   import { page } from "$app/state";
   import { goto } from "$app/navigation";
+  import { can } from "$lib/auth";
   import type { PageData } from "./$types";
 
   // Component Imports
@@ -70,14 +71,11 @@
     description="Довідник компаній перевізників та контрагентів."
   >
     {#snippet actions()}
-      <Button
-        size="sm"
-        class="h-10 shadow-sm"
-        onclick={() => (isCreateOpen = true)}
-      >
-        <Plus class="mr-2 h-4 w-4" />
-        Додати компанію
-      </Button>
+      {#if can(data.user, "create:data")}
+        <Button size="sm" class="h-8 px-3 text-xs gap-1.5" onclick={() => (isCreateOpen = true)}>
+          <Plus class="h-3.5 w-3.5" /> Додати компанію
+        </Button>
+      {/if}
     {/snippet}
   </PageHeader>
 
@@ -92,27 +90,25 @@
           placeholder="ЄДРПОУ..."
           bind:value={edrpouQuery}
           onkeydown={(e) => e.key === "Enter" && handleSearch()}
-          class="h-10 bg-transparent border-none focus-visible:ring-1 focus-visible:ring-primary/20 text-sm"
+          class="h-7 bg-transparent border-none focus-visible:ring-1 focus-visible:ring-primary/20 text-xs"
         />
       </div>
     {/snippet}
     <Button
       variant="outline"
       size="sm"
-      class="h-10 px-4 border-none hover:bg-primary/10 hover:text-primary transition-colors"
+      class="h-7 px-3 text-xs border-none hover:bg-primary/8 hover:text-primary transition-colors"
       onclick={handleSearch}
     >
       Пошук
     </Button>
   </SearchToolbar>
 
-  <div class="flex-1 min-h-0 overflow-hidden flex flex-col mb-4">
-    <CompaniesTable
-      companies={data.companies}
-      flex={true}
-      onDelete={openDelete}
-    />
-  </div>
+  <CompaniesTable
+    companies={data.companies}
+    currentUser={data.user}
+    onDelete={openDelete}
+  />
 
   {#if data.pagination && data.pagination.total_pages > 1}
     <div class="shrink-0">

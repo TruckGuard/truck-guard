@@ -37,6 +37,11 @@ func main() {
 		customs.GET("/declaration/:number", handlers.GetDeclarationMock)
 	}
 
+	companies := router.Group("/companies")
+	{
+		companies.GET("/edrpou/:code", handlers.GetCompanyByEDRPOU)
+	}
+
 	router.GET("/health", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"status": "ok"})
 	})

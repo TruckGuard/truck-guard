@@ -4,6 +4,7 @@
   import { Plus, CircleAlert } from "@lucide/svelte";
   import { page } from "$app/state";
   import { goto } from "$app/navigation";
+  import { can } from "$lib/auth";
   import type { PageData } from "./$types";
 
   // Component Imports
@@ -56,14 +57,11 @@
     description="Список номерних знаків, які система ігнорує при розпізнаванні (наприклад, службовий транспорт)."
   >
     {#snippet actions()}
-      <Button
-        size="sm"
-        class="h-10 shadow-sm"
-        onclick={() => (isCreateOpen = true)}
-      >
-        <Plus class="mr-2 h-4 w-4" />
-        Додати номер
-      </Button>
+      {#if can(data.user, "create:settings")}
+        <Button size="sm" class="h-8 px-3 text-xs gap-1.5" onclick={() => (isCreateOpen = true)}>
+          <Plus class="h-3.5 w-3.5" /> Додати номер
+        </Button>
+      {/if}
     {/snippet}
   </PageHeader>
 
@@ -73,13 +71,11 @@
     paramName="plate"
   />
 
-  <div class="flex-1 min-h-0 overflow-hidden flex flex-col mb-4">
-    <ExcludedPlatesTable
-      plates={data.plates}
-      flex={true}
-      onDelete={openDelete}
-    />
-  </div>
+  <ExcludedPlatesTable
+    plates={data.plates}
+    currentUser={data.user}
+    onDelete={openDelete}
+  />
 
   {#if data.pagination && data.pagination.total_pages > 1}
     <div class="shrink-0">

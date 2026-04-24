@@ -31,6 +31,7 @@ type Company struct {
 	DiscountPercentage float64        `gorm:"default:0" json:"discount_percentage"`
 	DiscountFixed      float64        `gorm:"default:0" json:"discount_fixed"`
 	Details            datatypes.JSON `gorm:"type:jsonb" json:"details"`
+	Notes              string         `gorm:"type:text;default:''" json:"notes"`
 	LastSyncedAt       *time.Time     `json:"last_synced_at"`
 }
 
@@ -114,12 +115,12 @@ type PermitCustomsData struct {
 
 type Permit struct {
 	gorm.Model
-	IsClosed bool   `gorm:"default:false" json:"is_closed"`
-	IsVoid   bool   `gorm:"default:false" json:"is_void"`
+	IsClosed bool   `gorm:"default:false;index:idx_permits_status" json:"is_closed"`
+	IsVoid   bool   `gorm:"default:false;index:idx_permits_status" json:"is_void"`
 	Code     string `gorm:"uniqueIndex;not null" json:"code"`
 
 	// Customs & Document Info
-	CustomsPostID     *uint        `json:"customs_post_id"`
+	CustomsPostID     *uint        `gorm:"index:idx_permits_post_time" json:"customs_post_id"`
 	CustomsPost       *CustomsPost `gorm:"foreignKey:CustomsPostID" json:"customs_post,omitempty"`
 	DeclarationNumber string       `json:"declaration_number"`
 	CustomsModeCode   *string      `json:"customs_mode_code"`
@@ -146,7 +147,7 @@ type Permit struct {
 	Payers []PermitPayer `gorm:"foreignKey:PermitID" json:"payers,omitempty"`
 
 	// Time Tracking
-	EntryTime      time.Time  `json:"entry_time"`
+	EntryTime      time.Time  `gorm:"index:idx_permits_post_time" json:"entry_time"`
 	ExitTime       *time.Time `json:"exit_time"`
 	DaysInZone     *int       `json:"days_in_zone"`
 	LastActivityAt time.Time  `json:"last_activity_at"`
@@ -187,7 +188,7 @@ type PlateEvent struct {
 	CameraSourceID   string         `gorm:"column:camera_source_id" json:"camera_source_id"`
 	CameraSourceName string         `gorm:"column:camera_source_name" json:"camera_source_name"`
 	CameraID         *string        `gorm:"column:camera_id" json:"camera_id"`
-	Plate            string         `json:"plate"`
+	Plate            string         `gorm:"index" json:"plate"`
 	ImageKey         string         `json:"image_key"`
 	Timestamp        time.Time      `json:"timestamp"`
 	Suggestions      datatypes.JSON `gorm:"type:jsonb" json:"suggestions"`

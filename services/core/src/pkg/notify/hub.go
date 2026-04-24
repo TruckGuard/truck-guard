@@ -50,35 +50,44 @@ type Hub struct {
 var Global = &Hub{subs: make(map[string][]chan Event)}
 
 // Init wires the hub to the Valkey client and starts the global subscriber goroutine.
-func Init(rdb *redis.Client) {
+func Init(ctx context.Context, rdb *redis.Client) {
 	Global.rdb = rdb
-	go Global.listenAll()
+	go Global.listenAll(ctx)
 }
 
 // listenAll subscribes to all permit_notify channels via Valkey psubscribe.
-func (h *Hub) listenAll() {
-	ctx := context.Background()
+func (h *Hub) listenAll(ctx context.Context) {
 	pubsub := h.rdb.PSubscribe(ctx, "permit_notify:post:*")
 	defer pubsub.Close()
 
 	slog.Info("Notification hub: listening on Valkey permit_notify:post:*")
 
-	for msg := range pubsub.Channel() {
-		var ev Event
-		if err := json.Unmarshal([]byte(msg.Payload), &ev); err != nil {
-			slog.Warn("Failed to decode notification event", "err", err, "payload", msg.Payload)
-			continue
-		}
-		postKey := fmt.Sprintf("%d", ev.PostID)
-		slog.Info("Notification hub: received event", "type", ev.Type, "permit_id", ev.ID, "post_id", ev.PostID)
-		h.mu.RLock()
-		for _, ch := range h.subs[postKey] {
-			select {
-			case ch <- ev:
-			default:
+	msgCh := pubsub.Channel()
+	for {
+		select {
+		case <-ctx.Done():
+			slog.Info("Notification hub: shutting down")
+			return
+		case msg, ok := <-msgCh:
+			if !ok {
+				return
 			}
+			var ev Event
+			if err := json.Unmarshal([]byte(msg.Payload), &ev); err != nil {
+				slog.Warn("Failed to decode notification event", "err", err, "payload", msg.Payload)
+				continue
+			}
+			postKey := fmt.Sprintf("%d", ev.PostID)
+			slog.Info("Notification hub: received event", "type", ev.Type, "permit_id", ev.ID, "post_id", ev.PostID)
+			h.mu.RLock()
+			for _, sub := range h.subs[postKey] {
+				select {
+				case sub <- ev:
+				default:
+				}
+			}
+			h.mu.RUnlock()
 		}
-		h.mu.RUnlock()
 	}
 }
 

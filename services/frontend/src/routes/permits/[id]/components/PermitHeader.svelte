@@ -19,26 +19,26 @@
     }
 </script>
 
-<div class="flex items-center gap-6 mb-8">
+<div class="flex items-center gap-3 pb-4 border-b border-border mb-4">
     <Button
-        variant="outline"
+        variant="ghost"
         size="icon"
         onclick={() => goto("/permits")}
-        class="shrink-0 rounded-full h-10 w-10 border-slate-200 dark:border-slate-700 shadow-sm hover:bg-slate-50 dark:hover:bg-slate-800"
+        class="shrink-0 h-8 w-8"
     >
-        <ChevronLeft class="h-5 w-5" />
+        <ChevronLeft class="h-4 w-4" />
     </Button>
-    <h1 class="text-3xl font-extrabold tracking-tight flex-1">
-        Перепустка {permitCode || `#${permitId}`}
+    <h1 class="text-lg font-semibold tracking-tight flex-1">
+        Перепустка <span class="font-mono text-primary">{permitCode || `#${permitId}`}</span>
     </h1>
     <Button
         variant="ghost"
         size="sm"
         onclick={handleRefresh}
         disabled={refreshing}
-        class="gap-2 text-muted-foreground hover:text-foreground"
+        class="h-8 px-3 text-xs gap-1.5 text-muted-foreground hover:text-foreground"
     >
-        <RefreshCw class="h-4 w-4 {refreshing ? 'animate-spin' : ''}" />
+        <RefreshCw class="h-3.5 w-3.5 {refreshing ? 'animate-spin' : ''}" />
         Оновити
     </Button>
     {#if onclickLink && canUpdate}
@@ -46,9 +46,9 @@
             variant="outline"
             size="sm"
             onclick={onclickLink}
-            class="gap-2 border-blue-200 text-blue-700 hover:bg-blue-50 hover:text-blue-800 dark:border-blue-900/30 dark:text-blue-400 dark:hover:bg-blue-900/20"
+            class="h-8 px-3 text-xs gap-1.5"
         >
-            <Link class="h-4 w-4" />
+            <Link class="h-3.5 w-3.5" />
             Прив'язати
         </Button>
     {/if}

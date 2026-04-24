@@ -3,6 +3,7 @@
   import { Plus } from "@lucide/svelte";
   import { page } from "$app/state";
   import { goto } from "$app/navigation";
+  import { can } from "$lib/auth";
   import type { PageData } from "./$types";
 
   // Component Imports
@@ -54,14 +55,11 @@
     description="Керування доступними способами оплати послуг."
   >
     {#snippet actions()}
-      <Button
-        size="sm"
-        class="h-10 shadow-sm"
-        onclick={() => (isCreateOpen = true)}
-      >
-        <Plus class="mr-2 h-4 w-4" />
-        Додати тип оплати
-      </Button>
+      {#if can(data.user, "create:data")}
+        <Button size="sm" class="h-8 px-3 text-xs gap-1.5" onclick={() => (isCreateOpen = true)}>
+          <Plus class="h-3.5 w-3.5" /> Додати тип оплати
+        </Button>
+      {/if}
     {/snippet}
   </PageHeader>
 
@@ -71,14 +69,12 @@
     paramName="name"
   />
 
-  <div class="flex-1 min-h-0 overflow-hidden flex flex-col">
-    <PaymentTypesTable
-      paymentTypes={data.paymentTypes}
-      flex={true}
-      onEdit={openEdit}
-      onDelete={openDelete}
-    />
-  </div>
+  <PaymentTypesTable
+    paymentTypes={data.paymentTypes}
+    currentUser={data.user}
+    onEdit={openEdit}
+    onDelete={openDelete}
+  />
 
   {#if data.pagination && data.pagination.total_pages > 1}
     <div class="shrink-0">

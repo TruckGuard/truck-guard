@@ -84,7 +84,7 @@
       },
       {
         title: "Системний аудит",
-        url: "/system/audit",
+        url: "/admin/audit",
         icon: Activity,
         permissions: ["read:audit"],
       },

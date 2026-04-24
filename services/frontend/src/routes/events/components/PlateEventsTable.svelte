@@ -14,82 +14,46 @@
 
 {#snippet header()}
     <Table.Row class="hover:bg-transparent">
-        <Table.Head
-            class="h-12 px-4 py-2 font-bold text-xs uppercase tracking-wider text-muted-foreground border-b"
-            >ID</Table.Head
-        >
-        <Table.Head
-            class="h-12 px-4 py-2 font-bold text-xs uppercase tracking-wider text-muted-foreground border-b"
-            >Час</Table.Head
-        >
-        <Table.Head
-            class="h-12 px-4 py-2 font-bold text-xs uppercase tracking-wider text-muted-foreground border-b"
-            >Джерело</Table.Head
-        >
-        <Table.Head
-            class="h-12 px-4 py-2 font-bold text-xs uppercase tracking-wider text-muted-foreground border-b"
-            >Номер</Table.Head
-        >
-        <Table.Head
-            class="h-12 px-4 py-2 font-bold text-xs uppercase tracking-wider text-muted-foreground border-b"
-            >Метод</Table.Head
-        >
-        <Table.Head
-            class="h-12 px-4 py-2 font-bold text-xs uppercase tracking-wider text-muted-foreground border-b text-right"
-            >Фото</Table.Head
-        >
+        <Table.Head class="h-[var(--row-h)] px-3 py-0 text-xs font-medium uppercase tracking-wider text-muted-foreground border-b">ID</Table.Head>
+        <Table.Head class="h-[var(--row-h)] px-3 py-0 text-xs font-medium uppercase tracking-wider text-muted-foreground border-b">Час</Table.Head>
+        <Table.Head class="h-[var(--row-h)] px-3 py-0 text-xs font-medium uppercase tracking-wider text-muted-foreground border-b">Джерело</Table.Head>
+        <Table.Head class="h-[var(--row-h)] px-3 py-0 text-xs font-medium uppercase tracking-wider text-muted-foreground border-b">Номер</Table.Head>
+        <Table.Head class="h-[var(--row-h)] px-3 py-0 text-xs font-medium uppercase tracking-wider text-muted-foreground border-b">Метод</Table.Head>
+        <Table.Head class="h-[var(--row-h)] px-3 py-0 text-xs font-medium uppercase tracking-wider text-muted-foreground border-b text-right">Фото</Table.Head>
     </Table.Row>
 {/snippet}
 
 {#snippet row(item: any)}
-    <Table.Cell class="py-2.5 px-4 text-md font-mono">
-        <a
-            href="/events/plate/{item.ID}"
-            class="text-primary hover:underline font-bold decoration-primary/30 underline-offset-4"
-        >
+    <Table.Cell class="px-3 font-mono text-xs text-muted-foreground">
+        <a href="/events/plate/{item.ID}" class="text-primary hover:underline font-medium underline-offset-4">
             #{item.ID}
         </a>
     </Table.Cell>
-    <Table.Cell class="py-2.5 px-4 text-sm tabular-nums"
-        >{formatDate(item.timestamp)}</Table.Cell
-    >
-    <Table.Cell class="py-2.5 px-4 whitespace-nowrap">
-        <div class="flex items-center gap-2">
-            <Camera class="h-3.5 w-3.5 text-muted-foreground/60" />
-            <span class="text-sm font-medium text-foreground/80"
-                >{item.camera_source_name || item.camera_id || "Невідомо"}</span
-            >
+    <Table.Cell class="px-3 text-xs tabular-nums text-muted-foreground">{formatDate(item.timestamp)}</Table.Cell>
+    <Table.Cell class="px-3 whitespace-nowrap">
+        <div class="flex items-center gap-1.5">
+            <Camera class="h-3 w-3 text-muted-foreground/50" />
+            <span class="text-xs text-foreground/80">{item.camera_source_name || item.camera_id || "Невідомо"}</span>
         </div>
     </Table.Cell>
-    <Table.Cell class="py-2.5 px-4">
-        <div
-            class="inline-flex items-center border rounded-md bg-background px-2 py-1 shadow-sm select-none"
-        >
-            <span
-                class="font-bold text-foreground tracking-widest font-mono text-sm uppercase leading-none"
-            >
-                {item.plate}
-            </span>
-        </div>
+    <Table.Cell class="px-3">
+        <span class="plate">{item.plate}</span>
     </Table.Cell>
-    <Table.Cell class="py-2.5 px-4">
-        <span
-            class="text-xs uppercase font-bold tracking-widest text-muted-foreground/80"
-            >{item.is_manual ? "Ручний" : "Авто"}</span
-        >
+    <Table.Cell class="px-3">
+        <span class="text-xs uppercase tracking-wider text-muted-foreground">{item.is_manual ? "Ручний" : "Авто"}</span>
     </Table.Cell>
-    <Table.Cell class="py-2.5 px-4 text-right">
+    <Table.Cell class="px-3 text-right">
         {#if item.image_key}
             <HoverCard.Root openDelay={200} closeDelay={150}>
                 <HoverCard.Trigger>
                     <Button
                         variant="outline"
                         size="icon"
-                        class="size-9 rounded-full hover:bg-primary hover:text-primary-foreground transition-all duration-300 shadow-sm"
+                        class="size-7 hover:bg-primary hover:text-primary-foreground transition-all duration-200"
                         href={`/api/images/${item.image_key}`}
                         target="_blank"
                     >
-                        <Search class="h-4 w-4" />
+                        <Search class="h-3.5 w-3.5" />
                         <span class="sr-only">Переглянути зображення</span>
                     </Button>
                 </HoverCard.Trigger>
@@ -122,8 +86,7 @@
                 </HoverCard.Content>
             </HoverCard.Root>
         {:else}
-            <span class="text-xs text-muted-foreground/50 italic">відсутнє</span
-            >
+            <span class="text-xs text-muted-foreground/40 italic">—</span>
         {/if}
     </Table.Cell>
 {/snippet}

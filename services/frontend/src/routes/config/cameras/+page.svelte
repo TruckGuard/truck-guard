@@ -3,6 +3,7 @@
     import * as Table from "$lib/components/ui/table";
     import { Badge } from "$lib/components/ui/badge";
     import { Camera, Plus, RefreshCw, Settings2, MapPin, Trash2 } from "@lucide/svelte";
+    import { can } from "$lib/auth";
     import type { PageData, ActionData } from "./$types";
     import { toast } from "svelte-sonner";
     import { invalidateAll, goto } from "$app/navigation";
@@ -66,38 +67,36 @@
             <Button
                 variant="outline"
                 size="sm"
-                class="h-10 px-4 shadow-sm"
+                class="h-8 px-3 text-xs gap-1.5"
                 onclick={refresh}
                 disabled={loading}
             >
-                <RefreshCw
-                    class="mr-2 h-4 w-4 {loading ? 'animate-spin' : ''}"
-                />
-                Оновити дані
+                <RefreshCw class="h-3.5 w-3.5 {loading ? 'animate-spin' : ''}" />
+                Оновити
             </Button>
-            <Button
-                size="sm"
-                class="h-10 px-4 shadow-sm"
-                onclick={() => (isCreateOpen = true)}
-            >
-                <Plus class="mr-2 h-4 w-4" /> Додати камеру
-            </Button>
+            {#if can(data.user, "create:cameras")}
+              <Button size="sm" class="h-8 px-3 text-xs gap-1.5" onclick={() => (isCreateOpen = true)}>
+                <Plus class="h-3.5 w-3.5" /> Додати
+              </Button>
+            {/if}
         {/snippet}
     </PageHeader>
 
     <SearchToolbar placeholder="Пошук камери..." bind:searchQuery />
 
-    <CamerasTable {data} {openDelete} />
+    <CamerasTable {data} currentUser={data.user} {openDelete} />
 
-    <div class="shrink-0">
-        <SimplePagination
-            currentPage={data.pagination.current_page}
-            totalPages={data.pagination.total_pages}
-            itemsPerPage={data.pagination.limit}
-            onPageChange={handlePageChange}
-            onLimitChange={handleLimitChange}
-        />
-    </div>
+    {#if data.pagination.total_pages > 1}
+        <div class="shrink-0">
+            <SimplePagination
+                currentPage={data.pagination.current_page}
+                totalPages={data.pagination.total_pages}
+                itemsPerPage={data.pagination.limit}
+                onPageChange={handlePageChange}
+                onLimitChange={handleLimitChange}
+            />
+        </div>
+    {/if}
 </PageLayout>
 
 <CreateCameraDialog

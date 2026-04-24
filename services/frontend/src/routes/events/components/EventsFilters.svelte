@@ -27,7 +27,7 @@
     }>();
 </script>
 
-<div class="space-y-4 mb-6">
+<div class="space-y-2 mb-3">
     <div class="flex items-center justify-between">
         <div class="flex items-center gap-2">
             <Button

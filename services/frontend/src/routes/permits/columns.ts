@@ -22,7 +22,7 @@ export const columns: ColumnDef<Permit>[] = [
                     const p = row.original;
                     return p.code || `PF-${p.ID}`;
                 },
-                meta: { mono: true, className: "text-base font-bold text-blue-600 dark:text-blue-500/90" },
+                meta: { mono: true, fontSemiBold: true, className: "text-primary" },
                 enableSorting: true,
             },
             {
@@ -30,7 +30,7 @@ export const columns: ColumnDef<Permit>[] = [
                 id: "entry_time",
                 header: "Час заїзду",
                 cell: ({ row }) => formatDate(row.getValue("entry_time")),
-                meta: { className: "text-sm text-slate-500 dark:text-zinc-500" },
+                meta: { mono: true, className: "text-muted-foreground" },
                 enableSorting: true,
             },
             {
@@ -41,23 +41,27 @@ export const columns: ColumnDef<Permit>[] = [
                     const v = row.getValue("exit_time") as string;
                     return v ? formatDate(v) : "—";
                 },
-                meta: { className: "text-sm text-slate-500 dark:text-zinc-500" },
+                meta: { mono: true, className: "text-muted-foreground" },
                 enableSorting: true,
             },
             {
                 accessorKey: "plate_front",
                 id: "plate_front",
-                header: "Номер передній",
-                cell: ({ row }) => (row.getValue("plate_front") as string) || "—",
-                meta: { mono: true, fontMedium: true, className: "text-slate-900 dark:text-zinc-100 text-base" },
+                header: "Номер (тягач)",
+                cell: ({ row }) => {
+                    const v = (row.getValue("plate_front") as string);
+                    if (!v) return "—";
+                    return v;
+                },
+                meta: { mono: true, fontMedium: true },
                 enableSorting: false,
             },
             {
                 accessorKey: "plate_back",
                 id: "plate_back",
-                header: "Номер задній",
+                header: "Номер (причіп)",
                 cell: ({ row }) => (row.getValue("plate_back") as string) || "—",
-                meta: { mono: true, fontMedium: true, className: "text-slate-900 dark:text-zinc-100 text-base" },
+                meta: { mono: true, className: "text-muted-foreground" },
                 enableSorting: false,
             },
             {
@@ -68,7 +72,7 @@ export const columns: ColumnDef<Permit>[] = [
                     const w = row.getValue("total_weight") as number;
                     return w ? `${w.toLocaleString("uk-UA")} кг` : "—";
                 },
-                meta: { align: "right", tabular: true, className: "font-medium text-slate-900 dark:text-zinc-100 text-base" },
+                meta: { align: "right", tabular: true, fontMedium: true },
                 enableSorting: true,
             },
             {
@@ -110,14 +114,14 @@ export const columns: ColumnDef<Permit>[] = [
 
                     return `${!p.is_closed ? "~ " : ""}${days} ${word}`;
                 },
-                meta: { align: "right", tabular: true, fontMedium: true, className: "text-slate-900 dark:text-zinc-100 text-base" },
+                meta: { align: "right", tabular: true, fontMedium: true },
                 enableSorting: true,
             },
         ]
     },
     {
         id: "group_customs",
-        header: "Оформлення в Єдиному вікні (Митниця)",
+        header: "Оформлення (Митниця)",
         columns: [
             {
                 accessorKey: "customs_post",
@@ -127,7 +131,6 @@ export const columns: ColumnDef<Permit>[] = [
                     const p = row.original.customs_post;
                     return p ? p.name : "—";
                 },
-                meta: { className: "text-slate-800 dark:text-zinc-300" },
                 enableSorting: true,
             },
             {
@@ -138,67 +141,54 @@ export const columns: ColumnDef<Permit>[] = [
                     const m = row.original.customs_mode;
                     return m ? m.name : "—";
                 },
-                meta: { className: "text-slate-800 dark:text-zinc-300" },
                 enableSorting: true,
             },
             {
                 accessorKey: "declaration_number",
                 id: "declaration_number",
-                header: "Номер декларації",
-                cell: ({ row }) => {
-                    return row.original.declaration_number || "—";
-                },
-                meta: { className: "text-slate-800 dark:text-zinc-300" },
+                header: "Декларація",
+                cell: ({ row }) => row.original.declaration_number || "—",
+                meta: { mono: true },
                 enableSorting: true,
             },
             {
                 accessorKey: "customs_data.declarant",
                 id: "customs_declarant_name",
                 header: "Декларант",
-                cell: ({ row }) => {
-                    return row.original.customs_data?.declarant || "—";
-                },
-                meta: { className: "text-slate-600 dark:text-zinc-400 text-sm" },
+                cell: ({ row }) => row.original.customs_data?.declarant || "—",
+                meta: { className: "text-muted-foreground" },
                 enableSorting: false,
             },
             {
                 accessorKey: "customs_data.goods",
                 id: "customs_commodity_description",
-                header: "Опис товару",
-                cell: ({ row }) => {
-                    return row.original.customs_data?.goods || "—";
-                },
-                meta: { className: "text-slate-600 dark:text-zinc-400 text-sm" },
+                header: "Товар",
+                cell: ({ row }) => row.original.customs_data?.goods || "—",
+                meta: { className: "text-muted-foreground" },
                 enableSorting: false,
             },
             {
                 accessorKey: "customs_data.vmd_number",
                 id: "customs_vmd_number",
                 header: "ВМД",
-                cell: ({ row }) => {
-                    return row.original.customs_data?.vmd_number || "—";
-                },
-                meta: { className: "text-slate-600 dark:text-zinc-400 text-sm" },
+                cell: ({ row }) => row.original.customs_data?.vmd_number || "—",
+                meta: { mono: true, className: "text-muted-foreground" },
                 enableSorting: false,
             },
             {
                 accessorKey: "customs_data.sender",
                 id: "customs_sender",
                 header: "Відправник",
-                cell: ({ row }) => {
-                    return row.original.customs_data?.sender || "—";
-                },
-                meta: { className: "text-slate-600 dark:text-zinc-400 text-sm" },
+                cell: ({ row }) => row.original.customs_data?.sender || "—",
+                meta: { className: "text-muted-foreground" },
                 enableSorting: false,
             },
             {
                 accessorKey: "customs_data.receiver",
                 id: "customs_receiver",
                 header: "Одержувач",
-                cell: ({ row }) => {
-                    return row.original.customs_data?.receiver || "—";
-                },
-                meta: { className: "text-slate-600 dark:text-zinc-400 text-sm" },
+                cell: ({ row }) => row.original.customs_data?.receiver || "—",
+                meta: { className: "text-muted-foreground" },
                 enableSorting: false,
             },
         ]
@@ -221,40 +211,39 @@ export const columns: ColumnDef<Permit>[] = [
             {
                 accessorKey: "payment_type",
                 id: "payment_type_id",
-                header: "Тип оплати",
+                header: "Оплата",
                 cell: ({ row }) => {
                     const payment = row.original.payment_type;
                     return payment ? payment.name : "—";
                 },
-                meta: { className: "text-slate-800 dark:text-zinc-300" },
                 enableSorting: true,
             },
             {
                 accessorKey: "entry_fee",
                 id: "entry_fee",
-                header: "Вхідна плата",
+                header: "Вхідна",
                 cell: ({ row }) => {
                     const fee = row.getValue("entry_fee") as number;
                     return fee ? `${fee.toLocaleString("uk-UA")} грн` : "—";
                 },
-                meta: { align: "right", tabular: true, className: "text-slate-500 dark:text-zinc-500 text-sm" },
+                meta: { align: "right", tabular: true, className: "text-muted-foreground" },
                 enableSorting: true,
             },
             {
                 accessorKey: "daily_fee",
                 id: "daily_fee",
-                header: "Денна плата",
+                header: "Денна",
                 cell: ({ row }) => {
                     const fee = row.getValue("daily_fee") as number;
                     return fee ? `${fee.toLocaleString("uk-UA")} грн` : "—";
                 },
-                meta: { align: "right", tabular: true, className: "text-slate-500 dark:text-zinc-500 text-sm" },
+                meta: { align: "right", tabular: true, className: "text-muted-foreground" },
                 enableSorting: true,
             },
             {
                 accessorKey: "total_sum",
                 id: "total_sum",
-                header: "Загальна плата",
+                header: "Загальна",
                 cell: ({ row }) => {
                     const p = row.original;
                     let fee = p.total_sum;
@@ -265,9 +254,7 @@ export const columns: ColumnDef<Permit>[] = [
                         const hours = (now - entry) / (1000 * 60 * 60);
 
                         let days = Math.floor(hours / 24);
-                        if (hours > days * 24 || (now - entry) <= 0) {
-                            days++;
-                        }
+                        if (hours > days * 24 || (now - entry) <= 0) days++;
                         if (days < 1) days = 1;
 
                         const entryFee = p.entry_fee || p.vehicle_type?.entry_price || 0;
@@ -277,7 +264,7 @@ export const columns: ColumnDef<Permit>[] = [
 
                     return fee ? `${!p.is_closed ? "~ " : ""}${fee.toLocaleString("uk-UA")} грн` : "—";
                 },
-                meta: { align: "right", tabular: true, fontSemiBold: true, className: "text-slate-950 dark:text-zinc-50 text-base" },
+                meta: { align: "right", tabular: true, fontSemiBold: true },
                 enableSorting: true,
             },
             {
@@ -300,14 +287,14 @@ export const columns: ColumnDef<Permit>[] = [
             {
                 accessorKey: "verifier",
                 id: "verified_at",
-                header: "Валідація",
+                header: "Підтвердив",
                 cell: ({ row }) => {
                     return renderComponent(CellVerifier, {
                         verifier: row.original.verifier || null,
                         verifiedAt: row.original.verified_at || null,
                     });
                 },
-                meta: { className: "text-slate-600 dark:text-zinc-400" },
+                meta: { className: "text-muted-foreground" },
                 enableSorting: true,
             },
         ]

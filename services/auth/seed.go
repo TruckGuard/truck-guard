@@ -54,6 +54,7 @@ func seedData() {
 
 	// Customs Parser
 	perms = append(perms, models.Permission{ID: "read:customs", Name: "Митниця: Отримання даних", Module: "customs-parser"})
+	perms = append(perms, models.Permission{ID: "read:companies", Name: "Компанії: Отримання даних", Module: "customs-parser"})
 
 	for _, p := range perms {
 		repository.DB.Save(&p)
@@ -175,6 +176,12 @@ func seedData() {
 
 		// Customs
 		{Method: "GET", PathPattern: `^/api/data-parser/customs/.*`, RequiredPermission: "read:customs", Description: "Доступ до даних з митниці"},
+
+		// EDR / Company registry
+		{Method: "GET", PathPattern: `^/api/data-parser/companies/.*`, RequiredPermission: "read:companies", Description: "Пошук компаній у реєстрі ЄДР"},
+
+		// Audit
+		{Method: "GET", PathPattern: `^/api/audit.*`, RequiredPermission: "read:audit", Description: "Журнал аудиту"},
 	}
 
 	for _, r := range rules {

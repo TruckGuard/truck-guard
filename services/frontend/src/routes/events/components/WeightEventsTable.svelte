@@ -12,51 +12,38 @@
 
 {#snippet header()}
     <Table.Row class="hover:bg-transparent">
-        <Table.Head
-            class="h-12 px-4 py-2 font-bold text-xs uppercase tracking-wider text-muted-foreground border-b"
-            >ID</Table.Head
-        >
-        <Table.Head
-            class="h-12 px-4 py-2 font-bold text-xs uppercase tracking-wider text-muted-foreground border-b"
-            >Час</Table.Head
-        >
-        <Table.Head
-            class="h-12 px-4 py-2 font-bold text-xs uppercase tracking-wider text-muted-foreground border-b"
-            >Обладнання</Table.Head
-        >
-        <Table.Head
-            class="h-12 px-4 py-2 font-bold text-xs uppercase tracking-wider text-muted-foreground border-b text-right"
-            >Вага</Table.Head
-        >
+        <Table.Head class="h-[var(--row-h)] px-3 py-0 text-xs font-medium uppercase tracking-wider text-muted-foreground border-b">ID</Table.Head>
+        <Table.Head class="h-[var(--row-h)] px-3 py-0 text-xs font-medium uppercase tracking-wider text-muted-foreground border-b">Час</Table.Head>
+        <Table.Head class="h-[var(--row-h)] px-3 py-0 text-xs font-medium uppercase tracking-wider text-muted-foreground border-b">Обладнання</Table.Head>
+        <Table.Head class="h-[var(--row-h)] px-3 py-0 text-xs font-medium uppercase tracking-wider text-muted-foreground border-b text-right">Вага</Table.Head>
     </Table.Row>
 {/snippet}
 
 {#snippet row(item: any)}
-    <Table.Cell class="py-2.5 px-4 font-mono">
-        <a 
-            href="/events/weight/{item.ID}" 
-            class="text-primary hover:underline font-bold decoration-primary/30 underline-offset-4"
+    <Table.Cell class="px-3 font-mono text-xs text-muted-foreground">
+        <a
+            href="/events/weight/{item.ID}"
+            class="text-primary hover:underline font-medium underline-offset-4"
         >
             #{item.ID}
         </a>
     </Table.Cell>
-    <Table.Cell class="py-2.5 px-4 tabular-nums"
-        >{formatDate(item.timestamp)}</Table.Cell
-    >
-    <Table.Cell class="py-2.5 px-4">
-        <div class="flex items-center gap-2">
-            <Scale class="h-5 w-5 text-muted-foreground/60" />
-            <span class="font-medium text-foreground/80">{item.scale_source_name || item.scale_name || "Невідомо"}</span>
+    <Table.Cell class="px-3 text-xs tabular-nums text-muted-foreground">{formatDate(item.timestamp)}</Table.Cell>
+    <Table.Cell class="px-3">
+        <div class="flex items-center gap-1.5">
+            <Scale class="h-3 w-3 text-muted-foreground/50" />
+            <span class="text-xs text-foreground/80">{item.scale_source_name || item.scale_name || "Невідомо"}</span>
         </div>
     </Table.Cell>
-    <Table.Cell class="py-2.5 px-4 text-right">
-        <span class="font-bold tabular-nums text-lg">{item.weight} <small class="text-muted-foreground font-normal text-xs">кг</small></span>
+    <Table.Cell class="px-3 text-right">
+        <span class="font-mono font-semibold tabular-nums text-sm">{item.weight}</span>
+        <small class="text-muted-foreground font-normal text-xs ml-1">кг</small>
     </Table.Cell>
 {/snippet}
 
 <DataTable
     columns={4}
-    items={items}
+    {items}
     {flex}
     headerSnippet={header}
     rowSnippet={row}

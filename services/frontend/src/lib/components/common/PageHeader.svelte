@@ -10,20 +10,18 @@
     let { title, description, actions }: Props = $props();
 </script>
 
-<div class="flex items-center justify-between shrink-0">
+<div class="flex items-start justify-between shrink-0 pb-4 border-b border-border mb-4">
     <div>
-        <h1
-            class="text-3xl font-bold tracking-tight text-foreground mb-2 md:text-4xl"
-        >
+        <h1 class="text-lg font-semibold tracking-tight text-foreground leading-snug">
             {title}
         </h1>
         {#if description}
-            <p class="mb-0 text-sm text-muted-foreground">
+            <p class="mt-0.5 text-xs text-muted-foreground">
                 {description}
             </p>
         {/if}
     </div>
-    <div class="flex items-center gap-3">
+    <div class="flex items-center gap-2">
         {#if actions}
             {@render actions()}
         {/if}

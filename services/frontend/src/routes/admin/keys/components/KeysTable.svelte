@@ -17,93 +17,56 @@
     }>();
 
     function formatDate(date: string | Date | undefined) {
-        if (!date) return "-";
+        if (!date) return "—";
         return new Date(date).toLocaleDateString("uk-UA", {
             day: "2-digit",
             month: "2-digit",
             year: "numeric",
         });
     }
+
+    const th = "h-[var(--row-h)] px-3 py-0 font-medium text-xs uppercase tracking-wider text-muted-foreground border-b";
 </script>
 
 {#snippet header()}
     <Table.Row class="hover:bg-transparent">
-        <Table.Head
-            class="h-12 px-4 py-2 font-bold text-xs uppercase tracking-wider text-muted-foreground border-b"
-            >Власник</Table.Head
-        >
-        <Table.Head
-            class="h-12 px-4 py-2 font-bold text-xs uppercase tracking-wider text-muted-foreground border-b"
-            >Статус</Table.Head
-        >
-        <Table.Head
-            class="h-12 px-4 py-2 font-bold text-xs uppercase tracking-wider text-muted-foreground border-b"
-            >Створено</Table.Head
-        >
-        <Table.Head
-            class="h-12 px-4 py-2 font-bold text-xs uppercase tracking-wider text-muted-foreground border-b text-right"
-            >Дії</Table.Head
-        >
+        <Table.Head class={th}>Власник</Table.Head>
+        <Table.Head class={th}>Статус</Table.Head>
+        <Table.Head class={th}>Створено</Table.Head>
+        <Table.Head class="{th} text-right">Дії</Table.Head>
     </Table.Row>
 {/snippet}
 
 {#snippet row(apiKey: APIKey)}
-    <Table.Cell class="py-2.5 px-4">
-        <div class="flex flex-col">
+    <Table.Cell class="px-3 py-0" style="height: var(--row-h);">
+        <div class="flex flex-col justify-center gap-0.5">
             <span class="font-medium text-sm">{apiKey.owner_name}</span>
-            <span class="text-xs text-muted-foreground font-mono"
-                >ID: {apiKey.id}</span
-            >
+            <span class="text-[10px] text-muted-foreground font-mono">ID: {apiKey.id}</span>
         </div>
     </Table.Cell>
-    <Table.Cell class="py-2.5 px-4">
-        <span
-            class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium {apiKey.is_active
-                ? 'bg-emerald-500/10 text-emerald-500'
-                : 'bg-muted text-muted-foreground'}"
-        >
-            {apiKey.is_active ? "Активний" : "Відкликаний"}
-        </span>
+    <Table.Cell class="px-3 py-0">
+        {#if apiKey.is_active}
+            <span class="badge-success inline-flex items-center h-5 px-1.5 rounded text-[10px] font-medium">Активний</span>
+        {:else}
+            <span class="inline-flex items-center h-5 px-1.5 rounded border border-border text-[10px] font-medium text-muted-foreground bg-muted/40">Відкликаний</span>
+        {/if}
     </Table.Cell>
-    <Table.Cell class="py-2.5 px-4 text-xs tabular-nums text-muted-foreground">
+    <Table.Cell class="px-3 py-0 text-xs font-mono tabular-nums text-muted-foreground">
         {formatDate(apiKey.created_at)}
     </Table.Cell>
-    <Table.Cell class="py-2.5 px-4 text-right space-x-1">
-        <Button
-            variant="ghost"
-            size="icon"
-            class="size-8"
-            onclick={() => onPermissions(apiKey)}
-            title="Дозволи"
-        >
-            <ShieldCheck class="h-3.5 w-3.5" />
-        </Button>
-        <Button
-            variant="ghost"
-            size="icon"
-            class="size-8"
-            onclick={() => onEdit(apiKey)}
-            title="Редагувати"
-        >
-            <Pencil class="h-3.5 w-3.5" />
-        </Button>
-        <Button
-            variant="ghost"
-            size="icon"
-            class="size-8 text-destructive hover:text-destructive hover:bg-destructive/10"
-            onclick={() => onDelete(apiKey)}
-            title="Видалити"
-        >
-            <Trash2 class="h-3.5 w-3.5" />
-        </Button>
+    <Table.Cell class="px-3 py-0 text-right">
+        <div class="flex items-center justify-end gap-0.5">
+            <Button variant="ghost" size="icon" class="size-7" onclick={() => onPermissions(apiKey)} title="Дозволи">
+                <ShieldCheck class="h-3.5 w-3.5" />
+            </Button>
+            <Button variant="ghost" size="icon" class="size-7" onclick={() => onEdit(apiKey)} title="Редагувати">
+                <Pencil class="h-3.5 w-3.5" />
+            </Button>
+            <Button variant="ghost" size="icon" class="size-7 text-destructive hover:bg-destructive/8 hover:text-destructive" onclick={() => onDelete(apiKey)} title="Видалити">
+                <Trash2 class="h-3.5 w-3.5" />
+            </Button>
+        </div>
     </Table.Cell>
 {/snippet}
 
-<DataTable
-    columns={4}
-    items={keys}
-    {flex}
-    headerSnippet={header}
-    rowSnippet={row}
-    emptyStateIcon={Key}
-/>
+<DataTable columns={4} items={keys} {flex} headerSnippet={header} rowSnippet={row} emptyStateIcon={Key} />

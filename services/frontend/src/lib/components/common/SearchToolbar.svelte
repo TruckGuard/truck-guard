@@ -60,16 +60,12 @@
     }
 </script>
 
-<div
-    class="flex items-center gap-3 p-1.5 rounded-xl border bg-card/50 shadow-sm shrink-0"
->
+<div class="flex items-center gap-2 px-2 py-1.5 rounded-md border border-border bg-card shrink-0 mb-3">
     <div class="relative flex-1 max-w-sm">
-        <Search
-            class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground"
-        />
+        <Search class="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
         <Input
             {placeholder}
-            class="pl-9 h-10 border-none bg-transparent focus-visible:ring-1 focus-visible:ring-primary/20 text-sm"
+            class="pl-8 h-7 text-xs border-none bg-transparent focus-visible:ring-1 focus-visible:ring-primary/20"
             bind:value={searchQuery}
             oninput={handleSearchInput}
         />

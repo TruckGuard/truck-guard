@@ -71,8 +71,8 @@
   >
     {#snippet actions()}
       {#if canAccessPermission("create:keys")}
-        <Button size="sm" class="h-10 shadow-sm" onclick={openCreate}>
-          <Plus class="mr-2 h-4 w-4" />
+        <Button size="sm" class="h-8 px-3 text-xs gap-1.5" onclick={openCreate}>
+          <Plus class="h-3.5 w-3.5" />
           Створити ключ
         </Button>
       {/if}
@@ -85,15 +85,12 @@
     onInput={() => {}} 
   />
 
-  <div class="flex-1 min-h-0 overflow-hidden flex flex-col">
-    <KeysTable
-      keys={filteredKeys}
-      flex={true}
-      onEdit={openEdit}
-      onDelete={openDelete}
-      onPermissions={openPerms}
-    />
-  </div>
+  <KeysTable
+    keys={filteredKeys}
+    onEdit={openEdit}
+    onDelete={openDelete}
+    onPermissions={openPerms}
+  />
 </PageLayout>
 
 <KeysCreateDialog

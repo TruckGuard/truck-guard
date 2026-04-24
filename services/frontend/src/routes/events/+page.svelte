@@ -6,7 +6,6 @@
   import { RefreshCcw, Camera, Scale, Settings } from "@lucide/svelte";
   import type { ApiResponse } from "$lib/types/events";
   import { getLocalTimeZone, CalendarDate } from "@internationalized/date";
-  import { formatDate } from "$lib/utils/date";
 
   // Component Imports
   import EventsFilters from "./components/EventsFilters.svelte";
@@ -14,6 +13,8 @@
   import WeightEventsTable from "./components/WeightEventsTable.svelte";
   import SystemEventsTable from "./components/SystemEventsTable.svelte";
   import SimplePagination from "$lib/components/common/SimplePagination.svelte";
+  import PageHeader from "$lib/components/common/PageHeader.svelte";
+  import PageLayout from "$lib/components/common/PageLayout.svelte";
 
   let { data } = $props<{
     data: {
@@ -24,7 +25,11 @@
     };
   }>();
 
-  const activeTab = $derived(data.tab);
+  // Local tab state — switches immediately on click (optimistic),
+  // then syncs with server data when navigation completes.
+  let activeTab = $state(data.tab);
+  $effect(() => { activeTab = data.tab; });
+
   const items = $derived(data.events.data || []);
   const metadata = $derived(
     data.events.metadata || {
@@ -60,10 +65,10 @@
   }
 
   function handleTabChange(value: string) {
-    if (value !== activeTab) {
-      loading = true;
-      goto(`?tab=${value}&page=1`).then(() => (loading = false));
-    }
+    if (value === activeTab) return;
+    activeTab = value; // immediate visual switch
+    loading = true;
+    goto(`?tab=${value}&page=1`).then(() => (loading = false));
   }
 
   function handlePageChange(newPage: number) {
@@ -119,66 +124,64 @@
   }
 </script>
 
-<div class="flex flex-col h-full overflow-hidden space-y-6">
-  <div class="shrink-0">
-    <div
-      class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"
-    >
-      <div>
-        <h1 class="text-3xl md:text-4xl font-bold tracking-tight text-foreground mb-2">
-          Моніторинг подій
-        </h1>
-        <p class="text-muted-foreground text-sm mb-0">
-          Централізований перегляд активності системи в реальному часі
-        </p>
-      </div>
+<PageLayout>
+  <PageHeader
+    title="Моніторинг подій"
+    description="Активність системи в реальному часі"
+  >
+    {#snippet actions()}
       <Button
         variant="outline"
         size="sm"
         onclick={refresh}
         disabled={loading}
-        class="h-10 px-4 shadow-sm"
+        class="h-8 px-3 text-xs gap-1.5"
       >
-        <RefreshCcw class="mr-2 h-4 w-4 {loading ? 'animate-spin' : ''}" />
-        Оновити дані
+        <RefreshCcw class="h-3.5 w-3.5 {loading ? 'animate-spin' : ''}" />
+        Оновити
       </Button>
-    </div>
-  </div>
+    {/snippet}
+  </PageHeader>
 
-  <Tabs.Root value={activeTab} onValueChange={handleTabChange} class="flex-1 flex flex-col min-h-0 w-full overflow-hidden">
-    <div class="flex items-center justify-between mb-4 shrink-0">
-      <Tabs.List class="w-full justify-start grid-cols-3 lg:w-[640px] grid">
-        <Tabs.Trigger value="plate"
-          ><Camera class="mr-2 h-4 w-4" /> Номери</Tabs.Trigger
-        >
-        <Tabs.Trigger value="weight"
-          ><Scale class="mr-2 h-4 w-4" /> Вага</Tabs.Trigger
-        >
-        <Tabs.Trigger value="system"
-          ><Settings class="mr-2 h-4 w-4" /> Система</Tabs.Trigger
-        >
-      </Tabs.List>
-    </div>
-
-    <div class="flex-1 min-h-0 overflow-hidden flex flex-col mb-4">
-      {#if activeTab === "plate"}
-        <PlateEventsTable {items} flex={true} />
-      {:else if activeTab === "weight"}
-        <WeightEventsTable {items} flex={true} />
-      {:else if activeTab === "system"}
-        <SystemEventsTable {items} flex={true} />
-      {/if}
-    </div>
-
-    <div class="shrink-0">
-      <SimplePagination
-        currentPage={metadata.current_page || data.page}
-        {totalPages}
-        itemsPerPage={metadata.limit || 10}
-        {loading}
-        onPageChange={handlePageChange}
-        onLimitChange={handleLimitChange}
-      />
-    </div>
+  <Tabs.Root value={activeTab} onValueChange={handleTabChange} class="mb-1">
+    <Tabs.List class="h-8 gap-0.5 p-0.5">
+      <Tabs.Trigger value="plate" class="h-7 px-3 text-xs gap-1.5">
+        <Camera class="h-3.5 w-3.5" /> Номери
+      </Tabs.Trigger>
+      <Tabs.Trigger value="weight" class="h-7 px-3 text-xs gap-1.5">
+        <Scale class="h-3.5 w-3.5" /> Вага
+      </Tabs.Trigger>
+      <Tabs.Trigger value="system" class="h-7 px-3 text-xs gap-1.5">
+        <Settings class="h-3.5 w-3.5" /> Система
+      </Tabs.Trigger>
+    </Tabs.List>
   </Tabs.Root>
-</div>
+
+  <EventsFilters
+    bind:range
+    bind:filters
+    bind:isOpen={isFiltersOpen}
+    onApply={applyFilters}
+    onReset={resetFilters}
+    {activeTab}
+  />
+
+  {#if activeTab === "plate"}
+    <PlateEventsTable {items} />
+  {:else if activeTab === "weight"}
+    <WeightEventsTable {items} />
+  {:else if activeTab === "system"}
+    <SystemEventsTable {items} />
+  {/if}
+
+  {#if totalPages > 1}
+    <SimplePagination
+      currentPage={metadata.current_page || data.page}
+      {totalPages}
+      itemsPerPage={metadata.limit || 10}
+      {loading}
+      onPageChange={handlePageChange}
+      onLimitChange={handleLimitChange}
+    />
+  {/if}
+</PageLayout>

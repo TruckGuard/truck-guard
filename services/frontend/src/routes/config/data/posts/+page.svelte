@@ -4,6 +4,7 @@
   import { Plus, CircleAlert } from "@lucide/svelte";
   import { page } from "$app/state";
   import { goto } from "$app/navigation";
+  import { can } from "$lib/auth";
   import type { PageData } from "./$types";
 
   // Component Imports
@@ -63,14 +64,11 @@
     description="Керування списком митних постів та пунктів пропуску."
   >
     {#snippet actions()}
-      <Button
-        size="sm"
-        class="h-10 shadow-sm"
-        onclick={() => (isCreateOpen = true)}
-      >
-        <Plus class="mr-2 h-4 w-4" />
-        Додати пост
-      </Button>
+      {#if can(data.user, "create:data")}
+        <Button size="sm" class="h-8 px-3 text-xs gap-1.5" onclick={() => (isCreateOpen = true)}>
+          <Plus class="h-3.5 w-3.5" /> Додати пост
+        </Button>
+      {/if}
     {/snippet}
   </PageHeader>
 
@@ -80,14 +78,12 @@
     paramName="name"
   />
 
-  <div class="flex-1 min-h-0 overflow-hidden flex flex-col">
-    <PostsTable
-      posts={data.posts}
-      flex={true}
-      onEdit={openEdit}
-      onDelete={openDelete}
-    />
-  </div>
+  <PostsTable
+    posts={data.posts}
+    currentUser={data.user}
+    onEdit={openEdit}
+    onDelete={openDelete}
+  />
 
   {#if data.pagination && data.pagination.total_pages > 1}
     <div class="shrink-0">

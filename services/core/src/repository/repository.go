@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"time"
 
 	"github.com/redis/go-redis/v9"
 	"github.com/truckguard/core/src/models"
@@ -51,7 +52,10 @@ var RDB *redis.Client
 
 func InitRedis(addr string) {
 	RDB = redis.NewClient(&redis.Options{
-		Addr: addr,
+		Addr:         addr,
+		DialTimeout:  5 * time.Second,
+		ReadTimeout:  3 * time.Second,
+		WriteTimeout: 3 * time.Second,
 	})
 	if _, err := RDB.Ping(context.Background()).Result(); err != nil {
 		panic("Failed to connect to Redis")

@@ -160,16 +160,16 @@
     );
 </script>
 
-<div class="space-y-4 mb-8">
+<div class="space-y-2 mb-3">
     <!-- Main Toolbar Row -->
-    <div class="flex items-center justify-between gap-4 p-1.5 rounded-xl border bg-card/50 shadow-sm">
+    <div class="flex items-center justify-between gap-3 px-2 py-1.5 rounded-md border border-border bg-card">
         <div class="flex items-center gap-3 flex-1">
             <!-- Primary Search -->
-            <div class="relative w-full max-w-[280px]">
-                <Search class="absolute left-3 top-1/2 -translate-y-1/2 h-4.5 w-4.5 text-muted-foreground" />
+            <div class="relative w-full max-w-[240px]">
+                <Search class="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
                 <Input
-                    placeholder="Пошук (номер/авто)..."
-                    class="pl-10 h-10 border-none bg-transparent focus-visible:ring-1 focus-visible:ring-primary/20 text-sm"
+                    placeholder="Пошук..."
+                    class="pl-8 h-7 text-xs border-none bg-transparent focus-visible:ring-1 focus-visible:ring-primary/20"
                     bind:value={searchValue}
                     onkeydown={(e) => handleSearchKeydown(e, "search", searchValue)}
                     onblur={() => {
@@ -178,16 +178,16 @@
                 />
             </div>
 
-            <Separator orientation="vertical" class="h-8 mx-1" />
+            <Separator orientation="vertical" class="h-5 mx-0.5" />
 
             <!-- Primary Selects -->
-            <div class="flex items-center gap-3">
+            <div class="flex items-center gap-2">
                 <Select.Root
                     type="single"
                     value={currentIsClosed}
                     onValueChange={(val) => updateQuery("is_closed", val)}
                 >
-                    <Select.Trigger class="min-w-[140px] h-10 text-sm border-none bg-accent/50 hover:bg-accent transition-colors px-4">
+                    <Select.Trigger class="min-w-[120px] h-7 text-xs border-none bg-muted/50 hover:bg-muted transition-colors px-3">
                         {statusLabel}
                     </Select.Trigger>
                     <Select.Content>
@@ -203,7 +203,7 @@
                         value={searchParams.get("filter_post_id") || "all"}
                         onValueChange={(val) => updateQuery("filter_post_id", val)}
                     >
-                        <Select.Trigger class="min-w-[160px] h-10 text-sm border-none bg-accent/50 hover:bg-accent transition-colors px-4">
+                        <Select.Trigger class="min-w-[140px] h-7 text-xs border-none bg-muted/50 hover:bg-muted transition-colors px-3">
                             {postLabel}
                         </Select.Trigger>
                         <Select.Content>
@@ -223,10 +223,10 @@
                         <Button
                             variant="ghost"
                             size="sm"
-                            class="h-10 px-3 text-sm gap-2 text-muted-foreground hover:text-foreground"
+                            class="h-7 px-2.5 text-xs gap-1.5 text-muted-foreground hover:text-foreground"
                             {...props}
                         >
-                            <ListFilter class="h-4 w-4" />
+                            <ListFilter class="h-3.5 w-3.5" />
                             Фільтри
                         </Button>
                     {/snippet}
@@ -330,15 +330,15 @@
             </Popover.Root>
         </div>
 
-        <div class="flex items-center gap-3 pr-2">
+        <div class="flex items-center gap-2 pr-1">
             <Button
-                variant="outline"
+                variant="ghost"
                 size="sm"
-                class="h-10 text-sm gap-2 border-none bg-accent/40 hover:bg-accent px-4"
+                class="h-7 px-2.5 text-xs gap-1.5 text-muted-foreground hover:text-foreground"
                 onclick={() => (exportOpen = true)}
             >
-                <Download class="h-4 w-4" />
-                <span class="hidden sm:inline font-medium">Експорт</span>
+                <Download class="h-3.5 w-3.5" />
+                <span class="hidden sm:inline">Експорт</span>
             </Button>
 
             <!-- Columns Dropdown -->
@@ -348,11 +348,11 @@
                         <Button
                             variant="ghost"
                             size="sm"
-                            class="h-10 w-10 p-0 sm:w-auto sm:px-3 text-sm gap-2"
+                            class="h-7 px-2.5 text-xs gap-1.5 text-muted-foreground hover:text-foreground"
                             {...props}
                         >
-                            <Settings2 class="h-4 w-4" />
-                            <span class="hidden sm:inline font-medium">Колонки</span>
+                            <Settings2 class="h-3.5 w-3.5" />
+                            <span class="hidden sm:inline">Колонки</span>
                         </Button>
                     {/snippet}
                 </DropdownMenu.Trigger>
@@ -397,33 +397,27 @@
 
     <!-- Active Filters Chips Row -->
     {#if isFiltered}
-        <div class="flex flex-wrap items-center gap-3 px-1 animate-in fade-in slide-in-from-top-1 duration-200">
-            <div class="flex items-center gap-2 flex-wrap">
-                {#each activeFilters() as filter}
-                    <Badge variant="secondary" class="h-7 px-2.5 text-xs gap-1.5 font-normal bg-secondary/50 hover:bg-secondary/70 border-none transition-colors rounded-lg">
-                        {filter.label}
-                        <button 
-                            class="hover:text-foreground transition-colors ml-1 p-0.5" 
-                            onclick={() => updateQuery(filter.key, undefined)}
-                            aria-label="Remove filter"
-                        >
-                            <X class="h-3.5 w-3.5" />
-                        </button>
-                    </Badge>
-                {/each}
-            </div>
-            
-            <Separator orientation="vertical" class="h-5 mx-1" />
-            
-            <Button
-                variant="ghost"
-                size="sm"
+        <div class="flex flex-wrap items-center gap-2 px-1 animate-in fade-in slide-in-from-top-1 duration-150">
+            {#each activeFilters() as filter}
+                <span class="inline-flex items-center gap-1 h-6 px-2 rounded border border-border bg-muted/50 text-xs text-foreground">
+                    <span class="text-muted-foreground">{filter.label.split(":")[0]}:</span>
+                    {filter.label.split(":").slice(1).join(":").trim() || filter.label}
+                    <button
+                        class="ml-0.5 hover:text-foreground text-muted-foreground transition-colors"
+                        onclick={() => updateQuery(filter.key, undefined)}
+                        aria-label="Remove filter"
+                    >
+                        <X class="h-3 w-3" />
+                    </button>
+                </span>
+            {/each}
+            <button
                 onclick={resetFilters}
-                class="h-7 px-2 text-xs text-muted-foreground hover:text-foreground hover:bg-transparent gap-2"
+                class="text-xs text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1"
             >
-                <RotateCcw class="h-3.5 w-3.5" />
-                Очистити все
-            </Button>
+                <RotateCcw class="h-3 w-3" />
+                Очистити
+            </button>
         </div>
     {/if}
 </div>

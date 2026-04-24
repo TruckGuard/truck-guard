@@ -1,74 +1,52 @@
 <script lang="ts">
     import * as Table from "$lib/components/ui/table";
     import DataTable from "$lib/components/common/DataTable.svelte";
-    import { Badge } from "$lib/components/ui/badge";
     import { Button } from "$lib/components/ui/button";
     import { Pencil, Trash2, Database } from "@lucide/svelte";
+    import { can } from "$lib/auth";
 
-    let { modes, flex = false, onEdit, onDelete } = $props<{
+    let { modes, flex = false, currentUser = null, onEdit, onDelete } = $props<{
         modes: any[];
         flex?: boolean;
+        currentUser?: any;
         onEdit: (mode: any) => void;
         onDelete: (mode: any) => void;
     }>();
+
+    const th = "h-[var(--row-h)] px-3 py-0 font-medium text-xs uppercase tracking-wider text-muted-foreground border-b";
 </script>
 
 {#snippet header()}
     <Table.Row class="hover:bg-transparent">
-        <Table.Head
-            class="h-12 px-4 py-2 font-bold text-xs uppercase tracking-wider text-muted-foreground border-b"
-            >Код</Table.Head
-        >
-        <Table.Head
-            class="h-12 px-4 py-2 font-bold text-xs uppercase tracking-wider text-muted-foreground border-b"
-            >Назва</Table.Head
-        >
-        <Table.Head
-            class="h-12 px-4 py-2 font-bold text-xs uppercase tracking-wider text-muted-foreground border-b"
-            >Опис</Table.Head
-        >
-        <Table.Head
-            class="h-12 px-4 py-2 font-bold text-xs uppercase tracking-wider text-muted-foreground border-b text-right"
-            >Дії</Table.Head
-        >
+        <Table.Head class={th}>Код</Table.Head>
+        <Table.Head class={th}>Назва</Table.Head>
+        <Table.Head class={th}>Опис</Table.Head>
+        <Table.Head class="{th} text-right">Дії</Table.Head>
     </Table.Row>
 {/snippet}
 
 {#snippet row(mode: any)}
-    <Table.Cell class="py-2.5 px-4 font-mono text-xs">
-        <Badge variant="outline">{mode.code}</Badge>
+    <Table.Cell class="px-3 py-0" style="height: var(--row-h);">
+        <span class="inline-flex items-center h-5 px-1.5 rounded border border-border font-mono text-[10px] text-muted-foreground bg-muted/40">
+            {mode.code}
+        </span>
     </Table.Cell>
-    <Table.Cell class="py-2.5 px-4 font-medium text-sm">{mode.name}</Table.Cell>
-    <Table.Cell class="py-2.5 px-4 text-sm text-muted-foreground"
-        >{mode.description || "-"}</Table.Cell
-    >
-    <Table.Cell class="py-2.5 px-4 text-right space-x-1">
-        <Button
-            variant="ghost"
-            size="icon"
-            class="size-8"
-            onclick={() => onEdit(mode)}
-            title="Редагувати"
-        >
-            <Pencil class="h-3.5 w-3.5" />
-        </Button>
-        <Button
-            variant="ghost"
-            size="icon"
-            class="size-8 text-destructive hover:text-destructive hover:bg-destructive/10"
-            onclick={() => onDelete(mode)}
-            title="Видалити"
-        >
-            <Trash2 class="h-3.5 w-3.5" />
-        </Button>
+    <Table.Cell class="px-3 py-0 font-medium text-sm">{mode.name}</Table.Cell>
+    <Table.Cell class="px-3 py-0 text-xs text-muted-foreground">{mode.description || "—"}</Table.Cell>
+    <Table.Cell class="px-3 py-0 text-right">
+        <div class="flex items-center justify-end gap-0.5">
+            {#if can(currentUser, "update:data")}
+                <Button variant="ghost" size="icon" class="size-7" onclick={() => onEdit(mode)} title="Редагувати">
+                    <Pencil class="h-3.5 w-3.5" />
+                </Button>
+            {/if}
+            {#if can(currentUser, "delete:data")}
+                <Button variant="ghost" size="icon" class="size-7 text-destructive hover:bg-destructive/8 hover:text-destructive" onclick={() => onDelete(mode)} title="Видалити">
+                    <Trash2 class="h-3.5 w-3.5" />
+                </Button>
+            {/if}
+        </div>
     </Table.Cell>
 {/snippet}
 
-<DataTable
-    columns={5}
-    items={modes}
-    {flex}
-    headerSnippet={header}
-    rowSnippet={row}
-    emptyStateIcon={Database}
-/>
+<DataTable columns={4} items={modes} {flex} headerSnippet={header} rowSnippet={row} emptyStateIcon={Database} />

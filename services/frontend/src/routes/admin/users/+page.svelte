@@ -46,9 +46,9 @@
   >
     {#snippet actions()}
       {#if can(data.user, "create:users")}
-        <Button size="sm" class="h-10 shadow-sm" href="/admin/users/create">
-          <Plus class="mr-2 h-4 w-4" />
-          Створити користувача
+        <Button size="sm" class="h-8 px-3 text-xs gap-1.5" href="/admin/users/create">
+          <Plus class="h-3.5 w-3.5" />
+          Створити
         </Button>
       {/if}
     {/snippet}
@@ -60,17 +60,14 @@
     onInput={() => {}}
   />
 
-  <div class="flex-1 min-h-0 overflow-hidden flex flex-col">
-    <UsersTable
-      users={filteredUsers}
-      currentUser={data.user}
-      posts={data.posts}
-      flex={true}
-      onDelete={openDelete}
-      onResetPassword={openReset}
-      onEdit={() => {}}
-    />
-  </div>
+  <UsersTable
+    users={filteredUsers}
+    currentUser={data.user}
+    posts={data.posts}
+    onDelete={openDelete}
+    onResetPassword={openReset}
+    onEdit={() => {}}
+  />
 
   <Dialog.Root bind:open={isDeleteOpen}>
     <Dialog.Content>

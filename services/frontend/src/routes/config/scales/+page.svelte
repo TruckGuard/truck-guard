@@ -3,6 +3,7 @@
     import * as Table from "$lib/components/ui/table";
     import { Badge } from "$lib/components/ui/badge";
     import { Scale, Plus, RefreshCw, Trash2, Settings2, MapPin } from "@lucide/svelte";
+    import { can } from "$lib/auth";
     import { toast } from "svelte-sonner";
     import { invalidateAll, goto } from "$app/navigation";
     import { page } from "$app/state";
@@ -66,38 +67,36 @@
             <Button
                 variant="outline"
                 size="sm"
-                class="h-10 px-4 shadow-sm"
+                class="h-8 px-3 text-xs gap-1.5"
                 onclick={refresh}
                 disabled={loading}
             >
-                <RefreshCw
-                    class="mr-2 h-4 w-4 {loading ? 'animate-spin' : ''}"
-                />
-                Оновити дані
+                <RefreshCw class="h-3.5 w-3.5 {loading ? 'animate-spin' : ''}" />
+                Оновити
             </Button>
-            <Button
-                size="sm"
-                class="h-10 px-4 shadow-sm"
-                onclick={() => (isCreateOpen = true)}
-            >
-                <Plus class="mr-2 h-4 w-4" /> Додати ваги
-            </Button>
+            {#if can(data.user, "create:scales")}
+              <Button size="sm" class="h-8 px-3 text-xs gap-1.5" onclick={() => (isCreateOpen = true)}>
+                <Plus class="h-3.5 w-3.5" /> Додати
+              </Button>
+            {/if}
         {/snippet}
     </PageHeader>
 
     <SearchToolbar placeholder="Пошук ваг..." bind:searchQuery />
 
-    <ScalesTable {data} {openDelete} />
+    <ScalesTable {data} currentUser={data.user} {openDelete} />
 
-    <div class="shrink-0">
-        <SimplePagination
-            currentPage={data.pagination.current_page}
-            totalPages={data.pagination.total_pages}
-            itemsPerPage={data.pagination.limit}
-            onPageChange={handlePageChange}
-            onLimitChange={handleLimitChange}
-        />
-    </div>
+    {#if data.pagination.total_pages > 1}
+        <div class="shrink-0">
+            <SimplePagination
+                currentPage={data.pagination.current_page}
+                totalPages={data.pagination.total_pages}
+                itemsPerPage={data.pagination.limit}
+                onPageChange={handlePageChange}
+                onLimitChange={handleLimitChange}
+            />
+        </div>
+    {/if}
 </PageLayout>
 
 <CreateScaleDialog

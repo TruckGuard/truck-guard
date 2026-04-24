@@ -17,70 +17,38 @@
         onEdit: (role: Role) => void;
         onDelete: (role: Role) => void;
     }>();
+
+    const th = "h-[var(--row-h)] px-3 py-0 font-medium text-xs uppercase tracking-wider text-muted-foreground border-b";
 </script>
 
 {#snippet header()}
     <Table.Row class="hover:bg-transparent">
-        <Table.Head
-            class="h-12 px-4 py-2 font-bold text-xs uppercase tracking-wider text-muted-foreground border-b"
-            >Назва</Table.Head
-        >
-        <Table.Head
-            class="h-12 px-4 py-2 font-bold text-xs uppercase tracking-wider text-muted-foreground border-b"
-            >Опис</Table.Head
-        >
-        <Table.Head
-            class="h-12 px-4 py-2 font-bold text-xs uppercase tracking-wider text-muted-foreground border-b text-right"
-            >Дії</Table.Head
-        >
+        <Table.Head class={th}>Назва</Table.Head>
+        <Table.Head class={th}>Опис</Table.Head>
+        <Table.Head class="{th} text-right">Дії</Table.Head>
     </Table.Row>
 {/snippet}
 
 {#snippet row(role: Role)}
-    <Table.Cell class="py-2.5 px-4 font-medium text-sm">{role.name}</Table.Cell>
-    <Table.Cell class="py-2.5 px-4 text-sm text-muted-foreground"
-        >{role.description || "-"}</Table.Cell
-    >
-    <Table.Cell class="py-2.5 px-4 text-right space-x-1">
-        {#if authCan(currentUser, "update:roles")}
-            <Button
-                variant="ghost"
-                size="icon"
-                class="size-8"
-                onclick={() => onPerms(role)}
-                title="Права доступу"
-            >
-                <Shield class="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
-            </Button>
-            <Button
-                variant="ghost"
-                size="icon"
-                class="size-8"
-                onclick={() => onEdit(role)}
-                title="Редагувати"
-            >
-                <Pencil class="h-3.5 w-3.5" />
-            </Button>
-        {/if}
-        {#if authCan(currentUser, "delete:roles")}
-            <Button
-                variant="ghost"
-                size="icon"
-                class="size-8 text-destructive hover:text-destructive hover:bg-destructive/10"
-                onclick={() => onDelete(role)}
-                title="Видалити"
-            >
-                <Trash2 class="h-3.5 w-3.5" />
-            </Button>
-        {/if}
+    <Table.Cell class="px-3 py-0 font-medium text-sm" style="height: var(--row-h);">{role.name}</Table.Cell>
+    <Table.Cell class="px-3 py-0 text-xs text-muted-foreground">{role.description || "—"}</Table.Cell>
+    <Table.Cell class="px-3 py-0 text-right">
+        <div class="flex items-center justify-end gap-0.5">
+            {#if authCan(currentUser, "update:roles")}
+                <Button variant="ghost" size="icon" class="size-7 text-[color:var(--status-info)] hover:bg-[color:var(--status-info-bg)]" onclick={() => onPerms(role)} title="Права доступу">
+                    <Shield class="h-3.5 w-3.5" />
+                </Button>
+                <Button variant="ghost" size="icon" class="size-7" onclick={() => onEdit(role)} title="Редагувати">
+                    <Pencil class="h-3.5 w-3.5" />
+                </Button>
+            {/if}
+            {#if authCan(currentUser, "delete:roles")}
+                <Button variant="ghost" size="icon" class="size-7 text-destructive hover:bg-destructive/8 hover:text-destructive" onclick={() => onDelete(role)} title="Видалити">
+                    <Trash2 class="h-3.5 w-3.5" />
+                </Button>
+            {/if}
+        </div>
     </Table.Cell>
 {/snippet}
 
-<DataTable
-    columns={3}
-    items={roles}
-    {flex}
-    headerSnippet={header}
-    rowSnippet={row}
-    emptyStateIcon={Users}
-/>
+<DataTable columns={3} items={roles} {flex} headerSnippet={header} rowSnippet={row} emptyStateIcon={Users} />
