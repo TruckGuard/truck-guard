@@ -11,6 +11,7 @@
   import { goto } from "$app/navigation";
   import { page } from "$app/state";
   import { onMount, onDestroy } from "svelte";
+  import FuzzyMatchModal from "$lib/components/FuzzyMatchModal.svelte";
 
   let { children, data } = $props();
 
@@ -66,6 +67,9 @@
   // ─── SSE notifications ───────────────────────────────────────────────────────
   let sse: EventSource | null = null;
 
+  let showFuzzyModal = $state(false);
+  let fuzzyMatchData = $state<any>(null);
+
   function connectNotifications() {
     sse = new EventSource("/api/notifications/stream");
     sse.onmessage = (e) => {
@@ -77,8 +81,18 @@
               ? `${ev.plate}${ev.code ? ` · ${ev.code}` : ""}`
               : ev.code || "Натисніть, щоб відкрити",
             duration: 10000,
-            action: { label: "Відкрити →", onClick: () => goto(`/permits/${ev.id}`) },
+            action: { label: "Відкрити →", onClick: async () => await goto(`/permits/${ev.id}`) },
             id: String(ev.id),
+          });
+        } else if (ev.type === "fuzzy_match") {
+          toast.warning("Знайдено нечіткий збіг номера", {
+            description: `Розпізнано: ${ev.incoming_plate}. Знайдено кандидатів: ${ev.candidates?.length || 0}`,
+            duration: 15000,
+            action: { label: "Переглянути →", onClick: () => { 
+                fuzzyMatchData = ev;
+                showFuzzyModal = true; 
+            } },
+            id: `fuzzy-${ev.event_id}`,
           });
         }
       } catch {}
@@ -98,6 +112,8 @@
 </svelte:head>
 <ModeWatcher defaultMode="light" />
 <Toaster />
+
+<FuzzyMatchModal bind:open={showFuzzyModal} data={fuzzyMatchData} onClose={() => { fuzzyMatchData = null; }} />
 
 {#if data.user}
   <Sidebar.Provider>

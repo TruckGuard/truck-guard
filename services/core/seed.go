@@ -39,6 +39,13 @@ func SeedData() {
 			Value:       "30",
 			Default:     "30",
 		},
+		{
+			Key:         "fuzzy_match_max_distance",
+			Name:        "Поріг нечіткого збігу (Левенштейн)",
+			Description: "Максимальна відстань Левенштейна для нечіткого пошуку номерів. 0 = вимкнено.",
+			Value:       "2",
+			Default:     "2",
+		},
 	}
 
 	for _, s := range settings {

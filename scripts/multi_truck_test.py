@@ -124,8 +124,38 @@ def send_weight(key, val, truck_plate):
 def generate_plate():
     return f"{''.join(random.choices(string.ascii_uppercase, k=2))}{''.join(random.choices(string.digits, k=4))}{''.join(random.choices(string.ascii_uppercase, k=2))}"
 
+def introduce_drift(plate, probability=0.4):
+    """Штучно вносить OCR помилки у номер з заданою ймовірністю (дрифт)"""
+    if random.random() > probability:
+        return plate
+        
+    plate_list = list(plate)
+    # Типові помилки OCR
+    ocr_mistakes = {
+        '0': 'O', 'O': '0',
+        '1': 'I', 'I': '1',
+        '8': 'B', 'B': '8',
+        'A': '4', '4': 'A',
+        'C': 'G', 'G': 'C'
+    }
+    
+    # Вибираємо випадкову позицію для заміни
+    pos = random.randint(0, len(plate) - 1)
+    char = plate_list[pos]
+    
+    # Або типова помилка, або випадкова зміна
+    if char in ocr_mistakes and random.random() < 0.7:
+        plate_list[pos] = ocr_mistakes[char]
+    else:
+        if char.isdigit():
+            plate_list[pos] = random.choice(string.digits)
+        else:
+            plate_list[pos] = random.choice(string.ascii_uppercase)
+            
+    return "".join(plate_list)
+
 def main():
-    print(f"🚀 Simulation: {TRUCK_COUNT} trucks | Reliability: {RELIABILITY*100:.0f}%")
+    print(f"🚀 Simulation: {TRUCK_COUNT} trucks | Reliability: {RELIABILITY*100:.0f}% | Fuzzy Matching Enabled")
     
     login_resp = requests.post(f"{AUTH_URL}/login", json={"username":ADMIN_USER, "password":ADMIN_PASS})
     token = login_resp.json().get("session_id")
@@ -157,11 +187,17 @@ def main():
             t = incoming_queue.pop(0)
             print(f"\n➡️ [Truck {t['id']}] Заїжджає: {t['plate_f']}")
             
-            # Групуємо в'їздні події без великих пауз
+            # Entry Front - створює перепустку (без дрифту)
             send_cam(env['cam_keys']['IN_F'], t['plate_f'], f"Entry Front")
             time.sleep(0.5)
-            send_cam(env['cam_keys']['IN_B'], t['plate_b'], f"Entry Back")
+            
+            # Entry Back - може містити помилки OCR
+            drifted_plate_b = introduce_drift(t['plate_b'])
+            if drifted_plate_b != t['plate_b']:
+                print(f"   ⚠️ [Drift] Entry Back розпізнано з помилкою: {drifted_plate_b} (Оригінал: {t['plate_b']})")
+            send_cam(env['cam_keys']['IN_B'], drifted_plate_b, f"Entry Back")
             time.sleep(0.5)
+            
             send_weight(env['scale_key'], t['weight'], t['plate_f'])
             
             # Фура стає на парковку
@@ -176,7 +212,13 @@ def main():
             parking_pool.remove(t)
             
             print(f"\n⬅️ [Truck {t['id']}] Починає виїзд: {t['plate_f']}")
-            send_cam(env['cam_keys']['OUT_F'], t['plate_f'], f"Exit Front")
+            
+            # Exit Front - може містити помилки OCR
+            drifted_plate_f = introduce_drift(t['plate_f'])
+            if drifted_plate_f != t['plate_f']:
+                print(f"   ⚠️ [Drift] Exit Front розпізнано з помилкою: {drifted_plate_f} (Оригінал: {t['plate_f']}) -> Очікуйте повідомлення оператору!")
+                
+            send_cam(env['cam_keys']['OUT_F'], drifted_plate_f, f"Exit Front")
             
             finished_trucks.append(t)
             print(f"🎉 [Truck {t['id']}] Виїхав!")

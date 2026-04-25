@@ -172,30 +172,36 @@
   const isValidVehicleType = $derived(!!permit.vehicle_type_id);
   const isValidCustomsMode = $derived(!!permit.customs_mode_code);
 
-  onMount(() => {
-    permit = { ...data.permit };
+  $effect(() => {
+    // We only read from `data.permit` so the effect only runs when the server data changes.
+    // Avoid reading from the `$state` variable `permit` inside this block to prevent infinite loops.
+    const p = data.permit;
+    const newPermit = { ...p };
 
-    if (permit.payers?.length) {
-      payers = permit.payers.map((p) => ({
-        company_id: p.company_id,
-        slot_index: p.slot_index,
-        company:
-          p.company ||
-          data.companies.find((c: any) => c.ID === p.company_id) ||
-          null,
-      }));
-    } else {
-      payers = [{ company_id: 0, slot_index: 1, company: null }];
-    }
-
-    if (!permit.customs_data) {
-      permit.customs_data = {
+    if (!newPermit.customs_data) {
+      newPermit.customs_data = {
         goods: "",
         declarant: "",
         vmd_number: "",
         sender: "",
         receiver: "",
       };
+    }
+    
+    // Assign to state once
+    permit = newPermit;
+
+    if (p.payers?.length) {
+      payers = p.payers.map((payer) => ({
+        company_id: payer.company_id,
+        slot_index: payer.slot_index,
+        company:
+          payer.company ||
+          data.companies.find((c: any) => c.ID === payer.company_id) ||
+          null,
+      }));
+    } else {
+      payers = [{ company_id: 0, slot_index: 1, company: null }];
     }
   });
 

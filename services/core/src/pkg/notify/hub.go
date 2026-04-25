@@ -10,6 +10,16 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
+// FuzzyCandidate represents a possible permit match for fuzzy search.
+type FuzzyCandidate struct {
+	ID         uint   `json:"id"`
+	Code       string `json:"code"`
+	PlateFront string `json:"plate_front"`
+	PlateBack  string `json:"plate_back"`
+	EntryTime  string `json:"entry_time"`
+	Distance   int    `json:"distance"`
+}
+
 // Event is a notification payload sent to subscribers.
 type Event struct {
 	Type   string `json:"type"`
@@ -17,6 +27,11 @@ type Event struct {
 	Code   string `json:"code"`
 	Plate  string `json:"plate"`
 	PostID uint   `json:"post_id"`
+	// Fuzzy match fields
+	IncomingPlate string           `json:"incoming_plate,omitempty"`
+	EventID       uint             `json:"event_id,omitempty"`
+	ImageKey      string           `json:"image_key,omitempty"`
+	Candidates    []FuzzyCandidate `json:"candidates,omitempty"`
 }
 
 // channel name for a given post
@@ -36,6 +51,21 @@ func (h *Hub) PublishPermit(postID uint, permitID uint, code, plate string) {
 		Code:   code,
 		Plate:  plate,
 		PostID: postID,
+	})
+}
+
+// PublishFuzzyMatch publishes a fuzzy_match event with candidates for manual linking.
+func (h *Hub) PublishFuzzyMatch(postID uint, eventID uint, incomingPlate, imageKey string, candidates []FuzzyCandidate) {
+	if postID == 0 || len(candidates) == 0 {
+		return
+	}
+	h.Publish(postID, Event{
+		Type:          "fuzzy_match",
+		PostID:        postID,
+		EventID:       eventID,
+		IncomingPlate: incomingPlate,
+		ImageKey:      imageKey,
+		Candidates:    candidates,
 	})
 }
 

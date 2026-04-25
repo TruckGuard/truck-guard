@@ -10,6 +10,7 @@ import (
 	"github.com/truckguard/core/src/models"
 	"github.com/truckguard/core/src/pkg/notify"
 	"github.com/truckguard/core/src/repository"
+	"github.com/truckguard/core/src/utils"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
@@ -179,7 +180,39 @@ func MatchPlateEvent(ctx context.Context, event *models.PlateEvent) {
 	}
 
 	if !event.Camera.MatchPermit {
-		slog.Debug("Camera not configured to match permits", "camera_id", event.CameraID)
+		slog.Debug("Camera not configured to match permits automatically, checking fuzzy matches", "camera_id", event.CameraID)
+		
+		customsPostID := uint(0)
+		if event.Camera.CustomsPostID != nil {
+			customsPostID = *event.Camera.CustomsPostID
+		}
+
+		if customsPostID > 0 {
+			maxDistStr := repository.GetSystemSetting(ctx, "fuzzy_match_max_distance")
+			maxDist := 2
+			if d, err := strconv.Atoi(maxDistStr); err == nil && d >= 0 {
+				maxDist = d
+			}
+			
+			if maxDist > 0 {
+				matches := findFuzzyPermitMatches(ctx, customsPostID, event.Plate, maxDist)
+				if len(matches) > 0 {
+					var candidates []notify.FuzzyCandidate
+					for _, m := range matches {
+						candidates = append(candidates, notify.FuzzyCandidate{
+							ID:         m.Permit.ID,
+							Code:       m.Permit.Code,
+							PlateFront: m.Permit.PlateFront,
+							PlateBack:  m.Permit.PlateBack,
+							EntryTime:  m.Permit.EntryTime.Format(time.RFC3339),
+							Distance:   m.Distance,
+						})
+					}
+					slog.Info("Found fuzzy matches for manual link", "event_id", event.ID, "candidates_count", len(candidates))
+					notify.Global.PublishFuzzyMatch(customsPostID, event.ID, event.Plate, event.ImageKey, candidates)
+				}
+			}
+		}
 		return
 	}
 
@@ -215,6 +248,65 @@ func MatchPlateEvent(ctx context.Context, event *models.PlateEvent) {
 	eventsMatchedCounter.Add(ctx, 1, metric.WithAttributes(
 		attribute.String("type", "plate"),
 	))
+}
+
+// PermitMatch represents a possible fuzzy match for a permit
+type PermitMatch struct {
+	Permit   *models.Permit
+	Distance int
+	Matched  string
+}
+
+func findFuzzyPermitMatches(ctx context.Context, customsPostID uint, plate string, maxDistance int) []PermitMatch {
+	var permits []models.Permit
+	db := repository.DB.WithContext(ctx)
+	
+	err := db.Where("customs_post_id = ? AND is_closed = ? AND is_void = ?", customsPostID, false, false).Find(&permits).Error
+	if err != nil {
+		slog.Error("Failed to fetch active permits for fuzzy matching", "error", err)
+		return nil
+	}
+
+	var matches []PermitMatch
+	for i := range permits {
+		p := &permits[i]
+		
+		distFront := maxDistance + 1
+		distBack := maxDistance + 1
+		
+		if p.PlateFront != "" {
+			distFront = utils.LevenshteinDistance(plate, p.PlateFront)
+		}
+		if p.PlateBack != "" {
+			distBack = utils.LevenshteinDistance(plate, p.PlateBack)
+		}
+
+		bestDist := distFront
+		matched := "plate_front"
+		if distBack < bestDist {
+			bestDist = distBack
+			matched = "plate_back"
+		}
+
+		if bestDist <= maxDistance {
+			matches = append(matches, PermitMatch{
+				Permit:   p,
+				Distance: bestDist,
+				Matched:  matched,
+			})
+		}
+	}
+
+	// Sort matches by distance (ascending)
+	for i := 0; i < len(matches)-1; i++ {
+		for j := i + 1; j < len(matches); j++ {
+			if matches[i].Distance > matches[j].Distance {
+				matches[i], matches[j] = matches[j], matches[i]
+			}
+		}
+	}
+
+	return matches
 }
 
 func MatchWeightEvent(ctx context.Context, event *models.WeightEvent) {
