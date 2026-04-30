@@ -192,7 +192,7 @@
     permit = newPermit;
 
     if (p.payers?.length) {
-      payers = p.payers.map((payer) => ({
+      payers = p.payers.map((payer: any) => ({
         company_id: payer.company_id,
         slot_index: payer.slot_index,
         company:

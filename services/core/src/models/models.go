@@ -234,6 +234,17 @@ type ExcludedPlate struct {
 	Comment string `json:"comment"`
 }
 
+type SystemAudit struct {
+	gorm.Model
+	UserID  *uint          `json:"user_id"`
+	Action  string         `json:"action"`
+	Target  string         `json:"target"` // e.g. "setting:match_window_seconds"
+	Changes datatypes.JSON `gorm:"type:jsonb" json:"changes"`
+	Comment string         `json:"comment"`
+
+	User *User `gorm:"foreignKey:UserID" json:"user,omitempty"`
+}
+
 type User struct {
 	gorm.Model
 	AuthID      uint   `gorm:"uniqueIndex" json:"auth_id"`

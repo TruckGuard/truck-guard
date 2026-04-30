@@ -8,6 +8,8 @@ import (
 	"sync"
 
 	"github.com/redis/go-redis/v9"
+	"github.com/truckguard/core/src/models"
+	"github.com/truckguard/core/src/repository"
 )
 
 // FuzzyCandidate represents a possible permit match for fuzzy search.
@@ -23,6 +25,7 @@ type FuzzyCandidate struct {
 // Event is a notification payload sent to subscribers.
 type Event struct {
 	Type   string `json:"type"`
+	NotificationID uint `json:"notification_id,omitempty"`
 	ID     uint   `json:"id"`
 	Code   string `json:"code"`
 	Plate  string `json:"plate"`
@@ -32,6 +35,7 @@ type Event struct {
 	EventID       uint             `json:"event_id,omitempty"`
 	ImageKey      string           `json:"image_key,omitempty"`
 	Candidates    []FuzzyCandidate `json:"candidates,omitempty"`
+	Message       string           `json:"message,omitempty"`
 }
 
 // channel name for a given post
@@ -107,16 +111,31 @@ func (h *Hub) listenAll(ctx context.Context) {
 				slog.Warn("Failed to decode notification event", "err", err, "payload", msg.Payload)
 				continue
 			}
-			postKey := fmt.Sprintf("%d", ev.PostID)
-			slog.Info("Notification hub: received event", "type", ev.Type, "permit_id", ev.ID, "post_id", ev.PostID)
-			h.mu.RLock()
-			for _, sub := range h.subs[postKey] {
-				select {
-				case sub <- ev:
-				default:
+			if ev.PostID == 0 {
+				// Global notification: send to all subscribers in all posts
+				slog.Info("Notification hub: broadcasting global event", "type", ev.Type)
+				h.mu.RLock()
+				for _, postSubs := range h.subs {
+					for _, sub := range postSubs {
+						select {
+						case sub <- ev:
+						default:
+						}
+					}
 				}
+				h.mu.RUnlock()
+			} else {
+				postKey := fmt.Sprintf("%d", ev.PostID)
+				slog.Info("Notification hub: received event", "type", ev.Type, "permit_id", ev.ID, "post_id", ev.PostID)
+				h.mu.RLock()
+				for _, sub := range h.subs[postKey] {
+					select {
+					case sub <- ev:
+					default:
+					}
+				}
+				h.mu.RUnlock()
 			}
-			h.mu.RUnlock()
 		}
 	}
 }
@@ -152,6 +171,41 @@ func (h *Hub) Publish(postID uint, ev Event) {
 		slog.Error("Failed to marshal notification event", "err", err)
 		return
 	}
+
+	// Create persistent notification record
+	var msg string
+	if ev.Message != "" {
+		msg = ev.Message
+	} else {
+		switch ev.Type {
+		case "new_permit":
+			msg = fmt.Sprintf("Нова перепустка: %s", ev.Plate)
+		case "fuzzy_match":
+			msg = fmt.Sprintf("Нечіткий збіг: %s", ev.IncomingPlate)
+		case "system_update":
+			msg = "Системні налаштування змінено"
+		default:
+			msg = fmt.Sprintf("Сповіщення: %s", ev.Type)
+		}
+	}
+
+	notif := models.Notification{
+		PostID:  postID,
+		Type:    ev.Type,
+		Message: msg,
+		Payload: b,
+	}
+	
+	if repository.DB != nil {
+		if err := repository.DB.Create(&notif).Error; err != nil {
+			slog.Error("Failed to save notification to DB", "err", err)
+		} else {
+			// Update the Event struct and re-marshal so frontend gets NotificationID
+			ev.NotificationID = notif.ID
+			b, _ = json.Marshal(ev)
+		}
+	}
+
 	channel := channelName(postID)
 	if h.rdb != nil {
 		if err := h.rdb.Publish(context.Background(), channel, string(b)).Err(); err != nil {

@@ -46,6 +46,13 @@ func SeedData() {
 			Value:       "2",
 			Default:     "2",
 		},
+		{
+			Key:         "notification_retention_days",
+			Name:        "Зберігання сповіщень (днів)",
+			Description: "Через скільки днів автоматично видаляти старі сповіщення",
+			Value:       "2",
+			Default:     "2",
+		},
 	}
 
 	for _, s := range settings {

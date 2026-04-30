@@ -1,6 +1,7 @@
 import type { PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ url, locals }) => {
+    const type = url.searchParams.get('type') || 'permits';
     const page = Number(url.searchParams.get('page')) || 1;
     const limit = Number(url.searchParams.get('limit')) || 20;
 
@@ -22,11 +23,16 @@ export const load: PageServerLoad = async ({ url, locals }) => {
     };
 
     try {
-        const res = await locals.coreClient.getAuditEvents(page, limit, filters);
-        if (res) auditEvents = res;
+        if (type === 'system') {
+            const res = await locals.coreClient.getSystemAuditEvents(page, limit);
+            if (res) auditEvents = res;
+        } else {
+            const res = await locals.coreClient.getAuditEvents(page, limit, filters);
+            if (res) auditEvents = res;
+        }
     } catch (e) {
         console.error('Failed to fetch audit events:', e);
     }
 
-    return { auditEvents, page, limit };
+    return { auditEvents, page, limit, type };
 };

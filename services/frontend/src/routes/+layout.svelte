@@ -12,6 +12,7 @@
   import { page } from "$app/state";
   import { onMount, onDestroy } from "svelte";
   import FuzzyMatchModal from "$lib/components/FuzzyMatchModal.svelte";
+  import NotificationDrawer from "$lib/components/NotificationDrawer.svelte";
 
   let { children, data } = $props();
 
@@ -37,6 +38,10 @@
     audit:             "Аудит",
     create:            "Створення",
     login:             "Вхід",
+    profile:           "Профіль",
+    plate:             "Номер",
+    weight:            "Вага",
+    system:            "Система"
   };
 
   function segmentLabel(seg: string): string {
@@ -69,12 +74,74 @@
 
   let showFuzzyModal = $state(false);
   let fuzzyMatchData = $state<any>(null);
+  
+  let notifications = $state<any[]>([]);
+  let unreadCount = $derived(notifications.filter((n: any) => !n.is_read).length);
+  let loadingMore = $state(false);
+  let hasMore = $state(false);
+
+  $effect(() => {
+    if (data.notifications) {
+      notifications = data.notifications;
+      hasMore = data.notifications.length === 50;
+    }
+  });
+
+  async function loadMoreNotifications() {
+    if (loadingMore || !hasMore) return;
+    loadingMore = true;
+    try {
+      const resp = await fetch(`/api/notifications?limit=50&offset=${notifications.length}`);
+      if (!resp.ok) throw new Error("Failed to fetch");
+      const res = await resp.json();
+      const newNotifs = res.data || [];
+      if (newNotifs.length < 50) {
+        hasMore = false;
+      }
+      notifications = [...notifications, ...newNotifs];
+    } catch (e) {
+      console.error("Failed to load more notifications", e);
+    } finally {
+      loadingMore = false;
+    }
+  }
+
+  function handleNotificationClick(n: any) {
+    // Attempt to parse payload if it exists (for SSE events stored in DB)
+    let ev = typeof n.payload === 'string' ? JSON.parse(n.payload) : n.payload;
+    if (!ev) {
+      // In case payload wasn't stored, but we have fields
+      ev = { type: n.type };
+    }
+    
+    if (n.type === "new_permit") {
+      goto(`/permits/${ev.id || n.id}`);
+    } else if (n.type === "fuzzy_match") {
+      fuzzyMatchData = ev;
+      showFuzzyModal = true;
+    }
+  }
 
   function connectNotifications() {
     sse = new EventSource("/api/notifications/stream");
     sse.onmessage = (e) => {
       try {
         const ev = JSON.parse(e.data);
+        if (ev.type === "connected") return;
+        
+        // Add to persistent list
+        const notif = {
+          ID: ev.notification_id || Math.floor(Math.random() * 10000),
+          type: ev.type,
+          message: ev.type === 'new_permit' 
+            ? `Нова перепустка: ${ev.plate || ev.code}` 
+            : `Нечіткий збіг: ${ev.incoming_plate}`,
+          payload: ev,
+          is_read: false,
+          CreatedAt: new Date().toISOString()
+        };
+        notifications = [notif, ...notifications];
+
         if (ev.type === "new_permit") {
           toast("Нова перепустка", {
             description: ev.plate
@@ -148,6 +215,17 @@
             </Breadcrumb.List>
           </Breadcrumb.Root>
         {/if}
+
+        <div class="ml-auto flex items-center gap-2">
+          <NotificationDrawer 
+            {notifications} 
+            {unreadCount} 
+            {hasMore}
+            {loadingMore}
+            onNotificationClick={handleNotificationClick} 
+            onLoadMore={loadMoreNotifications}
+          />
+        </div>
       </header>
 
       <div class="flex-1 flex flex-col min-h-0 overflow-auto p-4 pt-3">

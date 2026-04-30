@@ -12,6 +12,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/truckguard/core/src/api/handlers"
 	"github.com/truckguard/core/src/api/handlers/data"
+	"github.com/truckguard/core/src/api/handlers/notifications"
 	"github.com/truckguard/core/src/api/middleware"
 	"github.com/truckguard/core/src/logic"
 	"github.com/truckguard/core/src/models"
@@ -68,6 +69,14 @@ func main() {
 	{
 		api.GET("/cameras/by-id/:camera_id", handlers.HandleGetConfigByCameraID)
 		api.GET("/scales/by-id/:scale_id", handlers.HandleGetConfigByScaleID)
+		
+		notifs := api.Group("/notifications")
+		{
+			notifs.GET("", notifications.List)
+			notifs.PATCH("/read-all", notifications.MarkAllRead)
+			notifs.PATCH("/:id/read", notifications.MarkRead)
+		}
+
 		configs := api.Group("/configs")
 		{
 			configs.GET("/cameras", handlers.HandleGetCameras)
@@ -165,6 +174,7 @@ func main() {
 
 		// Global audit log
 		api.GET("/audit", middleware.RequireCorePermission("read:audit"), handlers.HandleListAuditEvents)
+		api.GET("/audit/system", middleware.RequireCorePermission("read:audit"), handlers.HandleListSystemAuditEvents)
 
 		// Dashboard statistics
 		api.GET("/stats", handlers.HandleGetStats)

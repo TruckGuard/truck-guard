@@ -4,7 +4,7 @@
     import { formatDate } from "$lib/utils/date";
     import { ClipboardList } from "@lucide/svelte";
 
-    let { items } = $props<{ items: any[] }>();
+    let { items, isSystem = false } = $props<{ items: any[]; isSystem?: boolean }>();
 
     const actionLabels: Record<string, { label: string; color: string }> = {
         create:        { label: "Створення",       color: "text-success bg-success/10" },
@@ -50,7 +50,9 @@
     <Table.Row class="hover:bg-transparent">
         <Table.Head class="h-[var(--row-h)] px-3 py-0 text-xs font-medium uppercase tracking-wider text-muted-foreground border-b w-36">Час</Table.Head>
         <Table.Head class="h-[var(--row-h)] px-3 py-0 text-xs font-medium uppercase tracking-wider text-muted-foreground border-b w-32">Дія</Table.Head>
-        <Table.Head class="h-[var(--row-h)] px-3 py-0 text-xs font-medium uppercase tracking-wider text-muted-foreground border-b w-28">Перепустка</Table.Head>
+        <Table.Head class="h-[var(--row-h)] px-3 py-0 text-xs font-medium uppercase tracking-wider text-muted-foreground border-b w-28">
+            {isSystem ? "Об'єкт" : "Перепустка"}
+        </Table.Head>
         <Table.Head class="h-[var(--row-h)] px-3 py-0 text-xs font-medium uppercase tracking-wider text-muted-foreground border-b w-36">Користувач</Table.Head>
         <Table.Head class="h-[var(--row-h)] px-3 py-0 text-xs font-medium uppercase tracking-wider text-muted-foreground border-b">Зміни</Table.Head>
         <Table.Head class="h-[var(--row-h)] px-3 py-0 text-xs font-medium uppercase tracking-wider text-muted-foreground border-b">Коментар</Table.Head>
@@ -69,7 +71,11 @@
         </span>
     </Table.Cell>
     <Table.Cell class="px-3">
-        {#if item.Permit}
+        {#if isSystem}
+            <span class="font-mono text-xs text-primary truncate max-w-[150px] block" title={item.target}>
+                {item.target}
+            </span>
+        {:else if item.Permit}
             <a
                 href="/permits/{item.permit_id}"
                 class="font-mono text-xs text-primary hover:underline underline-offset-4"

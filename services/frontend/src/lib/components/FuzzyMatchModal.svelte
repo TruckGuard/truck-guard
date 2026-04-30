@@ -149,8 +149,10 @@
 												toast.success("Подію успішно прив'язано до перепустки");
 												await goto(`/permits/${candidate.id}`);
 											} else {
-												if (result.type === 'error' || result.type === 'failure') {
+												if (result.type === 'failure') {
 													toast.error("Помилка: " + (result.data?.error || "Не вдалося прив'язати"));
+												} else if (result.type === 'error') {
+													toast.error("Системна помилка: " + (result.error?.message || "Помилка сервера"));
 												}
 												await update();
 											}

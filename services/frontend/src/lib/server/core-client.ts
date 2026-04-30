@@ -238,6 +238,21 @@ export class CoreClient {
         });
     }
 
+    // --- Notifications ---
+    async getNotifications<T>(limit: number = 50, offset: number = 0, unreadOnly: boolean = false): Promise<{ data: T[] }> {
+        const query = new URLSearchParams({ limit: limit.toString(), offset: offset.toString() });
+        if (unreadOnly) query.set('unread', 'true');
+        return this.fetchWithAuth<{ data: T[] }>(`/notifications?${query.toString()}`);
+    }
+
+    async markNotificationRead(id: number | string): Promise<boolean> {
+        return this.fetchWithAuth<boolean>(`/notifications/${id}/read`, 'PATCH');
+    }
+
+    async markAllNotificationsRead(): Promise<boolean> {
+        return this.fetchWithAuth<boolean>('/notifications/read-all', 'PATCH');
+    }
+
     // --- Global Audit Log ---
 
     async getAuditEvents(page: number = 1, limit: number = 20, filters?: Record<string, string | undefined>): Promise<{ data: any[], metadata: any }> {
@@ -251,6 +266,14 @@ export class CoreClient {
             });
         }
         return this.fetchWithAuth<{ data: any[], metadata: any }>(`/audit?${query.toString()}`);
+    }
+
+    async getSystemAuditEvents(page: number = 1, limit: number = 20): Promise<{ data: any[], metadata: any }> {
+        const query = new URLSearchParams({
+            page: page.toString(),
+            limit: limit.toString(),
+        });
+        return this.fetchWithAuth<{ data: any[], metadata: any }>(`/audit/system?${query.toString()}`);
     }
 
     // --- Customs Parser ---

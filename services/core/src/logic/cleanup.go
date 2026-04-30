@@ -76,5 +76,19 @@ func performCleanup(ctx context.Context) {
 		}
 	}
 
+	// 4. Cleanup Notifications
+	daysNotifStr := repository.GetSystemSetting(ctx, "notification_retention_days")
+	if daysNotifStr != "" && daysNotifStr != "0" {
+		days, err := strconv.Atoi(daysNotifStr)
+		if err == nil && days > 0 {
+			rows, err := repository.CleanupNotifications(ctx, days)
+			if err != nil {
+				slog.Error("Failed to cleanup notifications", "error", err)
+			} else if rows > 0 {
+				slog.Info("Permanently deleted old notifications", "count", rows)
+			}
+		}
+	}
+
 	slog.Info("Periodic database cleanup completed")
 }

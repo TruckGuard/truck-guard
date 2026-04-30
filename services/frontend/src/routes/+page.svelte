@@ -153,12 +153,12 @@
 
         {#snippet header()}
             <Table.Row class="hover:bg-transparent">
-                <Table.Head class="h-[var(--row-h)] px-3 py-0 text-xs font-medium uppercase tracking-wider text-muted-foreground border-b">Код</Table.Head>
-                <Table.Head class="h-[var(--row-h)] px-3 py-0 text-xs font-medium uppercase tracking-wider text-muted-foreground border-b">Перед</Table.Head>
-                <Table.Head class="h-[var(--row-h)] px-3 py-0 text-xs font-medium uppercase tracking-wider text-muted-foreground border-b">Зад</Table.Head>
-                <Table.Head class="h-[var(--row-h)] px-3 py-0 text-xs font-medium uppercase tracking-wider text-muted-foreground border-b">Статус</Table.Head>
-                <Table.Head class="h-[var(--row-h)] px-3 py-0 text-xs font-medium uppercase tracking-wider text-muted-foreground border-b">В зоні</Table.Head>
-                <Table.Head class="h-[var(--row-h)] px-3 py-0 text-xs font-medium uppercase tracking-wider text-muted-foreground border-b text-right">Створено</Table.Head>
+                <Table.Head class="h-(--row-h) px-3 py-0 text-xs font-medium uppercase tracking-wider text-muted-foreground border-b">Код</Table.Head>
+                <Table.Head class="h-(--row-h) px-3 py-0 text-xs font-medium uppercase tracking-wider text-muted-foreground border-b">Перед</Table.Head>
+                <Table.Head class="h-(--row-h) px-3 py-0 text-xs font-medium uppercase tracking-wider text-muted-foreground border-b">Зад</Table.Head>
+                <Table.Head class="h-(--row-h) px-3 py-0 text-xs font-medium uppercase tracking-wider text-muted-foreground border-b">Статус</Table.Head>
+                <Table.Head class="h-(--row-h) px-3 py-0 text-xs font-medium uppercase tracking-wider text-muted-foreground border-b">В зоні</Table.Head>
+                <Table.Head class="h-(--row-h) px-3 py-0 text-xs font-medium uppercase tracking-wider text-muted-foreground border-b text-right">Створено</Table.Head>
             </Table.Row>
         {/snippet}
 

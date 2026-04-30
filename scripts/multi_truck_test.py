@@ -19,7 +19,7 @@ VALKEY_ADDR = os.getenv("VALKEY_ADDR", "localhost:6379")
 ADMIN_USER = os.getenv("ADMIN_USER", "admin")
 ADMIN_PASS = os.getenv("ADMIN_DEFAULT_PASSWORD", "secret123")
 
-TRUCK_COUNT = int(os.getenv("TRUCK_COUNT", "3"))
+TRUCK_COUNT = int(os.getenv("TRUCK_COUNT", "300"))
 RELIABILITY = float(os.getenv("RELIABILITY", "0.95")) # 95% успішних спрацювань за замовчуванням
 
 # Valkey Client for caching

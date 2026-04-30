@@ -118,6 +118,7 @@
   import * as Sidebar from "$lib/components/ui/sidebar/index.js";
   import { useSidebar } from "$lib/components/ui/sidebar/index.js";
   import type { ComponentProps } from "svelte";
+    import { goto } from "$app/navigation";
 
   let {
     ref = $bindable(null),
@@ -138,11 +139,13 @@
 <Sidebar.Root {collapsible} {...restProps}>
   <Sidebar.Header>
     <div class="flex items-center gap-2 mx-auto py-2">
-      <div
+      <button
+        type="button"
+        onclick={() => goto("/")}
         class="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground"
       >
         <span class="font-bold">TG</span>
-      </div>
+      </button>
       {#if sidebar.state !== "collapsed"}
         <div class="flex flex-col gap-0.5 leading-none">
           <span class="font-semibold text-lg tracking-tight">TruckGuard</span>
